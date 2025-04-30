@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "bhookiecore"
+  },
+  "targets": {
+    "bhookiecore": {
+      "hosting": {
+        "bhookie-admin10": [
+          "bhookie-admin10"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

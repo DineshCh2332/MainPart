@@ -1,0 +1,111 @@
+.employee-details-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #ffffff;
+  box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.employee-details-container h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #2c3e50;
+}
+
+.employee-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.back-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000; /* Ensure it appears on top of other elements */
+}
+
+.back-button:hover {
+  background-color: #0056b3;
+}
+
+
+.employee-details-table thead tr {
+  background-color: #ecf0f1;
+  color: #2c3e50;
+  font-weight: bold;
+}
+
+.employee-details-table th,
+.employee-details-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.employee-details-table tr:hover {
+  background-color: #f1f1f1;
+}
+
+.input-field {
+  padding: 8px;
+  width: 100%;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.edit-button,
+.save-button {
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.edit-button {
+  background-color: #3498db;
+  color: white;
+}
+
+.edit-button:hover {
+  background-color: #2980b9;
+}
+
+.save-button {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #27ae60;
+}
+
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.bank-header {
+  background-color: #dfe6e9;
+  font-weight: bold;
+  color: #2c3e50;
+  font-size: 15px;
+  padding-top: 20px;
+  padding-bottom: 10px;
+  text-align: center;
+}

@@ -1,0 +1,437 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+
+const MemberAttendance = () => {
+  const [date, setDate] = useState(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [empId, setEmpId] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [empName, setEmpName] = useState('');
+  const calendarRef = useRef(null);
+  
+  // Get the start (Monday) and end (Sunday) of the week for the selected date
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // 1 = Monday
+  const weekEnd = endOfWeek(date, { weekStartsOn: 1 });     // 1 = Monday (so Sunday is end)
+  
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+  const formatFirebaseDate = (date) => format(date, 'yyyy-MM-dd');
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    };
+
+    if (showCalendar) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCalendar]);
+
+  const fetchEmployeeAttendance = async () => {
+    if (!empId.trim()) return;
+    
+    setLoading(true);
+    try {
+      const empQuery = query(collection(db, "users_01"), where("employeeID", "==", empId));
+      const empQuerySnapshot = await getDocs(empQuery);
+      
+      if (empQuerySnapshot.empty) {
+        alert("Employee not found");
+        return;
+      }
+  
+      const empDoc = empQuerySnapshot.docs[0];
+      setEmpName(empDoc.data().name || empId);
+      setIsAuthenticated(true);
+  
+      let weeklyLogs = [];
+  
+      for (const day of weekDays) {
+        const dateStr = formatFirebaseDate(day);
+        const sessionsRef = collection(
+          db, 
+          "users_01", 
+          empDoc.id, 
+          "attendance", 
+          dateStr, 
+          "sessions"
+        );
+        
+        const sessionSnapshot = await getDocs(sessionsRef);
+        let dayLogs = [];
+  
+        sessionSnapshot.forEach((sessionDoc) => {
+          const sessionData = sessionDoc.data();
+          if (sessionData.source !== "system" && sessionData.source !== "admin") return;
+          
+          const checkIn = sessionData.checkIn?.toDate();
+          const checkOut = sessionData.checkOut?.toDate();
+  
+          const checkInStr = checkIn ? format(checkIn, 'hh:mm a') : "—";
+          const checkOutStr = checkOut ? format(checkOut, 'hh:mm a') : "—";
+  
+          let worked = "Incomplete";
+          if (checkIn && checkOut) {
+            const duration = checkOut - checkIn;
+            const hrs = Math.floor(duration / (1000 * 60 * 60));
+            const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+            worked = `${hrs}h ${mins}m`;
+          }
+  
+          dayLogs.push({
+            date: day,
+            dateStr: format(day, 'EEE, MMM dd'),
+            checkInStr,
+            checkOutStr,
+            worked,
+            checkInTime: checkIn?.getTime() || 0,
+            source: sessionData.source || "system"
+          });
+        });
+  
+        dayLogs.sort((a, b) => a.checkInTime - b.checkInTime);
+        weeklyLogs = [...weeklyLogs, ...dayLogs];
+      }
+  
+      setAttendanceData(weeklyLogs);
+    } catch (error) {
+      console.error("Error fetching attendance data:", error);
+      alert("Error loading attendance data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    fetchEmployeeAttendance();
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setEmpId('');
+    setAttendanceData([]);
+  };
+
+  const formattedWeekRange = `${format(weekStart, 'EEE, MMM dd')} - ${format(weekEnd, 'EEE, MMM dd, yyyy')}`;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchEmployeeAttendance();
+    }
+  }, [date, isAuthenticated]);
+
+  return (
+    <div style={styles.container}>
+      {!isAuthenticated ? (
+        <div style={styles.authContainer}>
+          <h2 style={styles.authTitle}>Employee Attendance Portal</h2>
+          <form onSubmit={handleLogin} style={styles.authForm}>
+            <input
+              type="text"
+              value={empId}
+              onChange={(e) => setEmpId(e.target.value)}
+              placeholder="Enter your Employee ID"
+              style={styles.authInput}
+              required
+            />
+            <button type="submit" style={styles.authButton}>
+              View My Attendance
+            </button>
+          </form>
+        </div>
+      ) : (
+        <>
+          <div style={styles.header}>
+            <div>
+              <h1 style={styles.title}>My Weekly Attendance</h1>
+              <div style={styles.empInfo}>
+                {empName} (ID: {empId})
+                
+              </div>
+            </div>
+            <button 
+              style={styles.calendarButton}
+              onClick={() => setShowCalendar(!showCalendar)}
+            >
+              <svg style={styles.calendarIcon} viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div style={styles.dateRow}>
+            <div style={styles.dateDisplay}>Week: {formattedWeekRange}</div>
+          </div>
+          
+          {showCalendar && (
+            <div style={styles.calendarPopup} ref={calendarRef}>
+              <Calendar 
+                onChange={(newDate) => {
+                  setDate(newDate);
+                  setShowCalendar(false);
+                }} 
+                value={date}
+                locale="en-US"
+              />
+            </div>
+          )}
+
+          {loading ? (
+            <div style={styles.loading}>Loading your weekly attendance data...</div>
+          ) : (
+            <table style={styles.attendanceTable}>
+              <thead>
+                <tr>
+                  <th style={styles.tableHeader}>Date</th>
+                  <th style={styles.tableHeader}>Check-In</th>
+                  <th style={styles.tableHeader}>Check-Out</th>
+                  <th style={styles.tableHeader}>Hours Worked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendanceData.length > 0 ? (
+                  attendanceData.map((record, index) => (
+                    <tr key={index} style={styles.tableRow}>
+                      <td style={styles.tableCell}>{record.dateStr}</td>
+                      <td style={styles.tableCell}>{record.checkInStr}</td>
+                      <td style={styles.tableCell}>{record.checkOutStr}</td>
+                      <td style={styles.tableCell}>{record.worked}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={styles.noRecords}>
+                      No attendance records found for this week
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// ... (keep your existing styles object)
+
+
+const styles = {
+  container: {
+    fontFamily: 'Arial, sans-serif',
+    maxWidth: '800px',
+    margin: '20px auto',
+    padding: '20px',
+    border: '1px solid #e0e0e0',
+    borderRadius: '4px',
+    backgroundColor: '#fff',
+    position: 'relative',
+  },
+  authContainer: {
+    textAlign: 'center',
+    padding: '40px 20px',
+  },
+  authTitle: {
+    fontSize: '24px',
+    marginBottom: '30px',
+    color: '#333',
+  },
+  authForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+    maxWidth: '400px',
+    margin: '0 auto',
+  },
+  authInput: {
+    padding: '12px',
+    fontSize: '16px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+  },
+  authButton: {
+    padding: '12px',
+    fontSize: '16px',
+    backgroundColor: '#1a73e8',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: '#0d5bba',
+    },
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '15px',
+  },
+  title: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    margin: 0,
+    color: '#333',
+  },
+  empInfo: {
+    fontSize: '14px',
+    color: '#555',
+    marginTop: '5px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  //logoutButton: {
+    //background: 'none',
+   // border: 'none',
+   // color: '#1a73e8',
+   // cursor: 'pointer',
+   // fontSize: '12px',
+    //textDecoration: 'underline',
+   // padding: 0,
+  //},
+  dateRow: {
+    marginBottom: '10px',
+  },
+  dateDisplay: {
+    fontSize: '14px',
+    color: '#333',
+  },
+  calendarButton: {
+    background: '#1a73e8',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    height: '32px',
+    width: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  calendarIcon: {
+    width: '16px',
+    height: '16px',
+    stroke: '#fff',
+    strokeWidth: '2',
+  },
+  calendarPopup: {
+    position: 'absolute',
+    top: '60px',
+    right: '20px',
+    zIndex: 100,
+    backgroundColor: '#fff',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    padding: '10px',
+    
+    // Calendar container
+    '& .react-calendar': {
+      width: '350px',
+      maxWidth: '100%',
+      background: 'white',
+      border: 'none',
+      fontFamily: 'Arial, sans-serif',
+      lineHeight: '1.5em',
+    },
+    
+    '& .react-calendar__navigation': {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '5px 0',
+      borderBottom: '1px solid #eee',
+      marginBottom: '10px',
+    },
+    '& .react-calendar__navigation__label': {
+      color: '#000000',
+      fontWeight: '600',
+      fontSize: '1.2em',
+      textTransform: 'capitalize',
+      padding: '0 10px',
+      cursor: 'pointer',
+      backgroundColor: 'transparent',
+      border: 'none',
+      borderRadius: '4px',
+      '&:hover': {
+        color: '#333333',
+        backgroundColor: '#f5f5f5',
+      },
+      '&:active': {
+        backgroundColor: '#e0e0e0',
+      }
+    },
+    // Navigation buttons
+    '& .react-calendar__navigation__arrow': {
+      color: '#000000',
+      '&:hover': {
+        color: '#333333',
+      }
+    },
+    
+    // Weekday labels (MON, TUE, etc.)
+    '& .react-calendar__month-view__weekdays': {
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      fontWeight: 'bold',
+      fontSize: '0.8em',
+      color: '#555',
+      padding: '5px 0',
+    },
+  },
+  attendanceTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: '15px',
+  },
+  tableHeader: {
+    backgroundColor: '#f5f5f5',
+    textAlign: 'left',
+    padding: '10px',
+    borderBottom: '1px solid #ddd',
+    fontSize: '14px',
+  },
+  tableCell: {
+    padding: '10px',
+    borderBottom: '1px solid #eee',
+    fontSize: '13px',
+  },
+  tableRow: {
+    '&:hover': {
+      backgroundColor: '#f9f9f9',
+    },
+  },
+  noRecords: {
+    padding: '20px',
+    textAlign: 'center',
+    color: '#999',
+    fontSize: '14px',
+  },
+  loading: {
+    padding: '20px',
+    textAlign: 'center',
+    color: '#666',
+  },
+};
+
+export default MemberAttendance;

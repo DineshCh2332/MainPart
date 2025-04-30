@@ -1,0 +1,53 @@
+/* Sidebar.css */
+.sidebar {
+    width: 200px;
+    padding: 20px;
+    background: #f0f0f0;
+    height: 100vh;
+  }
+  
+  .sidebar h3 {
+    margin-bottom: 20px;
+  }
+  
+  .sidebar-links {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .sidebar-link-item {
+    margin: 10px 0;
+  }
+  
+  .sidebar-link {
+    color: #000;
+    background-color: transparent;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: block;
+    text-decoration: none;
+    cursor: pointer; /* Remove the link cursor */
+  }
+  
+  .sidebar-link:hover {
+    background-color: #ddd; /* Background color on hover */
+  }
+  
+  .sidebar-link-active {
+    color: blue;
+    /* background-color: #007bff; */
+    pointer-events: none; /* Prevents active link from being clickable again */
+  }
+  
+  .sidebar-logout-button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 20px;
+    background-color: #ff4d4d;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  
