@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import "../css/Sidebar.css"
-import { auth } from "../firebase/config"; // Import Firebase auth
+import { NavLink, useLocation ,useNavigate } from "react-router-dom";
+import "../css/Sidebar.css";
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const location = useLocation(); 
 
   // Check which role the current user belongs to
   const isAdmin = location.pathname.startsWith("/admin");
@@ -18,35 +18,26 @@ const Sidebar = () => {
     location.pathname.includes("inventory")
   );
 
+  const handleLogout = () => {
+    logout();
+    navigate('/'); // Move navigation here
+  };
   // Define different links for each role
   const adminLinks = [
     { name: "Dashboard", path: "/admin/dashboard" },
     { name: "Users", path: "/admin/users" },
-    { name: "Menu", path: "/admin/menu" },
-    // Inventory will be handled separately
-    { name: "Orders", path: "/admin/orders" },
-    { name: "Approvals", path: "/admin/approvals" },
-    { name: "Reports", path: "/admin/reports" },
     { name: "Attendance", path: "/admin/AdminAttendance" }
   ];
 
   const managerLinks = [
     { name: "Dashboard", path: "/manager/dashboard" },
     { name: "Employees", path: "/manager/employees" },
-    { name: "Menu", path: "/manager/menu" },
-    // Inventory will be handled separately
-    { name: "Orders", path: "/manager/orders" },
-    { name: "Reports", path: "/manager/reports" },
     { name: "Attendance", path: "/manager/ManagerAttendance" },
   ];
 
   const teamleaderLinks = [
     { name: "Dashboard", path: "/teamleader/dashboard" },
     { name: "Employees", path: "/teamleader/Shiftrunners" },
-    { name: "Menu", path: "/teamleader/menu" },
-    { name: "Inventory", path: "/teamleader/inventory" },
-    { name: "Orders", path: "/teamleader/orders" },
-    { name: "Reports", path: "/teamleader/reports" },
     { name: "Attendance", path: "/teamleader/attendance" }
   ];
 
@@ -54,8 +45,6 @@ const Sidebar = () => {
     { name: "ViewDetails", path: "/teammember/ViewDetails" },
     { name: "Attendance", path: "/teammember/MemberAttendance" },
   ];
-  
-
 
   const links = isAdmin
     ? adminLinks
@@ -77,15 +66,6 @@ const Sidebar = () => {
         : isteamMember
           ? "Team Member Panel"
           : "Panel";
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
 
   return (
     <div className="sidebar">
@@ -154,7 +134,6 @@ const Sidebar = () => {
             )}
           </li>
         )}
-
       </ul>
 
       <button onClick={handleLogout} className="sidebar-logout-button">
