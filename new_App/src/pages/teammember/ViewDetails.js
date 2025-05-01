@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { initializeApp } from "firebase/app";
 import {
-  getFirestore,
   collection,
   query,
   where,
@@ -57,9 +55,9 @@ const ViewDetails = () => {
             <p><strong>Email:</strong> {runner.email || "N/A"}</p>
             <p><strong>DOB:</strong> {runner.dob || "N/A"}</p>
             <p><strong>Address:</strong> {runner.address || "N/A"}</p>
-            <p><strong>Number:</strong> {runner.number || "N/A"}</p>
-            <p><strong>Emp ID:</strong> {runner.empid || "N/A"}</p>
-            <p><strong>Cust ID:</strong> {runner.custid || "N/A"}</p>
+            <p><strong>Phone:</strong> {runner.phone || "N/A"}</p>
+    <p><strong>Emp ID:</strong> {runner.employeeID || "N/A"}</p>
+    <p><strong>Cust ID:</strong> {runner.customer_id || "N/A"}</p>
             <p><strong>Role:</strong> {runner.role || "N/A"}</p>
           </div>
         )}

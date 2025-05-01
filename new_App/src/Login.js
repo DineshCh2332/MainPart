@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { db } from "./firebase/config";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from '../src/context/AuthContext';
+import { ROLES ,getDashboardPath } from '../src/config/roles';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -44,23 +45,13 @@ const Login = () => {
     setError("");
 
     if (otp === userData.otp) {
-      login(userData); // Store user in context and localStorage
-      switch (userData.role.toLowerCase()) {
-        case "admin":
-          navigate("/admin/dashboard");
-          break;
-        case "manager":
-          navigate("/manager/dashboard");
-          break;
-        case "teamleader":
-          navigate("/teamleader/dashboard");
-          break;
-        case "teammember":
-        case "employee":
-          navigate("/teammember/viewdetails");
-          break;
-        default:
-          setError("Invalid user role");
+      login(userData);
+      const dashboardPath = getDashboardPath(userData.role);
+      
+      if (dashboardPath === '/unauthorized') {
+        setError("Invalid user role");
+      } else {
+        navigate(dashboardPath);
       }
     } else {
       setError("Invalid OTP");
@@ -117,7 +108,6 @@ const Login = () => {
               >
                 {loading ? "Verifying..." : "Verify OTP"}
               </button>
-              
             </div>
           </form>
         )}

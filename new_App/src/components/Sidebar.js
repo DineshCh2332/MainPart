@@ -1,146 +1,183 @@
-import React, { useState } from "react";
-import { NavLink, useLocation ,useNavigate } from "react-router-dom";
-import "../css/Sidebar.css";
+import React, { useState, useEffect, useMemo } from "react";
+import { NavLink } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
+import { ROLES } from '../config/roles';
+import "../css/Sidebar.css";
 
 const Sidebar = () => {
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-  const location = useLocation(); 
+  const { user, logout, isAdmin, isManager, isTeamLeader } = useAuth();
+  const [inventoryExpanded, setInventoryExpanded] = useState(false);
+  const [loginTime, setLoginTime] = useState('');
 
-  // Check which role the current user belongs to
-  const isAdmin = location.pathname.startsWith("/admin");
-  const isManager = location.pathname.startsWith("/manager");
-  const isteamleader = location.pathname.startsWith("/teamleader");
-  const isteamMember = location.pathname.startsWith("/teammember");
+  // Memoized role configuration
+  const { links, panelTitle, inventoryBasePath } = useMemo(() => {
+    const roleConfig = {
+      links: [],
+      panelTitle: "System Panel",
+      inventoryBasePath: ""
+    };
 
-  const [inventoryExpanded, setInventoryExpanded] = useState(
-    location.pathname.includes("inventory")
-  );
+    if (!user) return roleConfig;
 
-  const handleLogout = () => {
-    logout();
-    navigate('/'); // Move navigation here
-  };
-  // Define different links for each role
-  const adminLinks = [
-    { name: "Dashboard", path: "/admin/dashboard" },
-    { name: "Users", path: "/admin/users" },
-    { name: "Attendance", path: "/admin/AdminAttendance" }
-  ];
+    switch(user.role) {
+      case ROLES.ADMIN:
+        roleConfig.links = [
+          { name: "Dashboard", path: "/admin/dashboard" },
+          { name: "User Management", path: "/admin/users" },
+          { name: "Attendance Records", path: "/admin/AdminAttendance" }
+        ];
+        roleConfig.panelTitle = "Administration Panel";
+        roleConfig.inventoryBasePath = "/admin";
+        break;
+      
+      case ROLES.MANAGER:
+        roleConfig.links = [
+          { name: "Performance Dashboard", path: "/manager/dashboard" },
+          { name: "Staff Directory", path: "/manager/employees" },
+          { name: "Shift Attendance", path: "/manager/ManagerAttendance" }
+        ];
+        roleConfig.panelTitle = "Management Console";
+        roleConfig.inventoryBasePath = "/manager";
+        break;
+      
+      case ROLES.TEAM_LEADER:
+        roleConfig.links = [
+          { name: "Team Dashboard", path: "/teamleader/dashboard" },
+          { name: "Shift Runners", path: "/teamleader/Shiftrunners" },
+          { name: "Attendance Tracking", path: "/teamleader/attendance" }
+        ];
+        roleConfig.panelTitle = "Team Leadership";
+        roleConfig.inventoryBasePath = "/teamleader";
+        break;
+      
+      case ROLES.TEAM_MEMBER:
+      case ROLES.EMPLOYEE:
+        roleConfig.links = [
+          { name: "My Profile", path: "/teammember/ViewDetails" },
+          { name: "Attendance History", path: "/teammember/MemberAttendance" }
+        ];
+        roleConfig.panelTitle = user.role === ROLES.TEAM_MEMBER 
+          ? "My Account Portal" 
+          : "Employee Portal";
+        break;
+    }
 
-  const managerLinks = [
-    { name: "Dashboard", path: "/manager/dashboard" },
-    { name: "Employees", path: "/manager/employees" },
-    { name: "Attendance", path: "/manager/ManagerAttendance" },
-  ];
+    return roleConfig;
+  }, [user]);
 
-  const teamleaderLinks = [
-    { name: "Dashboard", path: "/teamleader/dashboard" },
-    { name: "Employees", path: "/teamleader/Shiftrunners" },
-    { name: "Attendance", path: "/teamleader/attendance" }
-  ];
+  // Login time formatting with cleanup
+  useEffect(() => {
+    let isMounted = true;
+    
+    const updateTime = () => {
+      if (user?.loginTime && isMounted) {
+        const formatted = new Date(user.loginTime).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+        setLoginTime(formatted);
+      }
+    };
 
-  const teamMemberLinks = [
-    { name: "ViewDetails", path: "/teammember/ViewDetails" },
-    { name: "Attendance", path: "/teammember/MemberAttendance" },
-  ];
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
 
-  const links = isAdmin
-    ? adminLinks
-    : isManager
-      ? managerLinks
-      : isteamleader
-        ? teamleaderLinks
-        : isteamMember
-          ? teamMemberLinks
-          : [];
-
-  // Dynamic title based on role
-  const panelTitle = isAdmin
-    ? "Admin Panel"
-    : isManager
-      ? "Manager Panel"
-      : isteamleader
-        ? "Team Leader Panel"
-        : isteamMember
-          ? "Team Member Panel"
-          : "Panel";
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [user?.loginTime]);
 
   return (
-    <div className="sidebar">
-      <h3>{panelTitle}</h3>
-      <ul className="sidebar-links">
-        {links.map((link) => {
-          if (link.name !== "Inventory") {
-            return (
-              <li key={link.path} className="sidebar-link-item">
+    <div className="sidebar-container">
+      {/* User Info Section */}
+      <div className="user-info-section">
+        <div className="user-details">
+          <h3 className="user-name">{user?.name || 'Guest User'}</h3>
+          <div className="user-meta">
+            <span className="user-role">{user?.role || 'No Role Assigned'}</span>
+            {loginTime && (
+              <span className="login-time">Active since: {loginTime}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Section */}
+      <div className="navigation-section">
+        <h4 className="panel-title">{panelTitle}</h4>
+        
+        <nav className="main-navigation">
+          {links.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                `nav-item ${isActive ? 'active-nav-item' : ''}`
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Inventory Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
+          <div className="inventory-section">
+            <button 
+              className={`inventory-toggle ${inventoryExpanded ? 'expanded' : ''}`}
+              onClick={() => setInventoryExpanded(!inventoryExpanded)}
+            >
+              Inventory Management
+              <span className="toggle-indicator">
+                {inventoryExpanded ? '−' : '+'}
+              </span>
+            </button>
+            
+            {inventoryExpanded && (
+              <div className="inventory-submenu">
                 <NavLink
-                  to={link.path}
+                  to={`${inventoryBasePath}/inventory/wastemanagement`}
                   className={({ isActive }) =>
-                    isActive ? "sidebar-link-active" : "sidebar-link"
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
                   }
                 >
-                  {link.name}
+                  Waste Management
                 </NavLink>
-              </li>
-            );
-          }
-          return null;
-        })}
-
-        {(isAdmin || isManager || isteamleader) && (
-          <li className="sidebar-link-item">
-            <div
-              className="sidebar-link"
-              onClick={() => setInventoryExpanded((prev) => !prev)}
-              style={{ cursor: "pointer" }}
-            >
-              Inventory {inventoryExpanded ? "▲" : "▼"}
-            </div>
-            {inventoryExpanded && (
-              <ul className="sidebar-submenu">
-                <li>
-                  <NavLink
-                    to={`/${isAdmin ? "admin" : isManager ? "manager" : "teamleader"}/inventory/wastemanagement`}
-                    className={({ isActive }) =>
-                      isActive ? "sidebar-link-active" : "sidebar-link"
-                    }
-                  >
-                    Waste Management
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to={`/${isAdmin ? "admin" : isManager ? "manager" : "teamleader"}/inventory/stockcount`}
-                    className={({ isActive }) =>
-                      isActive ? "sidebar-link-active" : "sidebar-link"
-                    }
-                  >
-                    Stock Count
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to={`/${isAdmin ? "admin" : isManager ? "manager" : "teamleader"}/inventory/stockmovement`}
-                    className={({ isActive }) =>
-                      isActive ? "sidebar-link-active" : "sidebar-link"
-                    }
-                  >
-                    Stock Movement
-                  </NavLink>
-                </li>
-              </ul>
+                <NavLink
+                  to={`${inventoryBasePath}/inventory/stockcount`}
+                  className={({ isActive }) =>
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
+                  }
+                >
+                  Stock Audit
+                </NavLink>
+                <NavLink
+                  to={`${inventoryBasePath}/inventory/stockmovement`}
+                  className={({ isActive }) =>
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
+                  }
+                >
+                  Stock Movement
+                </NavLink>
+              </div>
             )}
-          </li>
+          </div>
         )}
-      </ul>
+      </div>
 
-      <button onClick={handleLogout} className="sidebar-logout-button">
-        Logout
-      </button>
+      {/* Logout Section */}
+      <div className="logout-section">
+        <button 
+          onClick={logout}
+          className="logout-button"
+        >
+          Secure Logout
+        </button>
+      </div>
     </div>
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);
