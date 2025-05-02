@@ -11,6 +11,13 @@ import WasteManagement from "../pages/admin/inventory/WasteManagement";
 import StockCount from "../pages/admin/inventory/StockCount";
 import InventoryAndWasteHistory from "../pages/admin/inventory/StockMovement";
 
+//Cash Management pages
+import OpenCashier from "../pages/teamleader/cashManagement/OpenCashier";
+import CloseCashier from "../pages/teamleader/cashManagement/CloseCashier"
+import SafeCountPage from "../pages/teamleader/cashManagement/SafeCountPage";
+import BankingPage from "../pages/teamleader/cashManagement/BankingPage";
+
+
 const TeamLeaderLayout = () => {
     return (
 
@@ -28,6 +35,12 @@ const TeamLeaderLayout = () => {
                     <Route path="inventory/stockmovement" element={<InventoryAndWasteHistory />} />
 
 
+                    {/*Cash Management */}
+                    <Route path="cashManagement/opencashier" element={<OpenCashier />} />
+                    <Route path="cashManagement/closecashier" element={<CloseCashier />} />
+                    <Route path="cashManagement/safecountpage" element={<SafeCountPage />} />
+                    <Route path="cashManagement/bankingpage" element={<BankingPage />} />
+
                 </Routes>
             </div>
         </div>
@@ -35,3 +48,4 @@ const TeamLeaderLayout = () => {
 };
 
 export default TeamLeaderLayout;
+
