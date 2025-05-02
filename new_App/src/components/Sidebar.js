@@ -5,8 +5,9 @@ import "../css/Sidebar.css";
 import { auth } from "../firebase/config"; // Import Firebase auth
 
 const Sidebar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { user, logout, isAdmin, isManager, isTeamLeader } = useAuth();
+  const [inventoryExpanded, setInventoryExpanded] = useState(false);
+  const [loginTime, setLoginTime] = useState('');
 
   const isAdmin = location.pathname.startsWith("/admin");
   const isManager = location.pathname.startsWith("/manager");
@@ -81,23 +82,89 @@ const Sidebar = () => {
     } catch (error) {
       console.error("Logout error:", error);
     }
-  };
+
+    return roleConfig;
+  }, [user]);
+
+  // Login time formatting with cleanup
+  useEffect(() => {
+    let isMounted = true;
+    
+    const updateTime = () => {
+      if (user?.loginTime && isMounted) {
+        const formatted = new Date(user.loginTime).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+        setLoginTime(formatted);
+      }
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [user?.loginTime]);
 
   return (
-    <div className="sidebar">
-      <h3>{panelTitle}</h3>
-      <ul className="sidebar-links">
-        {links.map((link) => {
-          if (link.name !== "Inventory") {
-            return (
-              <li key={link.path} className="sidebar-link-item">
+    <div className="sidebar-container">
+      {/* User Info Section */}
+      <div className="user-info-section">
+        <div className="user-details">
+          <h3 className="user-name">{user?.name || 'Guest User'}</h3>
+          <div className="user-meta">
+            <span className="user-role">{user?.role || 'No Role Assigned'}</span>
+            {loginTime && (
+              <span className="login-time">Active since: {loginTime}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Section */}
+      <div className="navigation-section">
+        <h4 className="panel-title">{panelTitle}</h4>
+        
+        <nav className="main-navigation">
+          {links.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                `nav-item ${isActive ? 'active-nav-item' : ''}`
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Inventory Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
+          <div className="inventory-section">
+            <button 
+              className={`inventory-toggle ${inventoryExpanded ? 'expanded' : ''}`}
+              onClick={() => setInventoryExpanded(!inventoryExpanded)}
+            >
+              Inventory Management
+              <span className="toggle-indicator">
+                {inventoryExpanded ? '−' : '+'}
+              </span>
+            </button>
+            
+            {inventoryExpanded && (
+              <div className="inventory-submenu">
                 <NavLink
-                  to={link.path}
+                  to={`${inventoryBasePath}/inventory/wastemanagement`}
                   className={({ isActive }) =>
-                    isActive ? "sidebar-link-active" : "sidebar-link"
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
                   }
                 >
-                  {link.name}
+                  Waste Management
                 </NavLink>
               </li>
             );
@@ -217,4 +284,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);
