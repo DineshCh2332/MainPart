@@ -134,29 +134,51 @@ export default function CloseCashier() {
   // Handle authorization (password verification)
   const handleAuthorization = async () => {
     if (!auth.password) {
-      alert("Please enter password");
+      alert("Please enter cashier ID");
       return;
     }
     try {
-      // Check if there's a float where cashierId matches the entered password
+      // 1. Find matching float
       const floatSnap = await getDocs(collection(db, "floats"));
       const matchingFloat = floatSnap.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .find(
           (doc) =>
-            doc.authorisedBy?.cashierEmployeeId === auth.password &&
-            doc.cashierId === selectedCashier &&
+            doc.cashierId === selectedCashier && // Match selected cashier
+            doc.authorisedBy?.cashierEmployeeId === auth.password && // Cashier ID auth
             !doc.closed
         );
-
+  
       if (!matchingFloat) {
-        alert("Authorization failed: incorrect password.");
+        alert("Authorization failed: Invalid cashier ID");
         return;
       }
       if (matchingFloat.isOpen === false) {
         alert("This float has already been closed.");
         return;
       }
+
+         // 2. Update float document
+    await updateDoc(doc(db, "floats", matchingFloat.id), {
+      closed: true,
+      isOpen: false,
+      closedAt: serverTimestamp() // 👈 Add this line
+    });
+
+    // 3. Update cashier session in subcollection
+    const sessionsRef = collection(db, "floats", matchingFloat.id, "cashierSessions");
+    const activeSessionQuery = query(sessionsRef, where("closedAt", "==", null));
+    const activeSessionSnap = await getDocs(activeSessionQuery);
+
+    if (!activeSessionSnap.empty) {
+      const sessionDoc = activeSessionSnap.docs[0];
+      await updateDoc(doc(sessionsRef, sessionDoc.id), {
+        closedAt: serverTimestamp()
+      });
+    }
+
+
+    
       const today = new Date();
       const formattedDate = today.toISOString().split("T")[0];
       const docId = `${selectedCashier}_${formattedDate}`;
@@ -229,7 +251,6 @@ await updateDoc(sessionDocRef, {
 await updateDoc(doc(db, "floats", matchingFloat.id), {
   closed: true,
   isOpen: false,
-  
 });
 
 
