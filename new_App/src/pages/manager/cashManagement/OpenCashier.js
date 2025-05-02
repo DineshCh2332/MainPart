@@ -42,13 +42,20 @@ export default function OpenCashier() {
   // ✅ Fetch cashiers from Firestore
   useEffect(() => {
     const fetchCashiers = async () => {
-      const roleRef = doc(db, "roles", "cash01");
       const q = query(
         collection(db, "users_01"),
-        where("roleId", "==", roleRef)
+        where("role", "==", "employee") // Query by role field directly
       );
       const snapshot = await getDocs(q);
-      setCashiers(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      setCashiers(snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: data.employeeID, // Use employeeId instead of document ID
+          name: data.name,
+          email: data.email,
+          ...data
+        };
+      }));
     };
     fetchCashiers();
   }, []);
@@ -120,28 +127,31 @@ export default function OpenCashier() {
       alert("Both cashier and witness must confirm.");
       return;
     }
-    const selectedCashierRef = doc(db, "users_01", selectedCashier);
-    const selectedCashierSnap = await getDoc(selectedCashierRef);
+
+    // Get selected cashier by employeeID
+    const cashierQuery = query(
+      collection(db, "users_01"),
+      where("employeeID", "==", selectedCashier)
+    );
+    const cashierSnapshot = await getDocs(cashierQuery);
     
-    if (!selectedCashierSnap.exists()) {
+    if (cashierSnapshot.empty) {
       alert("Selected cashier not found.");
       return;
     }
     
-    const selectedCashierData = selectedCashierSnap.data();
-    const selectedCashierEmpId = selectedCashierData.employeeID?.trim();
+    const selectedCashierData = cashierSnapshot.docs[0].data();
     
-    if (selectedCashierEmpId !== authCashierId.trim()) {
+    if (selectedCashierData.employeeID?.trim() !== authCashierId.trim()) {
       alert("Cashier ID does not match the selected cashier.");
       return;
     }
-    
-    const manageRoleRef = doc(db, "roles", "manage01");
 
+    // Validate witness (manager with employeeID)
     const witnessQuery = query(
       collection(db, "users_01"),
       where("employeeID", "==", authWitnessId.trim()),
-      where("roleId", "==", manageRoleRef)
+      where("role", "==", "manager")
     );
     
     const witnessSnap = await getDocs(witnessQuery);
@@ -150,8 +160,6 @@ export default function OpenCashier() {
       alert("Invalid witness ID or not a manager.");
       return;
     }
-    
-  
     // Continue with float creation...
   
 
@@ -168,7 +176,7 @@ export default function OpenCashier() {
       date: formattedDate,
       openedAt: serverTimestamp(),
       isOpen: true,
-      cashierId: selectedCashier,
+      EmployeeId: selectedCashier,
       entries: denominations.map((d) => ({
         denomination: d.label,
         count: counts[d.label] || 0,
@@ -201,7 +209,7 @@ export default function OpenCashier() {
         `${selectedCashier}_${Date.now()}`
       );
       await setDoc(newSessionRef, {
-        cashierId: selectedCashier,
+        EmployeeId: selectedCashier,
         openedAt: serverTimestamp(),
         closedAt: null,
       });
@@ -253,8 +261,8 @@ export default function OpenCashier() {
           >
             <option value="">-- Select --</option>
             {cashiers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name || c.id}
+            <option key={c.employeeID} value={c.employeeID}>
+          {c.name} 
               </option>
             ))}
           </select>

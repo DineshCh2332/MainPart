@@ -1,0 +1,51 @@
+users_01 (Collection)
+└── {userId} (Document)
+    ├── address: string
+    ├── bank_details (map)
+    │   ├── account_number: string
+    │   ├── bank_name: string
+    │   ├── branch_name: string
+    │   ├── ifsc_code: string
+    ├── customer_id: string
+    ├── dob: string
+    ├── document_number: string
+    ├── email: string
+    ├── employeeID: string
+    ├── member_since: string
+    ├── name: string
+    ├── otp: string
+    ├── phone: string
+    ├── role: string
+    ├── shareCode: string
+
+
+floats (Collection)
+└── floatA_2025-05-02 (Document)
+    ├── authorisedBy (map)
+    │   ├── cashier: string
+    │   ├── witness: string
+    │   ├── cashierId: string
+    ├── closed: boolean
+    ├── date: string
+    ├── entries (array of maps)
+    │   ├── [0]
+    │   │   ├── count: number
+    │   │   ├── denomination: string
+    │   │   ├── value: number
+    │   ├── ...
+    │   ├── [11]
+    │   │   ├── count: number
+    │   │   ├── denomination: string
+    │   │   ├── value: number
+    ├── initialCount: number
+    ├── isOpen: boolean
+    ├── openedAt: timestamp
+    ├── total: number
+    ├── type: string
+    ├── variance: number
+
+    └── cashierSessions (Subcollection)
+        └── 10096_1746216891658 (Document)
+            ├── EmployeeId: string
+            ├── closedAt: timestamp
+            ├── openedAt: timestamp
