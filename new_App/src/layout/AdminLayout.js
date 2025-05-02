@@ -13,6 +13,13 @@ import WasteManagement from "../pages/admin/inventory/WasteManagement";
 import StockCount from "../pages/admin/inventory/StockCount";
 import InventoryAndWasteHistory from "../pages/admin/inventory/StockMovement";
 
+
+//Cash Management pages
+import OpenCashier from "../pages/admin/cashManagement/OpenCashier";
+import CloseCashier from "../pages/admin/cashManagement/CloseCashier"
+import SafeCountPage from "../pages/admin/cashManagement/SafeCountPage";
+import BankingPage from "../pages/admin/cashManagement/BankingPage";
+
 const AdminLayout = () => {
   return (
     <div className="bg-white min-h-screen">
@@ -32,6 +39,13 @@ const AdminLayout = () => {
             <Route path="inventory/wastemanagement" element={<WasteManagement />} />
             <Route path="inventory/stockcount" element={<StockCount />} />
             <Route path="inventory/stockmovement" element={<InventoryAndWasteHistory />} />
+
+
+            {/*Cash Management */}
+            <Route path="cashManagement/opencashier" element={<OpenCashier/>}/>
+            <Route path="cashManagement/closecashier" element={<CloseCashier/>} />
+            <Route path="cashManagement/safecountpage" element={<SafeCountPage/>} />
+            <Route path="cashManagement/bankingpage" element={<BankingPage/>} />
           </Routes>
         </div>
       </div>
