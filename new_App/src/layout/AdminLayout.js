@@ -40,6 +40,10 @@ const AdminLayout = () => {
             <Route path="inventory/stockcount" element={<StockCount />} />
             <Route path="inventory/stockmovement" element={<InventoryAndWasteHistory />} />
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b4502fb5f1114fbeace043924d35f833c8fedd8a
             {/*Cash Management */}
             <Route path="cashManagement/opencashier" element={<OpenCashier/>}/>
             <Route path="cashManagement/closecashier" element={<CloseCashier/>} />

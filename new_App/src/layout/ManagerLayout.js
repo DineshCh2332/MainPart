@@ -15,6 +15,11 @@ import WasteManagement from "../pages/admin/inventory/WasteManagement";
 import StockCount from "../pages/admin/inventory/StockCount";
 import InventoryAndWasteHistory from "../pages/admin/inventory/StockMovement";
 
+//Cash Management pages
+import OpenCashier from "../pages/manager/cashManagement/OpenCashier";
+import CloseCashier from "../pages/manager/cashManagement/CloseCashier";
+import SafeCountPage from "../pages/manager/cashManagement/SafeCountPage";
+import BankingPage from "../pages/admin/cashManagement/BankingPage";
 
 const ManagerLayout = () => {
   return (
@@ -35,6 +40,12 @@ const ManagerLayout = () => {
           <Route path="inventory/wastemanagement" element={<WasteManagement />} />
             <Route path="inventory/stockcount" element={<StockCount />} />
             <Route path="inventory/stockmovement" element={<InventoryAndWasteHistory />} />
+
+             {/*Cash Management */}
+                        <Route path="cashManagement/OpenCashier" element={<OpenCashier/>}/>
+                        <Route path="cashManagement/CloseCashier" element={<CloseCashier/>} />
+                        <Route path="cashManagement/safecountpage" element={<SafeCountPage/>} />
+                        <Route path="cashManagement/bankingpage" element={<BankingPage/>} />
         </Routes>
       </div>
     </div>
