@@ -293,7 +293,7 @@ export default function CloseCashier() {
           <option value="">-- Select --</option>
           {cashiers.map((c) => (
             <option key={c.employeeID} value={c.employeeID}>  {/* Use employeeID as value */}
-              ({c.name} || {c.employeeID})
+                  {c.name}
             </option>
           ))}
         </select>

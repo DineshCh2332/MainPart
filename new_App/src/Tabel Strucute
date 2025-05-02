@@ -17,6 +17,12 @@ users_01 (Collection)
     ├── phone: string
     ├── role: string
     ├── shareCode: string
+    └── attendance/{date}
+       └── sessions/{sessionId}
+            ├── checkIn: timestamp
+            ├── checkOut: timestamp (null initially)
+            └── status: "open" | "closed
+
 
 
 floats (Collection)
