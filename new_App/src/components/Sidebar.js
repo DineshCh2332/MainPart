@@ -7,6 +7,7 @@ import "../css/Sidebar.css";
 const Sidebar = () => {
   const { user, logout, isAdmin, isManager, isTeamLeader } = useAuth();
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
+  const [cashManagementExpanded, setCashManagementExpanded] = useState(false);
   const [loginTime, setLoginTime] = useState('');
 
   // Memoized role configuration
@@ -33,8 +34,8 @@ const Sidebar = () => {
       case ROLES.MANAGER:
         roleConfig.links = [
           { name: "Performance Dashboard", path: "/manager/dashboard" },
-          { name: "Staff Directory", path: "/manager/employees" },
-          { name: "Shift Attendance", path: "/manager/ManagerAttendance" }
+          { name: "Employees Details", path: "/manager/employees" },
+          { name: "Attendance", path: "/manager/ManagerAttendance" }
         ];
         roleConfig.panelTitle = "Management Console";
         roleConfig.inventoryBasePath = "/manager";
@@ -160,6 +161,58 @@ const Sidebar = () => {
                   }
                 >
                   Stock Movement
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Cash Management Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
+          <div className="inventory-section">
+            <button 
+              className={`inventory-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
+              onClick={() => setCashManagementExpanded(!cashManagementExpanded)}
+            >
+              Cash Management
+              <span className="toggle-indicator">
+                {cashManagementExpanded ? '−' : '+'}
+              </span>
+            </button>
+            
+            {cashManagementExpanded && (
+              <div className="inventory-submenu">
+                <NavLink
+                  to={`${inventoryBasePath}/cashmanagement/opencashier`}
+                  className={({ isActive }) =>
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
+                  }
+                >
+                  Open Cashier
+                </NavLink>
+                <NavLink
+                  to={`${inventoryBasePath}/cashmanagement/closecashier`}
+                  className={({ isActive }) =>
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
+                  }
+                >
+                  Close Cashier
+                </NavLink>
+                <NavLink
+                  to={`${inventoryBasePath}/cashmanagement/safecountpage`}
+                  className={({ isActive }) =>
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
+                  }
+                >
+                  Safe Count
+                </NavLink>
+                <NavLink
+                  to={`${inventoryBasePath}/cashmanagement/bankingpage`}
+                  className={({ isActive }) =>
+                    `submenu-item ${isActive ? 'active-subitem' : ''}`
+                  }
+                >
+                  Banking
                 </NavLink>
               </div>
             )}

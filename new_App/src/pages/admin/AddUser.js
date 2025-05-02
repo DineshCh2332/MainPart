@@ -223,6 +223,7 @@ const AddUser = () => {
             />
             <button
               type="button"
+              className="ok"
               onClick={() => {
                 const generatedID = generateCustomerID();
                 setFormData((prev) => ({ ...prev, customer_id: generatedID }));
@@ -249,7 +250,7 @@ const AddUser = () => {
             />
             {formData.role === "employee" && (
               <button
-                type="button"
+                type="button" className="ok"
                 onClick={() => {
                   const generatedEmployeeID = generateEmployeeID();
                   setFormData((prev) => ({ ...prev, employeeID: generatedEmployeeID }));
@@ -343,7 +344,7 @@ const AddUser = () => {
         </div>
 
         <div className="form-actions">
-          <button type="submit">Add User</button>
+          <button  className="ok" type="submit">Add User</button>
         </div>
       </form>
     </div>

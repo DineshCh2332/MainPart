@@ -26,8 +26,8 @@
     border-radius: 5px;
     display: block;
     text-decoration: none;
-    cursor: pointer; /* Remove the link cursor */
-  /* } */
+    cursor: pointer;
+  } */
   
   .sidebar-link:hover {
     background-color: #ddd; /* Background color on hover */
@@ -50,8 +50,7 @@
     cursor: pointer;
     border-radius: 5px;
   }
-   */
-
+   
 
   .sidebar-container {
     width: 280px;
