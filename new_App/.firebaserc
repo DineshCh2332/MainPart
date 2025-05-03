@@ -7,6 +7,9 @@
       "hosting": {
         "bhookie-admin10": [
           "bhookie-admin10"
+        ],
+        "bhookie-maindatabse": [
+          "bhookie-maindatabse"
         ]
       }
     }

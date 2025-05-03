@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "target":"bhookie-admin10",
+    "target":"bhookie-maindatabse",
     "public": "build",
     "ignore": [
       "firebase.json",
