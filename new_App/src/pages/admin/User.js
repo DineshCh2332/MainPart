@@ -1,106 +1,83 @@
+// src/pages/admin/Users.js
 import React, { useEffect, useState, useCallback } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
-import "../../css/Users.css"; // Assuming you have a CSS file for styling
+import "../../css/Users.css";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [roleFilter, setRoleFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
   const [roleCounts, setRoleCounts] = useState({
     Employee: 0,
     Customer: 0,
     Admin: 0,
     TeamLeader: 0,
+    Manager: 0,
   });
   const [sortConfig, setSortConfig] = useState({
-    key: "name", // Default sorting by name
-    direction: "asc", // Default sort direction
+    key: "name",
+    direction: "asc",
   });
   const navigate = useNavigate();
 
-  // Define the calculateRoleCounts function
   const calculateRoleCounts = (usersList) => {
-    const counts = { Employee: 0, Customer: 0, Admin: 0, TeamLeader: 0 };
-  
+    const counts = { Employee: 0, Customer: 0, Admin: 0, TeamLeader: 0, Manager: 0 };
     usersList.forEach((user) => {
       const role = user.role?.toLowerCase();
       if (role === "employee") counts.Employee++;
       if (role === "customer") counts.Customer++;
       if (role === "admin") counts.Admin++;
       if (role === "teamleader") counts.TeamLeader++;
+      if (role === "manager") counts.Manager++;
     });
-  
     setRoleCounts(counts);
   };
 
-  // Define the loadUsers function
   const loadUsers = useCallback(async () => {
     const userCollection = collection(db, "users_01");
-    let userQuery = userCollection;  // Fetch all users, we'll filter locally
-    let rawUsers = [];
-  
     try {
-      const snapshot = await getDocs(userQuery);
-      rawUsers = snapshot.docs.map((doc) => ({
+      const snapshot = await getDocs(userCollection);
+      const rawUsers = snapshot.docs.map((doc) => ({
         docId: doc.id,
         ...doc.data(),
       }));
-  
       setUsers(rawUsers);
-      setFilteredUsers(rawUsers);  // Initialize filteredUsers with all users
-      calculateRoleCounts(rawUsers);  // Call the calculateRoleCounts function here
+      setFilteredUsers(rawUsers);
+      calculateRoleCounts(rawUsers);
     } catch (error) {
       console.error("Error loading users:", error);
     }
   }, []);
 
-  // Define the filterUsers function
   const filterUsers = useCallback(() => {
     const search = searchTerm.toLowerCase();
     const normalizedRoleFilter = roleFilter.toLowerCase();
-  
     const results = users.filter((user) => {
       const name = (user.name || "").toLowerCase();
       const role = (user.role || "").toLowerCase();
       const phone = (user.phone || "").toLowerCase();
       const userId = (user.customer_id || "N/A").toLowerCase();
-
-      const matchesSearch =
-        name.includes(search) ||
-        role.includes(search) ||
-        phone.includes(search) ||
-        userId.includes(search);
-
-      const matchesRole =
-        normalizedRoleFilter === "all" || role === normalizedRoleFilter;
-
+      const matchesSearch = name.includes(search) || role.includes(search) || phone.includes(search) || userId.includes(search);
+      const matchesRole = normalizedRoleFilter === "all" || role === normalizedRoleFilter;
       return matchesSearch && matchesRole;
     });
-
     setFilteredUsers(results);
-    // calculateRoleCounts(results);  // Don't recalculate counts based on filtered results
   }, [searchTerm, users, roleFilter]);
 
-  // Sorting functionality
   const sortUsers = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc";
     }
-
     const sortedUsers = [...filteredUsers].sort((a, b) => {
-      if (a[key] < b[key]) {
-        return direction === "asc" ? -1 : 1;
-      }
-      if (a[key] > b[key]) {
-        return direction === "asc" ? 1 : -1;
-      }
+      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
+      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
       return 0;
     });
-
     setSortConfig({ key, direction });
     setFilteredUsers(sortedUsers);
   };
@@ -112,12 +89,21 @@ const Users = () => {
     return "";
   };
 
-  // Load users initially when the component mounts
+  // ✅ Trigger reload when redirected from UserDetails
+  useEffect(() => {
+    if (location.state?.reload) {
+      loadUsers();
+      if (location.state.message) {
+        alert(location.state.message);
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, loadUsers]);
+
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
 
-  // Filter users when searchTerm or roleFilter changes
   useEffect(() => {
     filterUsers();
   }, [searchTerm, users, roleFilter, filterUsers]);
@@ -132,11 +118,12 @@ const Users = () => {
       </div>
 
       <div className="user-summary">
-        <p>Total Users: <strong>{roleCounts.Employee + roleCounts.Customer + roleCounts.TeamLeader + roleCounts.Admin}</strong></p> 
+        <p>Total Users: <strong>{roleCounts.Employee + roleCounts.Customer + roleCounts.TeamLeader + roleCounts.Admin + roleCounts.Manager}</strong></p>
         <p>Employees: <strong>{roleCounts.Employee}</strong></p>
         <p>Customers: <strong>{roleCounts.Customer}</strong></p>
         <p>Teamleaders: <strong>{roleCounts.TeamLeader}</strong></p>
         <p>Admins: <strong>{roleCounts.Admin}</strong></p>
+        <p>Managers: <strong>{roleCounts.Manager}</strong></p>
       </div>
 
       <div className="top-controls">
@@ -153,6 +140,7 @@ const Users = () => {
             <option value="customer">Customer</option>
             <option value="admin">Admin</option>
             <option value="teamleader">Team Leader</option>
+            <option value="manager">Manager</option>
           </select>
         </div>
 
@@ -169,18 +157,10 @@ const Users = () => {
       <table className="users-table">
         <thead>
           <tr>
-            <th onClick={() => sortUsers("customer_id")}>
-              User ID {renderSortArrow("customer_id")}
-            </th>
-            <th onClick={() => sortUsers("name")}>
-              Name {renderSortArrow("name")}
-            </th>
-            <th onClick={() => sortUsers("phone")}>
-              Phone {renderSortArrow("phone")}
-            </th>
-            <th onClick={() => sortUsers("role")}>
-              Role {renderSortArrow("role")}
-            </th>
+            <th onClick={() => sortUsers("customer_id")}>User ID {renderSortArrow("customer_id")}</th>
+            <th onClick={() => sortUsers("name")}>Name {renderSortArrow("name")}</th>
+            <th onClick={() => sortUsers("phone")}>Phone {renderSortArrow("phone")}</th>
+            <th onClick={() => sortUsers("role")}>Role {renderSortArrow("role")}</th>
           </tr>
         </thead>
         <tbody>

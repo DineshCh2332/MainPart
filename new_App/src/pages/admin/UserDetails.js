@@ -373,24 +373,26 @@
 
 // export default UserDetails;
 
-
-
+// src/pages/admin/UserDetails.js
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../firebase/config";
-import { doc, getDoc, updateDoc,deleteDoc } from "firebase/firestore";
-import { collection, getDocs } from "firebase/firestore"; // Add this import
-import "../../css/UserDetails.css"; // Import your CSS file
-
+import { doc, getDoc, updateDoc, collection, getDocs } from "firebase/firestore";
+import "../../css/UserDetails.css";
 
 const UserDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [editableField, setEditableField] = useState(null);
   const [updatedValue, setUpdatedValue] = useState("");
   const [error, setError] = useState("");
+  const [changedFields, setChangedFields] = useState({});
+const [successMessage, setSuccessMessage] = useState("");
+
   const editRef = useRef(null);
+  
+
 
   useEffect(() => {
     const loadUser = async () => {
@@ -407,11 +409,20 @@ const UserDetails = () => {
         const memberSinceDate = userData.member_since?.toDate
           ? userData.member_since.toDate()
           : userData.member_since instanceof Date
-            ? userData.member_since
-            : null;
+          ? userData.member_since
+          : null;
 
         const formattedMemberSince = memberSinceDate
-          ? memberSinceDate.toISOString().split("T")[0]
+          ? memberSinceDate.toLocaleString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true,
+            })
           : "N/A";
 
         setUser({
@@ -427,7 +438,9 @@ const UserDetails = () => {
           bankDetails: userData.bank_details || {},
           documentNumber: userData.document_number,
           shareCode: userData.shareCode,
+          changedFields: userData.changedFields || {},
         });
+        setChangedFields(userData.changedFields || {});
       } catch (error) {
         console.error("Error loading user:", error);
       }
@@ -438,37 +451,23 @@ const UserDetails = () => {
 
   const validateField = (field, value) => {
     if (field === "id") {
-      if (!/^\d+$/.test(value)) {
-        return "Customer ID must be a valid number";
-      }
+      if (!/^\d+$/.test(value)) return "Customer ID must be a valid number";
     }
-  
     if (field === "employeeID") {
-      if (value.trim() !== "" && !/^\d{5}$/.test(value)) {
-        return "Employee ID must be exactly 5 digits (if provided)";
-      }
+      if (value.trim() !== "" && !/^\d{5}$/.test(value)) return "Employee ID must be exactly 5 digits";
     }
-  
     if (field === "email") {
-      if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value)) {
-        return "Invalid email address";
-      }
+      if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value)) return "Invalid email address";
     }
-  
     if (field === "phone") {
-      if (!/^\d{10}$/.test(value)) {
-        return "Phone number must be 10 digits";
-      }
+      if (!/^\d{10}$/.test(value)) return "Phone number must be 10 digits";
     }
-  
-    if (field === "dob" || field === "createdAt") {
-      if (!value) return "Date cannot be empty";
+    if ((field === "dob" || field === "createdAt") && !value) {
+      return "Date cannot be empty";
     }
-  
     if (value.trim() === "" && field !== "employeeID") {
       return "Field cannot be empty";
     }
-  
     return null;
   };
 
@@ -479,17 +478,6 @@ const UserDetails = () => {
   };
 
   const handleSaveClick = async () => {
-
-    if (editableField === "role" && user.role !== updatedValue) {
-      // Delete the user if the role has changed
-      const userRef = doc(db, "users_01", id);
-      await deleteDoc(userRef);
-    
-      alert("User role has been changed. The user has been deleted.");
-      navigate("/admin/users"); // Redirect after deletion
-      return; // Stop further processing
-    }
-    
     const validationError = validateField(editableField, updatedValue);
     if (validationError) {
       setError(validationError);
@@ -497,106 +485,85 @@ const UserDetails = () => {
     }
 
     try {
-      // Check if the new customer ID or employee ID already exists in Firestore
+      const querySnapshot = await getDocs(collection(db, "users_01"));
       if (editableField === "id" || editableField === "employeeID") {
-        const querySnapshot = await getDocs(collection(db, "users_01"));
         const existingId = querySnapshot.docs.some(doc => {
           const data = doc.data();
-          if (editableField === "id" && data.customer_id === updatedValue) {
-            return true; // Customer ID already exists
-          }
-          if (editableField === "employeeID" && data.employeeID === updatedValue) {
-            return true; // Employee ID already exists
-          }
+          if (editableField === "id" && data.customer_id === updatedValue) return true;
+          if (editableField === "employeeID" && data.employeeID === updatedValue) return true;
           return false;
         });
-
         if (existingId) {
           setError(`${editableField === "id" ? "Customer ID" : "Employee ID"} already exists.`);
           return;
         }
       }
 
-        // Check if the email already exists in Firestore when updating email
-    if (editableField === "email") {
-      const querySnapshot = await getDocs(collection(db, "users_01"));
-      const existingEmail = querySnapshot.docs.some(doc => {
-        const data = doc.data();
-        return data.email === updatedValue && data.customer_id !== user.id; // Exclude current user
-      });
-
-      if (existingEmail) {
-        setError("Email already exists.");
-        return;
+      if (editableField === "email") {
+        const existingEmail = querySnapshot.docs.some(doc => {
+          const data = doc.data();
+          return data.email === updatedValue && data.customer_id !== user.id;
+        });
+        if (existingEmail) {
+          setError("Email already exists.");
+          return;
+        }
       }
-    }
 
       const ref = doc(db, "users_01", id);
-      const updatedData = {};
+const snap = await getDoc(ref);
+const existingData = snap.exists() ? snap.data() : {};
+const previousChangedFields = existingData.changedFields || {};
+const newChangedFields = { ...previousChangedFields };
 
-      if (editableField === "id") {
-        updatedData["customer_id"] = updatedValue;
-      } else if (editableField === "createdAt") {
-        updatedData["member_since"] = new Date(updatedValue);
-      } else if (Object.keys(user.bankDetails || {}).includes(editableField)) {
-        updatedData[`bank_details.${editableField}`] = updatedValue;
-      } else {
-        updatedData[editableField] = updatedValue;
-      }
+let oldValue;
+let updateKey;
 
-      await updateDoc(ref, updatedData);
+if (editableField === "id") {
+  oldValue = existingData.customer_id;
+  updateKey = "customer_id";
+} else if (editableField === "createdAt") {
+  oldValue = existingData.member_since;
+  updateKey = "member_since";
+} else if (Object.keys(existingData.bank_details || {}).includes(editableField)) {
+  oldValue = existingData.bank_details[editableField];
+  updateKey = `bank_details.${editableField}`;
+} else {
+  oldValue = existingData[editableField];
+  updateKey = editableField;
+}
 
-      setUser((prevUser) => {
-        if (editableField === "id") {
-          return { ...prevUser, id: updatedValue };
-        } else if (editableField === "createdAt") {
-          return { ...prevUser, createdAt: updatedValue };
-        } else if (Object.keys(prevUser.bankDetails || {}).includes(editableField)) {
-          return {
-            ...prevUser,
-            bankDetails: {
-              ...prevUser.bankDetails,
-              [editableField]: updatedValue,
-            },
-          };
-        } else {
-          return {
-            ...prevUser,
-            [editableField]: updatedValue,
-          };
-        }
+if (oldValue !== updatedValue) {
+  newChangedFields[editableField] = {
+    old: oldValue,
+    new: updatedValue,
+  };
+}
+
+const updatedData = {
+  [updateKey]: editableField === "createdAt" ? new Date(updatedValue) : updatedValue,
+  changedFields: newChangedFields,
+};
+
+await updateDoc(ref, updatedData);
+
+setChangedFields(newChangedFields);
+setEditableField(null);
+setUpdatedValue("");
+setError("");
+setSuccessMessage("Changes saved successfully!");
+
+
+      navigate("/admin/users", {
+        state: {
+          reload: true,
+          message: "Changes saved successfully!",
+        },
       });
-
-      setEditableField(null);
-      setUpdatedValue("");
-      setError("");
-      alert("User details updated successfully!");
     } catch (error) {
       console.error("Error updating user:", error);
       alert("Error updating user details. Please try again.");
     }
-  };
-
-  const calculateTimeAgo = (dateStr) => {
-    if (!dateStr) return "";
-    const now = new Date();
-    const then = new Date(dateStr);
-
-    let years = now.getFullYear() - then.getFullYear();
-    let months = now.getMonth() - then.getMonth();
-
-    if (months < 0) {
-      years--;
-      months += 12;
-    }
-
-    const yearText = years > 0 ? `${years} year${years > 1 ? "s" : ""}` : "";
-    const monthText = months > 0 ? `${months} month${months > 1 ? "s" : ""}` : "";
-
-    if (yearText && monthText) return `(${yearText}, ${monthText} ago)`;
-    if (yearText) return `(${yearText} ago)`;
-    if (monthText) return `(${monthText} ago)`;
-    return "(Less than a month ago)";
   };
 
   if (!user) return <p style={{ padding: "20px" }}>Loading user data...</p>;
@@ -614,7 +581,14 @@ const UserDetails = () => {
             autoFocus
           />
         ) : (
-          user[fieldName] || "N/A"
+          <>
+            {user[fieldName] || "N/A"}
+            {changedFields[fieldName] && (
+              <span style={{ color: "green", marginLeft: "10px", fontSize: "0.9em" }}>
+                (New)
+              </span>
+            )}
+          </>
         )}
         {editableField === fieldName && error && (
           <div className="error-message">{error}</div>
@@ -622,14 +596,9 @@ const UserDetails = () => {
       </td>
       <td>
         {editableField === fieldName ? (
-          <button className="save-button" onClick={handleSaveClick}>
-            Save
-          </button>
+          <button className="save-button" onClick={handleSaveClick}>Save</button>
         ) : (
-          <button
-            className="edit-button"
-            onClick={() => handleEditClick(fieldName, user[fieldName])}
-          >
+          <button className="edit-button" onClick={() => handleEditClick(fieldName, user[fieldName])}>
             Edit
           </button>
         )}
@@ -637,10 +606,8 @@ const UserDetails = () => {
     </tr>
   );
 
-  // Render all bank details dynamically
   const renderBankDetailRows = () => {
     if (!user.bankDetails) return null;
-
     return Object.keys(user.bankDetails).map((field) => (
       <tr key={field} ref={editableField === field ? editRef : null}>
         <td><strong>{field.replace(/([A-Z])/g, ' $1').toUpperCase()}</strong></td>
@@ -657,19 +624,21 @@ const UserDetails = () => {
               {error && <div className="error-message">{error}</div>}
             </>
           ) : (
-            user.bankDetails[field] || "N/A"
+            <>
+              {user.bankDetails[field] || "N/A"}
+              {changedFields[field] && (
+                <span style={{ color: "green", marginLeft: "10px", fontSize: "0.9em" }}>
+                  (New)
+                </span>
+              )}
+            </>
           )}
         </td>
         <td>
           {editableField === field ? (
-            <button className="save-button" onClick={handleSaveClick}>
-              Save
-            </button>
+            <button className="save-button" onClick={handleSaveClick}>Save</button>
           ) : (
-            <button
-              className="edit-button"
-              onClick={() => handleEditClick(field, user.bankDetails[field])}
-            >
+            <button className="edit-button" onClick={() => handleEditClick(field, user.bankDetails[field])}>
               Edit
             </button>
           )}
@@ -681,12 +650,9 @@ const UserDetails = () => {
   return (
     <div className="employee-details-container">
       <h2>User Details</h2>
-      
-      {/* Back Button */}
-      <button style={{width:"150px"}} className="back-button" onClick={() => navigate("/admin/users")}>
+      <button style={{ width: "150px" }} className="back-button" onClick={() => navigate("/admin/users")}>
         Back to Users
       </button>
-
       <table className="employee-details-table">
         <thead>
           <tr>
@@ -709,40 +675,14 @@ const UserDetails = () => {
           <tr>
             <td><strong>Member Since</strong></td>
             <td>
-              {editableField === "createdAt" ? (
-                <>
-                  <input
-                    type="date"
-                    className="input-field"
-                    value={updatedValue}
-                    onChange={(e) => setUpdatedValue(e.target.value)}
-                    autoFocus
-                  />
-                  {error && <div className="error-message">{error}</div>}
-                </>
-              ) : (
-                <>
-                  {user.createdAt}{" "}
-                  <span style={{ color: "gray", fontSize: "0.9em" }}>
-                    {calculateTimeAgo(user.createdAt)}
-                  </span>
-                </>
+              {user.createdAt}
+              {changedFields.createdAt && (
+                <span style={{ color: "green", marginLeft: "10px", fontSize: "0.9em" }}>
+                  (New)
+                </span>
               )}
             </td>
-            <td>
-              {editableField === "createdAt" ? (
-                <button className="save-button" onClick={handleSaveClick}>
-                  Save
-                </button>
-              ) : (
-                <button
-                  className="edit-button"
-                  onClick={() => handleEditClick("createdAt", user.createdAt)}
-                >
-                  Edit
-                </button>
-              )}
-            </td>
+            <td></td>
           </tr>
           {renderBankDetailRows()}
         </tbody>
