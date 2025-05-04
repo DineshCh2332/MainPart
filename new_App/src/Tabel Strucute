@@ -24,6 +24,16 @@ users_01 (Collection)
             └── status: "open" | "closed
 
 
+attendance (Top-level collection)
+└── {date} (Document)  // Format "YYYY-MM-DD"
+    └── sessions (Subcollection)
+        └── {sessionId}  // Composite ID: "userRef_clockInTimestamp"
+            ├── user: DocumentReference (to users_01/{userId})
+            ├── checkIn: timestamp
+            ├── checkOut: timestamp
+            ├── status: "open" | "closed"
+            └── role: "employee"
+
 
 floats (Collection)
 └── floatA_2025-05-02 (Document)
