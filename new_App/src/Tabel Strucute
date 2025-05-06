@@ -17,22 +17,20 @@ users_01 (Collection)
     ├── phone: string
     ├── role: string
     ├── shareCode: string
-    └── attendance/{date}
-       └── sessions/{sessionId}
-            ├── checkIn: timestamp
-            ├── checkOut: timestamp (null initially)
-            └── status: "open" | "closed
 
 
-attendance (Top-level collection)
-└── {date} (Document)  // Format "YYYY-MM-DD"
-    └── sessions (Subcollection)
-        └── {sessionId}  // Composite ID: "userRef_clockInTimestamp"
-            ├── user: DocumentReference (to users_01/{userId})
-            ├── checkIn: timestamp
-            ├── checkOut: timestamp
-            ├── status: "open" | "closed"
-            └── role: "employee"
+
+attendance
+  └── 2025-05-05 (Date of the attendance record)
+      └── sessions
+          └── oyQHTwCOEdYCIMJgWEOO (Session ID)
+              ├── checkIn: timestamp 
+              ├── checkOut: timestamp 
+              ├── role: "employee" (string)
+              ├── source: "admin" (string) | system | manager
+              ├── status: "closed" (string)
+              └── user: /users_01/Nq4WTjcfIZ62W4prIQC8 
+
 
 
 floats (Collection)
