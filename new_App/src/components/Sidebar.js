@@ -20,7 +20,7 @@ const Sidebar = () => {
 
     if (!user) return roleConfig;
 
-    switch(user.role) {
+    switch (user.role) {
       case ROLES.ADMIN:
         roleConfig.links = [
           { name: "Dashboard", path: "/admin/dashboard" },
@@ -30,7 +30,7 @@ const Sidebar = () => {
         roleConfig.panelTitle = "Administration Panel";
         roleConfig.inventoryBasePath = "/admin";
         break;
-      
+
       case ROLES.MANAGER:
         roleConfig.links = [
           { name: "Performance Dashboard", path: "/manager/dashboard" },
@@ -40,7 +40,7 @@ const Sidebar = () => {
         roleConfig.panelTitle = "Management Console";
         roleConfig.inventoryBasePath = "/manager";
         break;
-      
+
       case ROLES.TEAM_LEADER:
         roleConfig.links = [
           { name: "Team Dashboard", path: "/teamleader/dashboard" },
@@ -50,15 +50,15 @@ const Sidebar = () => {
         roleConfig.panelTitle = "Team Leadership";
         roleConfig.inventoryBasePath = "/teamleader";
         break;
-      
+
       case ROLES.TEAM_MEMBER:
       case ROLES.EMPLOYEE:
         roleConfig.links = [
           { name: "My Profile", path: "/teammember/ViewDetails" },
           { name: "Attendance History", path: "/teammember/MemberAttendance" }
         ];
-        roleConfig.panelTitle = user.role === ROLES.TEAM_MEMBER 
-          ? "My Account Portal" 
+        roleConfig.panelTitle = user.role === ROLES.TEAM_MEMBER
+          ? "My Account Portal"
           : "Employee Portal";
         break;
     }
@@ -69,7 +69,7 @@ const Sidebar = () => {
   // Login time formatting with cleanup
   useEffect(() => {
     let isMounted = true;
-    
+
     const updateTime = () => {
       if (user?.loginTime && isMounted) {
         const formatted = new Date(user.loginTime).toLocaleTimeString('en-US', {
@@ -104,132 +104,126 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
-
+      <div className="scrollable-section">
       {/* Navigation Section */}
-      <div className="navigation-section">
-        <h4 className="panel-title">{panelTitle}</h4>
-        
-        <nav className="main-navigation">
-          {links.map((link) => (
+      <nav className="main-navigation">
+        {links.map((link) => (
+          <NavLink
+            key={link.path}
+            to={link.path}
+            className={({ isActive }) =>
+              `nav-item ${isActive ? 'active-nav-item' : ''}`
+            }
+          >
+            {link.name}
+          </NavLink>
+        ))}
+      </nav>
+
+
+      {/* Inventory Section */}
+      {(isAdmin || isManager || isTeamLeader) && (
+        <div className="management-section">
+          <button
+            className={`management-toggle ${inventoryExpanded ? 'expanded' : ''}`}
+            onClick={() => setInventoryExpanded(!inventoryExpanded)}
+          >
+            Inventory
+            <span className="toggle-indicator">
+              {inventoryExpanded ? '▼' : '▶'}
+            </span>
+          </button>
+
+          <div className={`management-submenu ${inventoryExpanded ? 'expanded' : ''}`}>
             <NavLink
-              key={link.path}
-              to={link.path}
+              to={`${inventoryBasePath}/inventory/wastemanagement`}
               className={({ isActive }) =>
-                `nav-item ${isActive ? 'active-nav-item' : ''}`
+                `submenu-item ${isActive ? 'active-subitem' : ''}`
               }
             >
-              {link.name}
+              Waste Count
             </NavLink>
-          ))}
-        </nav>
-
-        {/* Inventory Section */}
-        {(isAdmin || isManager || isTeamLeader) && (
-          <div className="inventory-section">
-            <button 
-              className={`inventory-toggle ${inventoryExpanded ? 'expanded' : ''}`}
-              onClick={() => setInventoryExpanded(!inventoryExpanded)}
+            <NavLink
+              to={`${inventoryBasePath}/inventory/stockcount`}
+              className={({ isActive }) =>
+                `submenu-item ${isActive ? 'active-subitem' : ''}`
+              }
             >
-              Inventory Management
-              <span className="toggle-indicator">
-                {inventoryExpanded ? '−' : '+'}
-              </span>
-            </button>
-            
-            {inventoryExpanded && (
-              <div className="inventory-submenu">
-                <NavLink
-                  to={`${inventoryBasePath}/inventory/wastemanagement`}
-                  className={({ isActive }) =>
-                    `submenu-item ${isActive ? 'active-subitem' : ''}`
-                  }
-                >
-                  Waste Management
-                </NavLink>
-                <NavLink
-                  to={`${inventoryBasePath}/inventory/stockcount`}
-                  className={({ isActive }) =>
-                    `submenu-item ${isActive ? 'active-subitem' : ''}`
-                  }
-                >
-                  Stock Audit
-                </NavLink>
-                <NavLink
-                  to={`${inventoryBasePath}/inventory/stockmovement`}
-                  className={({ isActive }) =>
-                    `submenu-item ${isActive ? 'active-subitem' : ''}`
-                  }
-                >
-                  Stock Movement
-                </NavLink>
-              </div>
-            )}
+              Stock Count
+            </NavLink>
+            <NavLink
+              to={`${inventoryBasePath}/inventory/stockmovement`}
+              className={({ isActive }) =>
+                `submenu-item ${isActive ? 'active-subitem' : ''}`
+              }
+            >
+              Stock Movement
+            </NavLink>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Cash Management Section */}
-        {(isAdmin || isManager || isTeamLeader) && (
-          <div className="inventory-section">
+      {/* Cash Management Section */}
+      {(isAdmin || isManager || isTeamLeader) && (
+          <div className="management-section">
             <button 
-              className={`inventory-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
+              className={`management-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
               onClick={() => setCashManagementExpanded(!cashManagementExpanded)}
             >
               Cash Management
               <span className="toggle-indicator">
-                {cashManagementExpanded ? '−' : '+'}
+                {cashManagementExpanded ? '▼' : '▶'}
               </span>
             </button>
             
-            {cashManagementExpanded && (
-              <div className="inventory-submenu">
-                <NavLink
-                  to={`${inventoryBasePath}/cashmanagement/opencashier`}
-                  className={({ isActive }) =>
-                    `submenu-item ${isActive ? 'active-subitem' : ''}`
-                  }
-                >
-                  Open Cashier
-                </NavLink>
-                <NavLink
-                  to={`${inventoryBasePath}/cashmanagement/closecashier`}
-                  className={({ isActive }) =>
-                    `submenu-item ${isActive ? 'active-subitem' : ''}`
-                  }
-                >
-                  Close Cashier
-                </NavLink>
-                <NavLink
-                  to={`${inventoryBasePath}/cashmanagement/safecountpage`}
-                  className={({ isActive }) =>
-                    `submenu-item ${isActive ? 'active-subitem' : ''}`
-                  }
-                >
-                  Safe Count
-                </NavLink>
-                <NavLink
-                  to={`${inventoryBasePath}/cashmanagement/bankingpage`}
-                  className={({ isActive }) =>
-                    `submenu-item ${isActive ? 'active-subitem' : ''}`
-                  }
-                >
-                  Banking
-                </NavLink>
+            <div className={`management-submenu ${cashManagementExpanded ? 'expanded' : ''}`}>
+              <NavLink
+                to={`${inventoryBasePath}/cashmanagement/opencashier`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Open Cashier
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/cashmanagement/closecashier`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Close Cashier
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/cashmanagement/safecountpage`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Safe Count
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/cashmanagement/bankingpage`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Banking
+              </NavLink>
               </div>
-            )}
           </div>
+       
         )}
-      </div>
 
-      {/* Logout Section */}
-      <div className="logout-section">
-        <button 
-          onClick={logout}
-          className="logout-button"
-        >
-          Secure Logout
-        </button>
+</div>
+<div className="logout-section">
+    <button
+      onClick={logout}
+      className="logout-button"
+    >
+      Logout
+    </button>
+  </div>
       </div>
-    </div>
   );
 };
 
