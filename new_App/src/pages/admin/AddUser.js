@@ -73,17 +73,24 @@ const AddUser = () => {
 
   const checkForDuplicates = async () => {
     const usersCollection = collection(db, "users_01");
-    const fullPhone = formData.countryCode + formData.phone;
 
+    // Check for duplicate Customer ID
     const qCustomerID = query(usersCollection, where("customer_id", "==", formData.customer_id));
     if (!(await getDocs(qCustomerID)).empty) return showError("A user with this Customer ID already exists."), true;
 
-    const qPhone = query(usersCollection, where("phone", "==", fullPhone));
+    // Check for duplicate Phone (combination of countryCode + phone)
+    const qPhone = query(
+      usersCollection,
+      where("countryCode", "==", formData.countryCode),
+      where("phone", "==", formData.phone)
+    );
     if (!(await getDocs(qPhone)).empty) return showError("A user with this phone number already exists."), true;
 
+    // Check for duplicate Email
     const qEmail = query(usersCollection, where("email", "==", formData.email));
     if (formData.email && !(await getDocs(qEmail)).empty) return showError("A user with this email already exists."), true;
 
+    // Check for duplicate Employee ID (if employee)
     if (formData.role === "employee") {
       const qEmployeeID = query(usersCollection, where("employeeID", "==", formData.employeeID));
       if (!(await getDocs(qEmployeeID)).empty) return showError("A user with this Employee ID already exists."), true;
@@ -100,13 +107,13 @@ const AddUser = () => {
     const isDuplicate = await checkForDuplicates();
     if (isDuplicate) return;
 
-    const fullPhone = formData.countryCode + formData.phone;
-
-
-
     try {
       const userCollection = collection(db, "users_01");
-      await addDoc(userCollection, { ...formData, phone: fullPhone, member_since: Timestamp.now() });
+      // Save countryCode and phone as separate fields
+      await addDoc(userCollection, { 
+        ...formData,
+        member_since: Timestamp.now() 
+      });
       alert("User added successfully!");
       setFormData(initialState);
       navigate("/admin/users");
