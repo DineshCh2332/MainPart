@@ -122,8 +122,8 @@ function SafeCountPage() {
       actualAmount,
       variance,
       values,
-      authCashierId,
-      authWitnessId,
+      cashier:authCashierId,
+      manager:authWitnessId,
     };
     const docRef = doc(db, 'safeCounts', currentDateStr);
     await setDoc(docRef, { [currentSession]: data }, { merge: true });
@@ -165,10 +165,12 @@ function SafeCountPage() {
       await calculateExpectedAmount(session);
       setActualAmount(0);
       setVariance(0);
+
       setAuthCashierId('');
       setAuthWitnessId('');
       setConfirmCashier(false);
       setConfirmManager(false);
+      
       setAuthDisabled(false);
       setSaveDisabled(false);
     }
@@ -266,17 +268,7 @@ function SafeCountPage() {
   return (
     <div className="container">
       <h2>Safe Count</h2>
-      <div style={{ marginBottom: '1rem' }}>
-        <label>Select Date: </label>
-        <DatePicker
-          selected={selectedDate}
-          onChange={(date) => {
-            setSelectedDate(date);
-            fetchSessionsForDate(date);
-          }}
-          dateFormat="yyyy-MM-dd"
-        />
-      </div>
+      
 
       <SessionButtons
         sessions={['morning', 'changeover', 'night', 'change_receive']}

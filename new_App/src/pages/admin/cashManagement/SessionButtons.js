@@ -1,6 +1,6 @@
 import React from 'react';
 
-function SessionButtons({ sessions, currentSession, onSelect, disabledSessions }) {
+function SessionButtons({ sessions, currentSession, onSelect, disabledSessions, onTransferFloats }) {
   return (
     <div className="session-buttons">
       {sessions.map(session => (
@@ -13,6 +13,7 @@ function SessionButtons({ sessions, currentSession, onSelect, disabledSessions }
           {session.replace('_', ' ')}
         </button>
       ))}
+      <button onClick={onTransferFloats}>Transfer Floats</button>
     </div>
   );
 }
