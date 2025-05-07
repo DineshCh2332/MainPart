@@ -1,19 +1,23 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { collection, getDocs, query, orderBy, limit, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, doc, setDoc, where } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import BankingTable from './BankingTable';
-import BankingAuthorizationForm from './BankingAuthorizationForm';
+
 import '../../../css/Banking.css';
 
 function BankingPage() {
-  const [witnessName, setWitnessName] = useState('');
-  const [shiftRunnerName, setShiftRunnerName] = useState('');
+  
   const [isAuthorized, setIsAuthorized] = useState({ witness: false, shiftRunner: false });
   const [actualAmount, setActualAmount] = useState(0);
   const [expectedAmount, setExpectedAmount] = useState(0);
   const [variance, setVariance] = useState(0);
   const [varianceReason, setVarianceReason] = useState('');
   const [showVarianceReason, setShowVarianceReason] = useState(false);
+  const [authCashierId, setAuthCashierId] = useState('');
+  const [authWitnessId, setAuthWitnessId] = useState('');
+  const [confirmCashier, setConfirmCashier] = useState(false);
+  const [confirmManager, setConfirmManager] = useState(false);
+  const [authDisabled, setAuthDisabled] = useState(false);
 
   const denominations = useMemo(() => [
     { name: '£5', value: 5.00 },
@@ -30,7 +34,6 @@ function BankingPage() {
 
   const [values, setValues] = useState(defaultValues);
 
-  // ✅ Fetch latest expected amount from SafeFloats
   const fetchLatestExpectedAmount = useCallback(async () => {
     try {
       const q = query(collection(db, 'SafeFloats'), orderBy('timestamp', 'desc'), limit(1));
@@ -54,7 +57,14 @@ function BankingPage() {
     fetchLatestExpectedAmount();
   }, [fetchLatestExpectedAmount]);
 
-  // ✅ Update table values and actualAmount
+  useEffect(() => {
+    if (confirmCashier && confirmManager) {
+      setIsAuthorized({ witness: true, shiftRunner: true });
+    } else {
+      setIsAuthorized({ witness: false, shiftRunner: false });
+    }
+  }, [confirmCashier, confirmManager]);
+
   const updateValues = (index, type, newValue) => {
     const updatedValues = [...values];
     updatedValues[index][type] = parseFloat(newValue) || 0;
@@ -66,10 +76,30 @@ function BankingPage() {
     setVariance(totalActual - expectedAmount);
   };
 
-  // ✅ Save SafeDrop data
   const handleSave = async () => {
-    if (!isAuthorized.witness || !isAuthorized.shiftRunner) {
-      alert('Both Witness and Shift Runner must authorize before saving.');
+    if (!confirmCashier || !confirmManager) {
+      alert('Both cashier and manager must confirm.');
+      return;
+    }
+
+    const cashierQuery = query(
+      collection(db, 'users_01'),
+      where('employeeID', '==', authCashierId.trim())
+    );
+    const cashierSnap = await getDocs(cashierQuery);
+    if (cashierSnap.empty) {
+      alert('Invalid Employee ID for cashier.');
+      return;
+    }
+
+    const managerQuery = query(
+      collection(db, 'users_01'),
+      where('employeeID', '==', authWitnessId.trim()),
+      where('role', '==', 'manager')
+    );
+    const managerSnap = await getDocs(managerQuery);
+    if (managerSnap.empty) {
+      alert('Invalid witness ID or not a manager.');
       return;
     }
 
@@ -90,8 +120,8 @@ function BankingPage() {
       actualAmount,
       variance,
       varianceReason: variance !== 0 ? varianceReason : '',
-      witness: witnessName,
-      shiftRunner: shiftRunnerName,
+      witness:authWitnessId ,
+      shiftRunner:authCashierId ,
       values: values,
       timestamp: new Date().toISOString()
     };
@@ -100,62 +130,94 @@ function BankingPage() {
     await setDoc(docRef, data);
     alert('Safe Drop data saved successfully!');
 
-    // 🔄 Clear form after saving
     setActualAmount(0);
     setVarianceReason('');
     setShowVarianceReason(false);
     setIsAuthorized({ witness: false, shiftRunner: false });
-    setWitnessName('');
-    setShiftRunnerName('');
+    setAuthCashierId('');
+    setAuthWitnessId('');
+    setConfirmCashier(false);
+    setConfirmManager(false);
     const resetValues = denominations.map(denom => ({
       denomination: denom.name,
       loose: 0,
       value: 0
     }));
     setValues(resetValues);
-    fetchLatestExpectedAmount(); // refresh expected
+    fetchLatestExpectedAmount();
   };
 
   return (
     <div className="banking-page">
-    <div className="container">
-      <h2>Safe Drop</h2>
+      <div className="container">
+        <h2>Safe Drop</h2>
 
-      <BankingTable
-        denominations={denominations}
-        values={values}
-        onChange={updateValues}
-        actualAmount={actualAmount}
-        expectedAmount={expectedAmount}
-        variance={variance}
-      />
+        <BankingTable
+          denominations={denominations}
+          values={values}
+          onChange={updateValues}
+          actualAmount={actualAmount}
+          expectedAmount={expectedAmount}
+          variance={variance}
+        />
 
-      <BankingAuthorizationForm
-        witnessName={witnessName}
-        setWitnessName={setWitnessName}
-        shiftRunnerName={shiftRunnerName}
-        setShiftRunnerName={setShiftRunnerName}
-        isAuthorized={isAuthorized}
-        setIsAuthorized={setIsAuthorized}
-      />
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <label className="w-40">Enter Cashier ID:</label>
+            <input
+              value={authCashierId}
+              onChange={(e) => setAuthCashierId(e.target.value)}
+              disabled={authDisabled}
+              className="border p-1 rounded w-40"
+            />
+            <label className="flex items-center space-x-1">
+              <input
+                type="checkbox"
+                checked={confirmCashier}
+                onChange={(e) => setConfirmCashier(e.target.checked)}
+                disabled={authDisabled}
+              />
+              <span> Confirm</span>
+            </label>
+          </div>
 
-      {showVarianceReason && variance !== 0 && (
-        <div className="variance-reason">
-          <label>Reason for Variance:</label>
-          <textarea
-            value={varianceReason}
-            onChange={(e) => setVarianceReason(e.target.value)}
-            placeholder="Explain the reason for the variance..."
-          />
+          <div className="flex items-center space-x-2">
+            <label className="w-40">Enter Witness ID:</label>
+            <input
+              value={authWitnessId}
+              onChange={(e) => setAuthWitnessId(e.target.value)}
+              className="border p-1 rounded w-40"
+              disabled={authDisabled}
+            />
+            <label className="flex items-center space-x-1">
+              <input
+                type="checkbox"
+                checked={confirmManager}
+                onChange={(e) => setConfirmManager(e.target.checked)}
+                disabled={authDisabled}
+              />
+              <span>Confirm</span>
+            </label>
+          </div>
         </div>
-      )}
 
-      <div className="button-group">
-        <button onClick={handleSave} disabled={!isAuthorized.witness || !isAuthorized.shiftRunner}>
-          Save
-        </button>
+        {showVarianceReason && variance !== 0 && (
+          <div className="variance-reason">
+            <label>Reason for Variance:</label>
+            <textarea
+              value={varianceReason}
+              onChange={(e) => setVarianceReason(e.target.value)}
+              placeholder="Explain the reason for the variance..."
+            />
+          </div>
+        )}
+
+        <div className="button-group">
+          <button onClick={handleSave} disabled={!isAuthorized.witness || !isAuthorized.shiftRunner}>
+            Save
+          </button>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
