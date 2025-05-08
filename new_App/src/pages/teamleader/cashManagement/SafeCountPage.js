@@ -4,7 +4,7 @@ import { db } from '../../../firebase/config';
 import SessionButtons from './SessionButtons';
 import SafeCountTable from './SafeCountTable';
 import '../../../css/SafeCount.css';
-import DatePicker from 'react-datepicker';
+
 
 function SafeCountPage() {
   const [currentSession, setCurrentSession] = useState(null);
@@ -266,17 +266,7 @@ function SafeCountPage() {
   return (
     <div className="container">
       <h2>Safe Count</h2>
-      <div style={{ marginBottom: '1rem' }}>
-        <label>Select Date: </label>
-        <DatePicker
-          selected={selectedDate}
-          onChange={(date) => {
-            setSelectedDate(date);
-            fetchSessionsForDate(date);
-          }}
-          dateFormat="yyyy-MM-dd"
-        />
-      </div>
+      
 
       <SessionButtons
         sessions={['morning', 'changeover', 'night', 'change_receive']}
