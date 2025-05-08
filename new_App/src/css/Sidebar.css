@@ -75,6 +75,7 @@
 
 .management-section {
   margin: 0.5rem 1rem;
+  margin-top: -1.2rem;
 }
 
 .management-toggle {
@@ -107,7 +108,7 @@
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease-out;
-  margin-left: 1.5rem;
+
 }
 
 .management-submenu.expanded {
