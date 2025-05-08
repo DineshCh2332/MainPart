@@ -11,6 +11,7 @@
     margin-bottom: 20px;
     font-size: 2rem;
     color: #333;
+    cursor: default;/*change*/
   }
   
   .add-buttons {
@@ -40,16 +41,19 @@
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
+    cursor: default;/*change*/
   }
   
   .user-summary p {
     font-size: 1rem;
     margin: 5px 0;
+    cursor: default;/*change*/
   }
   
   .user-summary strong {
     font-size: 1.2rem;
     color: #007bff;
+    cursor: default;/*change*/
   }
   
   .top-controls {
@@ -90,6 +94,7 @@
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    cursor: default;/*change*/
   }
   
   .users-table th,
@@ -103,14 +108,17 @@
     background-color: #f2f2f2;
     font-weight: bold;
     cursor: pointer;
+    cursor: default;/*change*/
   }
   
   .users-table tr:hover {
     background-color: #f9f9f9;
+    cursor: default;/*change*/
   }
   
   .users-table td {
     color: #555;
+    cursor: default;/*change*/
   }
   
   .no-users {

@@ -145,22 +145,8 @@ const AddUser = () => {
               onChange={handleChange}
               style={{ marginRight: "10px" }}
             >
-              <option value="+1">+1 (USA)</option>
               <option value="+44">+44 (UK)</option>
               <option value="+91">+91 (India)</option>
-              <option value="+61">+61 (Australia)</option>
-              <option value="+49">+49 (Germany)</option>
-              <option value="+33">+33 (France)</option>
-              <option value="+81">+81 (Japan)</option>
-              <option value="+86">+86 (China)</option>
-              <option value="+7">+7 (Russia)</option>
-              <option value="+55">+55 (Brazil)</option>
-              <option value="+34">+34 (Spain)</option>
-              <option value="+39">+39 (Italy)</option>
-              <option value="+34">+34 (Spain)</option>
-              <option value="+1">+1 (Canada)</option>
-              <option value="+52">+52 (Mexico)</option>
-              {/* Add more countries here as needed */}
             </select>
             <input
               type="tel"
@@ -224,11 +210,11 @@ const AddUser = () => {
         <div className="input-group">
           <label>Role</label>
           <select name="role" value={formData.role} onChange={handleChange}>
-            <option value="customer">Customer</option>
-            <option value="employee">Employee</option>
-            <option value="admin">Admin</option>
-            <option value="teamleader">Teamleader</option>
+          <option value="admin">Admin</option>
             <option value="manager">Manager</option>
+            <option value="teamleader">Teamleader</option>
+            <option value="employee">Employee</option>
+            <option value="customer">Customer</option>
           </select>
         </div>
 

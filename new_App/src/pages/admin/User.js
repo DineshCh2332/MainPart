@@ -15,11 +15,11 @@ const Users = () => {
   const navigate = useNavigate();
 
   const [roleCounts, setRoleCounts] = useState({
-    Employee: 0,
-    Customer: 0,
     Admin: 0,
-    TeamLeader: 0,
     Manager: 0,
+    TeamLeader: 0,
+    Employee: 0,
+    Customer: 0
   });
 
   const [sortConfig, setSortConfig] = useState({
@@ -28,9 +28,14 @@ const Users = () => {
   });
 
   const calculateRoleCounts = (usersList) => {
-    const counts = { Employee: 0, Customer: 0, Admin: 0, TeamLeader: 0, Manager: 0 };
+    const counts = {Admin: 0, Manager: 0 ,TeamLeader: 0,  Employee: 0, Customer: 0 };
     usersList.forEach((user) => {
-      if (counts[user.role]) counts[user.role]++;
+      const role = user.role?.toLowerCase();
+      if (role === "admin") counts.Admin++;
+      if (role === "manager") counts.Manager++;
+      if (role === "teamleader") counts.TeamLeader++;
+      if (role === "employee") counts.Employee++;
+      if (role === "customer") counts.Customer++;
     });
     setRoleCounts(counts);
   };
@@ -123,6 +128,26 @@ const Users = () => {
     loadUsers();
   }, [loadUsers]);
 
+   /*change*/
+   useEffect(() => {
+    // Store and clear state only once on initial mount
+    const reload = location.state?.reload;
+    const message = location.state?.message;
+  
+    if (reload) {
+      // Show the message once
+      if (message) {
+        alert(message);
+      }
+  
+      // Clear the state using navigate replace
+      navigate(location.pathname, { replace: true });
+    }
+  
+    loadUsers(); // always load users on mount
+  }, []); /*change*/
+  
+
   return (
     <div className="users-container">
       <h1 className="users-heading">Users</h1>
@@ -134,11 +159,11 @@ const Users = () => {
 
       <div className="user-summary">
         <p>Total Users: <strong>{Object.values(roleCounts).reduce((a, b) => a + b, 0)}</strong></p>
-        <p>Employees: <strong>{roleCounts.Employee}</strong></p>
-        <p>Customers: <strong>{roleCounts.Customer}</strong></p>
-        <p>Teamleaders: <strong>{roleCounts.TeamLeader}</strong></p>
         <p>Admins: <strong>{roleCounts.Admin}</strong></p>
         <p>Managers: <strong>{roleCounts.Manager}</strong></p>
+        <p>Teamleaders: <strong>{roleCounts.TeamLeader}</strong></p>
+        <p>Employees: <strong>{roleCounts.Employee}</strong></p>
+        <p>Customers: <strong>{roleCounts.Customer}</strong></p>
       </div>
 
       <div className="top-controls">
@@ -150,12 +175,12 @@ const Users = () => {
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >
-            <option value="all">All Users</option>
+           <option value="all">All Users</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="teamleader">Team Leader</option>
             <option value="employee">Employee</option>
             <option value="customer">Customer</option>
-            <option value="admin">Admin</option>
-            <option value="teamleader">Team Leader</option>
-            <option value="manager">Manager</option>
           </select>
         </div>
 

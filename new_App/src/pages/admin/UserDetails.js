@@ -188,13 +188,11 @@ const UserDetails = () => {
       setEditableField(null);
       setUpdatedValue("");
       setError("");
-      setSuccessMessage("Changes saved successfully!");
 
 
       navigate("/admin/users", {
         state: {
-          reload: true,
-          message: "Changes saved successfully!",
+          reload: true,   
         },
       });
     } catch (error) {
@@ -306,7 +304,44 @@ const UserDetails = () => {
           {renderEditableRow("dob", "Date of Birth", "date")}
           {renderEditableRow("address", "Address")}
           {renderEditableRow("employeeID", "Employee ID")}
-          {renderEditableRow("role", "Role")}
+     {/*change*/}
+     <tr>
+            <td><strong>Role</strong></td>
+            <td>
+              {editableField === "role" ? (
+                <select 
+                  value={updatedValue} 
+                  onChange={(e) => setUpdatedValue(e.target.value)} 
+                  autoFocus
+                >
+                  <option value="admin">admin</option>
+                  <option value="manager">manager</option>
+                  <option value="teamleader">teamleader</option>
+                  <option value="employee">employee</option>
+                  <option value="customer">customer</option>
+                </select>
+              ) : (
+                <>
+                  {user.role || "N/A"}
+                  {changedFields.role && (
+                    <span style={{ color: "green", marginLeft: "10px", fontSize: "0.9em" }}>
+                      (New)
+                    </span>
+                  )}
+                </>
+              )}
+            </td>
+            <td>
+              {editableField === "role" ? (
+                <button className="save-button" onClick={handleSaveClick}>Save</button>
+              ) : (
+                <button className="edit-button" onClick={() => handleEditClick("role", user.role)}>
+                  Edit
+                </button>
+              )}
+            </td>
+          </tr>
+          {/*change*/}
           {renderEditableRow("documentNumber", "Document Number")}
           {renderEditableRow("shareCode", "Share Code")}
           <tr>

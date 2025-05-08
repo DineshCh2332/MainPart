@@ -10,9 +10,10 @@ const Dashboard = () => {
   const [roleCounts, setRoleCounts] = useState({
     Admin: 0,
     Manager: 0,
+    Teamleader: 0,
     Employee: 0,
     Customer: 0,
-    Teamleader: 0,
+    
   });
   const location = useLocation();
 
@@ -25,11 +26,11 @@ const Dashboard = () => {
     const counts = { Admin: 0, Manager: 0, Employee: 0, Customer: 0, Teamleader: 0 };
     usersData.forEach(user => {
       const role = user.role ? user.role.toLowerCase() : "";
+      if (role === "admin") counts.Admin++;
       if (role === "manager") counts.Manager++;
+      if (role === "teamleader") counts.Teamleader++;
       if (role === "employee") counts.Employee++;
       if (role === "customer") counts.Customer++;
-      if (role === "teamleader") counts.Teamleader++;
-      if (role === "admin") counts.Admin++;
     });
 
     setRoleCounts(counts);
@@ -56,8 +57,16 @@ const Dashboard = () => {
           <p>{totalUsers}</p>
         </div>
         <div className="summary-box">
+          <h2>Admins</h2>
+          <p>{roleCounts.Manager}</p>
+        </div>
+        <div className="summary-box">
           <h2>Managers</h2>
           <p>{roleCounts.Manager}</p>
+        </div>
+        <div className="summary-box">
+          <h2>Team Leader</h2>
+          <p>{roleCounts.Teamleader}</p>
         </div>
         <div className="summary-box">
           <h2>Employees</h2>
@@ -66,14 +75,6 @@ const Dashboard = () => {
         <div className="summary-box">
           <h2>Customers</h2>
           <p>{roleCounts.Customer}</p>
-        </div>
-        <div className="summary-box">
-          <h2>Team Leader</h2>
-          <p>{roleCounts.Teamleader}</p>
-        </div>
-        <div className="summary-box">
-          <h2>Admins</h2>
-          <p>{roleCounts.Admin}</p>
         </div>
       </div>
       <div className="actions">
