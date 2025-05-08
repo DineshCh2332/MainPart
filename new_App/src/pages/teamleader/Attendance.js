@@ -423,19 +423,16 @@ const TimeAndAttendance = () => {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>Time and Attendance</h1>
-        <button 
-          style={styles.calendarButton}
-          onClick={() => setShowCalendar(!showCalendar)}
-        >
-          <svg style={styles.calendarIcon} viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-        </button>
-      </div>
-
+    <div style={styles.dateInputContainer}>
+             <input
+               type="date"
+               value={format(date, 'yyyy-MM-dd')}
+               onChange={(e) => setDate(new Date(e.target.value))}
+               style={styles.dateInput}
+             />
+           </div>
+         </div>
+   
       <div style={styles.dateRow}>
         <div style={styles.dateDisplay}>Date: {formattedDate}</div>
       </div>
@@ -443,18 +440,6 @@ const TimeAndAttendance = () => {
       <div style={styles.timeRange}>
         Showing shifts between {startTimeStr} and {endTimeStr}
       </div>
-
-      {showCalendar && (
-        <div style={styles.calendarPopup} ref={calendarRef}>
-          <Calendar 
-            onChange={(newDate) => {
-              setDate(newDate);
-              setShowCalendar(false);
-            }} 
-            value={date} 
-          />
-        </div>
-      )}
 
       {loading ? (
         <div style={styles.loading}>Loading attendance data...</div>
@@ -525,6 +510,9 @@ const styles = {
     margin: 0,
     color: '#333',
   },
+  dateInputContainer: {
+    position: 'relative',
+  },
   dateRow: {
     marginBottom: '10px',
   },
@@ -573,7 +561,7 @@ const styles = {
     marginTop: '15px',
   },
   tableHeader: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1a73e8',
     textAlign: 'left',
     padding: '10px',
     borderBottom: '1px solid #ddd',

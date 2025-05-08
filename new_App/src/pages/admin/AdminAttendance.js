@@ -899,7 +899,7 @@ const AdminAttendance = () => {
               {isTodayDate && <th style={styles.tableHeader}>Actions</th>}
             </tr>
           </thead>
-          <tbody>
+          <tbody >
             {filteredData.length > 0 ? (
               filteredData.map((record, index) => (
                 <tr key={index} style={styles.tableRow}>
@@ -1102,7 +1102,7 @@ const styles = {
     marginTop: '15px',
   },
   tableHeader: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1a73e8',
     textAlign: 'left',
     padding: '10px',
     borderBottom: '1px solid #ddd',

@@ -76,6 +76,8 @@
 .management-section {
   margin: 0.5rem 1rem;
   margin-top: -1.2rem;
+  margin-left: 20px;
+  
 }
 
 .management-toggle {
@@ -108,11 +110,11 @@
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease-out;
-
 }
 
 .management-submenu.expanded {
   max-height: 500px; /* Adjust based on content height */
+  margin-top: -25px;
 }
 
 .submenu-item {
@@ -198,8 +200,7 @@
 /* Management sections container */
 .management-sections {
   border-top: 1px solid #eee;
-  
-  margin-top: 0.5rem;
+  margin-top: -100px;
 }
 
 .logout-section {

@@ -165,7 +165,8 @@ const Sidebar = () => {
 
       {/* Cash Management Section */}
       {(isAdmin || isManager || isTeamLeader) && (
-          <div className="management-section">
+          <div className="management-section" style={{ marginTop: "-30px" }}
+>
             <button 
               className={`management-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
               onClick={() => setCashManagementExpanded(!cashManagementExpanded)}
