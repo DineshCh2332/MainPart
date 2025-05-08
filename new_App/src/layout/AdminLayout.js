@@ -20,6 +20,11 @@ import CloseCashier from "../pages/admin/cashManagement/CloseCashier"
 import SafeCountPage from "../pages/admin/cashManagement/SafeCountPage";
 import BankingPage from "../pages/admin/cashManagement/BankingPage";
 
+//Items Management pages
+import Categories from "../pages/admin/itemsManagement/categories";
+import Sauces from "../pages/admin/itemsManagement/sauces";
+
+
 const AdminLayout = () => {
   return (
     <div className="bg-white min-h-screen">
@@ -45,6 +50,10 @@ const AdminLayout = () => {
             <Route path="cashManagement/closecashier" element={<CloseCashier/>} />
             <Route path="cashManagement/safecountpage" element={<SafeCountPage/>} />
             <Route path="cashManagement/bankingpage" element={<BankingPage/>} />
+
+            {/*Items Management */}
+            <Route path="itemsManagement/Categories" element={<Categories/>} />
+            <Route path="itemsManagement/sauces" element={<Sauces/>} />
           </Routes>
         </div>
       </div>

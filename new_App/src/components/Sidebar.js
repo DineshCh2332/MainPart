@@ -8,6 +8,7 @@ const Sidebar = () => {
   const { user, logout, isAdmin, isManager, isTeamLeader } = useAuth();
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
   const [cashManagementExpanded, setCashManagementExpanded] = useState(false);
+  const [tableManagementExpanded, setTableManagementExpanded] = useState(false);
   const [loginTime, setLoginTime] = useState('');
 
   // Memoized role configuration
@@ -165,8 +166,7 @@ const Sidebar = () => {
 
       {/* Cash Management Section */}
       {(isAdmin || isManager || isTeamLeader) && (
-          <div className="management-section" style={{ marginTop: "-30px" }}
->
+          <div className="management-section">
             <button 
               className={`management-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
               onClick={() => setCashManagementExpanded(!cashManagementExpanded)}
@@ -211,6 +211,49 @@ const Sidebar = () => {
                 Banking
               </NavLink>
               </div>
+          </div>
+       
+        )}
+        {/* Items Management Section */}
+      {(isAdmin || isManager || isTeamLeader) && (
+          <div className="management-section">
+            <button 
+              className={`management-toggle ${tableManagementExpanded ? 'expanded' : ''}`}
+              onClick={() => setTableManagementExpanded(!tableManagementExpanded)}
+            >
+              Items Management
+              <span className="toggle-indicator">
+                {tableManagementExpanded ? '▼' : '▶'}
+              </span>
+            </button>
+            
+            <div className={`management-submenu ${tableManagementExpanded ? 'expanded' : ''}`}>
+              <NavLink
+                to={`${inventoryBasePath}/itemsmanagement/Categories`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+               Categories
+              </NavLink>
+              <NavLink
+                to={``}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+               Items
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/itemsmanagement/sauces`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+               Sauces
+              </NavLink>
+
+            </div>
           </div>
        
         )}
