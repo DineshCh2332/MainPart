@@ -23,6 +23,7 @@ import BankingPage from "../pages/admin/cashManagement/BankingPage";
 //Items Management pages
 import Categories from "../pages/admin/itemsManagement/categories";
 import Sauces from "../pages/admin/itemsManagement/sauces";
+import ItemsManager from "../pages/admin/itemsManagement/items";
 
 
 const AdminLayout = () => {
@@ -54,6 +55,7 @@ const AdminLayout = () => {
             {/*Items Management */}
             <Route path="itemsManagement/Categories" element={<Categories/>} />
             <Route path="itemsManagement/sauces" element={<Sauces/>} />
+            <Route path="itemsManagement/items" element={<ItemsManager/>}/>
           </Routes>
         </div>
       </div>

@@ -236,14 +236,7 @@ const Sidebar = () => {
               >
                Categories
               </NavLink>
-              <NavLink
-                to={``}
-                className={({ isActive }) =>
-                  `submenu-item ${isActive ? 'active-subitem' : ''}`
-                }
-              >
-               Items
-              </NavLink>
+            
               <NavLink
                 to={`${inventoryBasePath}/itemsmanagement/sauces`}
                 className={({ isActive }) =>
@@ -251,6 +244,14 @@ const Sidebar = () => {
                 }
               >
                Sauces
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/itemsmanagement/items`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+               Items
               </NavLink>
 
             </div>
