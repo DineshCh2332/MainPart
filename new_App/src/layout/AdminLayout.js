@@ -21,18 +21,15 @@ import CloseCashier from "../pages/admin/cashManagement/CloseCashier"
 import SafeCountPage from "../pages/admin/cashManagement/SafeCountPage";
 import BankingPage from "../pages/admin/cashManagement/BankingPage";
 
-<<<<<<< HEAD
 //customer tracking
 import KOT from "../pages/admin/customerTracking/KOT";
 //import Reports from "../pages/admin/customerTracking/Reports";
 import CustomerReport from "../pages/admin/customerTracking/CustomerReport";
-=======
 //Items Management pages
 import Categories from "../pages/admin/itemsManagement/categories";
 import Sauces from "../pages/admin/itemsManagement/sauces";
 import ItemsManager from "../pages/admin/itemsManagement/items";
 
->>>>>>> 11b7f4fa1fd36cc0b6b72ae4bf7fe3cd4dbd6e03
 
 const AdminLayout = () => {
   return (
@@ -64,16 +61,13 @@ const AdminLayout = () => {
             <Route path="cashManagement/safecountpage" element={<SafeCountPage/>} />
             <Route path="cashManagement/bankingpage" element={<BankingPage/>} />
 
-<<<<<<< HEAD
             <Route path="customerTracking/customerreport" element={<CustomerReport/>}/>
             <Route path="customerTracking/kot" element={<KOT />}/>
 
-=======
             {/*Items Management */}
             <Route path="itemsManagement/Categories" element={<Categories/>} />
             <Route path="itemsManagement/sauces" element={<Sauces/>} />
             <Route path="itemsManagement/items" element={<ItemsManager/>}/>
->>>>>>> 11b7f4fa1fd36cc0b6b72ae4bf7fe3cd4dbd6e03
           </Routes>
         </div>
       </div>

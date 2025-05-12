@@ -8,11 +8,8 @@ const Sidebar = () => {
   const { user, logout, isAdmin, isManager, isTeamLeader } = useAuth();
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
   const [cashManagementExpanded, setCashManagementExpanded] = useState(false);
-<<<<<<< HEAD
   const [customerTrackingExpanded, setCustomerTrackingExpanded] = useState(false);
-=======
   const [tableManagementExpanded, setTableManagementExpanded] = useState(false);
->>>>>>> 11b7f4fa1fd36cc0b6b72ae4bf7fe3cd4dbd6e03
   const [loginTime, setLoginTime] = useState('');
 
   // Memoized role configuration
@@ -256,8 +253,9 @@ const Sidebar = () => {
               >
                Items
               </NavLink>
-
-<<<<<<< HEAD
+              </div>
+          </div>
+        )}
         {/* Customer Tracking Section */}
         {(isAdmin || isManager || isTeamLeader) && (
           <div className="management-section">
@@ -291,21 +289,6 @@ const Sidebar = () => {
             </div>
           </div>
         )}
-=======
-            </div>
-          </div>
-       
-        )}
-</div>
-<div className="logout-section">
-    <button
-      onClick={logout}
-      className="logout-button"
-    >
-      Logout
-    </button>
-  </div>
->>>>>>> 11b7f4fa1fd36cc0b6b72ae4bf7fe3cd4dbd6e03
       </div>
 
       <div className="logout-section">
