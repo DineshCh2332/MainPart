@@ -5,9 +5,6 @@ import Sidebar from "../components/Sidebar";
 import Dashboard from "../pages/manager/Dashboard";
 import Employees from "../pages/manager/Employees";
 import Employee from "../pages/manager/EmployeeDetails"
-import Menu from "../pages/manager/Menu";
-import Orders from "../pages/manager/Orders";
-import Reports from "../pages/manager/Reports";
 import ManagerAttendance from "../pages/manager/ManagerAttendance";
 
 // Inventory pages
@@ -31,9 +28,6 @@ const ManagerLayout = () => {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="employees" element={<Employees />} />
           <Route path="employee/:id" element={<Employee />} />
-          <Route path="menu" element={<Menu />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="reports" element={<Reports />} />
           <Route path="ManagerAttendance" element={<ManagerAttendance />} />
 
 
