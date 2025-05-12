@@ -39,34 +39,6 @@ customers (Collection)
     ├── shareCode: string
 
 
-attendance
-  └── 2025-05-05 (Date of the attendance record)
-      └── sessions
-          └── oyQHTwCOEdYCIMJgWEOO (Session ID)
-              ├── checkIn: timestamp 
-              ├── checkOut: timestamp 
-              ├── role: "employee" (string)
-              ├── source: "admin" (string) | system | manager
-              ├── status: "closed" (string)
-              └── user: /users_01/Nq4WTjcfIZ62W4prIQC8 
-
-for main database
-attendance
-  └── 2025-05-05 (Date of the attendance record)
-      └── sessions
-          └── oyQHTwCOEdYCIMJgWEOO (Session ID)
-              ├── checkIn: timestamp (May 5, 2025 at 5:02:05 PM UTC+5:30)
-              ├── checkInEdited: true (boolean)
-              ├── checkOut: timestamp (May 5, 2025 at 11:02:05 PM UTC+5:30)
-              ├── checkOutEdited: true (boolean)
-              ├── editedAt: timestamp (May 6, 2025 at 2:13:13 AM UTC+5:30)
-              ├── editedBy: "Admin" (string)
-              ├── role: "employee" (string)
-              ├── source: "admin" (string)
-              ├── status: "closed" (string)
-              └── user: /users_01/Nq4WTjcfIZ62W4prIQC8 (Reference to user document)
-
-
 
 floats (Collection)
 └── floatA_2025-05-02 (Document)
