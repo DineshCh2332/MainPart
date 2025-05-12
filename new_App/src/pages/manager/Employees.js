@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import '../../css/Users.css'
 
 const Employees = () => {
   const [users, setUsers] = useState([]);
@@ -41,7 +42,7 @@ const Employees = () => {
       const name = (user.name || "").toLowerCase();
       const role = (user.role || "").toLowerCase();
       const phone = (user.phone || "").toLowerCase();
-      const userId = (user.customer_id || "N/A").toLowerCase();
+      const userId = (user.userId || "N/A").toLowerCase();
       const email = (user.email || "").toLowerCase();
       const address = (user.address || "").toLowerCase();
 
@@ -114,8 +115,8 @@ const Employees = () => {
       <table className="users-table">
         <thead>
           <tr>
-            <th onClick={() => sortUsers("customer_id")}>
-              User ID {renderSortArrow("customer_id")}
+            <th onClick={() => sortUsers("userId")}>
+              User ID {renderSortArrow("userId")}
             </th>
             <th onClick={() => sortUsers("name")}>
               Name {renderSortArrow("name")}
@@ -137,7 +138,7 @@ const Employees = () => {
           ) : (
             filteredUsers.map((user) => (
               <tr key={user.docId} onClick={() => navigate(`/manager/employee/${user.docId}`)}>
-                <td>{user.customer_id || "N/A"}</td>
+               <td>{user.userId || "N/A"}</td>
                 <td>{user.name || "N/A"}</td>
                 <td>{user.phone || "N/A"}</td>
                 <td>{user.role || "N/A"}</td>

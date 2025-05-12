@@ -1,21 +1,21 @@
 
 /* Basic resets */
-* {
+/* * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
+} */
 
 /* Body */
-body {
+/* body {
   font-family: Arial, sans-serif;
   background-color: #f4f6f9;
   color: #333;
   line-height: 1.6;
-}
+} */
 
 /* Main container */
-.container {
+/* .container {
   width: 80%;
   margin: 0 auto;
   padding: 20px;
@@ -24,18 +24,18 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin-top: 40px;
   margin-bottom: 40px;
-}
+} */
 
 /* Header */
-h2 {
+/* h2 {
   text-align: center;
   color: #2c3e50;
   font-size: 24px;
   margin-bottom: 20px;
-}
+} */
 
 /* Session Buttons */
-.session-buttons {
+/* .session-buttons {
   display: flex;
   justify-content: space-around;
   margin-bottom: 20px;
@@ -61,7 +61,7 @@ h2 {
 }
 
 /* Safe Count Table */
-table {
+/* table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
@@ -89,10 +89,10 @@ table td input {
 
 table td input:disabled {
   background-color: #f0f0f0;
-}
+} */ 
 
 /* Authorization Form */
-.authorization-form {
+/* .authorization-form {
   margin-bottom: 20px;
 }
 
@@ -133,10 +133,10 @@ table td input:disabled {
 
 .authorization-form button:hover {
   background-color: #2ecc71;
-}
+} */
 
 /* Save button */
-button {
+/* button {
   background-color: #e67e22;
   color: #fff;
   padding: 12px 20px;
@@ -156,13 +156,13 @@ button:hover {
 button:disabled {
   background-color: #bdc3c7;
   cursor: not-allowed;
-}
+} */
 
 /* Footer */
-footer {
+/* footer {
   text-align: center;
   margin-top: 40px;
   font-size: 14px;
   color: #7f8c8d;
 }
-
+  */

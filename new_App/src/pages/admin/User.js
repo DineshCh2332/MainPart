@@ -1,19 +1,612 @@
+// // src/pages/admin/Users.js
+// import React, { useEffect, useState, useCallback } from "react";
+// import { db } from "../../firebase/config";
+// import { collection, getDocs, query } from "firebase/firestore";
+// import "../../css/Users.css";
+// import { useNavigate, useLocation } from "react-router-dom";
+
+// const Users = () => {
+//   const [users, setUsers] = useState([]);
+//   const [filteredUsers, setFilteredUsers] = useState([]);
+//   const [roleFilter, setRoleFilter] = useState("all");
+//   const [searchTerm, setSearchTerm] = useState("");
+//   const [debouncedSearch, setDebouncedSearch] = useState("");
+//   const location = useLocation();
+//   const navigate = useNavigate();
+
+//   const [roleCounts, setRoleCounts] = useState({
+//     Admin: 0,
+//     Manager: 0,
+//     TeamLeader: 0,
+//     Employee: 0,
+//     Customer: 0
+//   });
+
+//   const [sortConfig, setSortConfig] = useState({
+//     key: "name",
+//     direction: "asc",
+//   });
+
+//   const calculateRoleCounts = (usersList) => {
+//     const counts = {Admin: 0, Manager: 0 ,TeamLeader: 0,  Employee: 0, Customer: 0 };
+//     usersList.forEach((user) => {
+//       const role = user.role?.toLowerCase();
+//       if (role === "admin") counts.Admin++;
+//       if (role === "manager") counts.Manager++;
+//       if (role === "teamleader") counts.TeamLeader++;
+//       if (role === "employee") counts.Employee++;
+//       if (role === "customer") counts.Customer++;
+//     });
+//     setRoleCounts(counts);
+//   };
+
+//   const loadUsers = useCallback(async () => {
+//     try {
+//       const userCollection = collection(db, "users_01");
+//       const userQuery = query(userCollection);
+//       const snapshot = await getDocs(userQuery);
+//       const rawUsers = snapshot.docs.map((doc) => ({
+//         docId: doc.id,
+//         name: doc.data().name || "N/A",
+//         phone: doc.data().phone || "N/A",
+//         countryCode: doc.data().countryCode || "+91", // Add countryCode
+//         role: doc.data().role || "N/A",
+//         customer_id: doc.data().customer_id || "N/A",
+//       }));
+//       setUsers(rawUsers);
+//       setFilteredUsers(rawUsers);
+//       calculateRoleCounts(rawUsers);
+//     } catch (error) {
+//       console.error("Error loading users:", error);
+//     }
+//   }, []);
+
+
+//   const filterUsers = useCallback(() => {
+//     const search = debouncedSearch.toLowerCase();
+//     const normalizedRoleFilter = roleFilter.toLowerCase();
+
+//     const results = users.filter((user) => {
+//       const name = user.name.toLowerCase();
+//       const role = user.role.toLowerCase();
+//       const phone = user.phone.toLowerCase();
+//       const userId = user.customer_id.toLowerCase();
+//       const matchesSearch =
+//         name.includes(search) || role.includes(search) || phone.includes(search) || userId.includes(search);
+//       const matchesRole = normalizedRoleFilter === "all" || role === normalizedRoleFilter;
+//       return matchesSearch && matchesRole;
+//     });
+
+//     const sortedUsers = results.sort((a, b) => {
+//       const direction = sortConfig.direction === "asc" ? 1 : -1;
+//       if (a[sortConfig.key] < b[sortConfig.key]) return -1 * direction;
+//       if (a[sortConfig.key] > b[sortConfig.key]) return 1 * direction;
+//       return 0;
+//     });
+
+//     setFilteredUsers(sortedUsers);
+//   }, [users, debouncedSearch, roleFilter, sortConfig]);
+
+//   const sortUsers = (key) => {
+//     let direction = "asc";
+//     if (sortConfig.key === key && sortConfig.direction === "asc") {
+//       direction = "desc";
+//     }
+//     setSortConfig({ key, direction });
+//   };
+
+//   const renderSortArrow = (column) => {
+//     if (sortConfig.key === column) {
+//       return sortConfig.direction === "asc" ? "↑" : "↓";
+//     }
+//     return "";
+//   };
+
+//   // Debounce search input
+//   useEffect(() => {
+//     const delayDebounce = setTimeout(() => {
+//       setDebouncedSearch(searchTerm);
+//     }, 300);
+//     return () => clearTimeout(delayDebounce);
+//   }, [searchTerm]);
+
+//   useEffect(() => {
+//     filterUsers();
+//   }, [debouncedSearch, users, roleFilter, sortConfig, filterUsers]);
+
+//   useEffect(() => {
+//     if (location.state?.reload) {
+//       loadUsers();
+//       if (location.state.message) {
+//         alert(location.state.message);
+//       }
+//       window.history.replaceState({}, document.title);
+//     }
+//   }, [location.state, loadUsers]);
+
+//   useEffect(() => {
+//     loadUsers();
+//   }, [loadUsers]);
+
+//    /*change*/
+//    useEffect(() => {
+//     // Store and clear state only once on initial mount
+//     const reload = location.state?.reload;
+//     const message = location.state?.message;
+
+//     if (reload) {
+//       // Show the message once
+//       if (message) {
+//         alert(message);
+//       }
+
+//       // Clear the state using navigate replace
+//       navigate(location.pathname, { replace: true });
+//     }
+
+//     loadUsers(); // always load users on mount
+//   }, []); /*change*/
+
+
+//   return (
+//     <div className="users-container">
+//       <h1 className="users-heading">Users</h1>
+//       <div className="add-buttons">
+//         <button className="add-btn" onClick={() => navigate("/admin/users/add-employee")}>
+//           ➕ Add User
+//         </button>
+//       </div>
+
+//       <div className="user-summary">
+//         <p>Total Users: <strong>{Object.values(roleCounts).reduce((a, b) => a + b, 0)}</strong></p>
+//         <p>Admins: <strong>{roleCounts.Admin}</strong></p>
+//         <p>Managers: <strong>{roleCounts.Manager}</strong></p>
+//         <p>Teamleaders: <strong>{roleCounts.TeamLeader}</strong></p>
+//         <p>Employees: <strong>{roleCounts.Employee}</strong></p>
+//         <p>Customers: <strong>{roleCounts.Customer}</strong></p>
+//       </div>
+
+//       <div className="top-controls">
+//         <div className="filter-container">
+//           <label htmlFor="roleFilter">Filter by Role:</label>
+//           <select
+//             className="role-filter"
+//             id="roleFilter"
+//             value={roleFilter}
+//             onChange={(e) => setRoleFilter(e.target.value)}
+//           >
+//            <option value="all">All Users</option>
+//             <option value="admin">Admin</option>
+//             <option value="manager">Manager</option>
+//             <option value="teamleader">Team Leader</option>
+//             <option value="employee">Employee</option>
+//             <option value="customer">Customer</option>
+//           </select>
+//         </div>
+
+//         <div className="search-container">
+//           <input
+//             type="text"
+//             placeholder="Search by name, phone, or role..."
+//             value={searchTerm}
+//             onChange={(e) => setSearchTerm(e.target.value)}
+//           />
+//         </div>
+//       </div>
+
+//       <table className="users-table">
+//         <thead>
+//           <tr>
+//             <th onClick={() => sortUsers("customer_id")}>User ID {renderSortArrow("customer_id")}</th>
+//             <th onClick={() => sortUsers("name")}>Name {renderSortArrow("name")}</th>
+//             <th onClick={() => sortUsers("phone")}>Phone {renderSortArrow("phone")}</th>
+//             <th onClick={() => sortUsers("role")}>Role {renderSortArrow("role")}</th>
+//           </tr>
+//         </thead>
+//         <tbody>
+//           {filteredUsers.length === 0 ? (
+//             <tr>
+//               <td colSpan="4" className="no-users">No users found</td>
+//             </tr>
+//           ) : (
+//             filteredUsers.map((user) => (
+//               <tr key={user.docId} onClick={() => navigate(`/admin/user/${user.docId}`)}>
+//                 <td>{user.customer_id}</td>
+//                 <td>{user.name}</td>
+//                 <td>{user.countryCode} {user.phone}</td>
+//                 <td>{user.role}</td>
+//               </tr>
+//             ))
+//           )}
+//         </tbody>
+//       </table>
+//     </div>
+//   );
+// };
+// export default Users;
+
+
+
+// // src/pages/admin/Users.js
+// import React, { useEffect, useState, useCallback } from "react";
+// import { db } from "../../firebase/config";
+// import { collection, getDocs, query } from "firebase/firestore";
+// import { useNavigate, useLocation } from "react-router-dom";
+
+// const Users = () => {
+//   const [users, setUsers] = useState([]);
+//   const [filteredUsers, setFilteredUsers] = useState([]);
+//   const [roleFilter, setRoleFilter] = useState("all");
+//   const [searchTerm, setSearchTerm] = useState("");
+//   const [debouncedSearch, setDebouncedSearch] = useState("");
+//   const [loading, setLoading] = useState(true);
+//   const location = useLocation();
+//   const navigate = useNavigate();
+
+//   const [roleCounts, setRoleCounts] = useState({
+//     Admin: 0,
+//     Manager: 0,
+//     TeamLeader: 0,
+//     Employee: 0,
+//     Customer: 0
+//   });
+
+//   const [sortConfig, setSortConfig] = useState({
+//     key: "name",
+//     direction: "asc",
+//   });
+
+//   const calculateRoleCounts = (usersList) => {
+//     const counts = {
+//       Admin: 0,
+//       Manager: 0,
+//       TeamLeader: 0,
+//       Employee: 0,
+//       Customer: 0
+//     };
+//     usersList.forEach((user) => {
+//       const role = user.role?.toLowerCase();
+//       if (role === "admin") counts.Admin++;
+//       if (role === "manager") counts.Manager++;
+//       if (role === "teamleader") counts.TeamLeader++;
+//       if (role === "employee") counts.Employee++;
+//       if (role === "customer") counts.Customer++;
+//     });
+//     setRoleCounts(counts);
+//   };
+
+//   const loadUsers = useCallback(async () => {
+//     try {
+//       setLoading(true);
+//       // Fetch from users_01 collection
+//       const userCollection = collection(db, "users_01");
+//       const userQuery = query(userCollection);
+//       const userSnapshot = await getDocs(userQuery);
+//       const usersData = userSnapshot.docs.map((doc) => ({
+//         docId: doc.id,
+//         userId: doc.data().userId || "N/A",
+//         name: doc.data().name || "N/A",
+//         phone: doc.data().phone || "N/A",
+//         countryCode: doc.data().countryCode || "+91",
+//         role: doc.data().role || "N/A",
+//         source: "employee"
+//       }));
+
+//       // Fetch from customers collection
+//       const customerCollection = collection(db, "customers");
+//       const customerQuery = query(customerCollection);
+//       const customerSnapshot = await getDocs(customerQuery);
+//       const customersData = customerSnapshot.docs.map((doc) => ({
+//         docId: doc.id,
+//         userId: doc.data().userId || "N/A",
+//         name: doc.data().name || "N/A",
+//         phone: doc.data().phone || "N/A",
+//         countryCode: doc.data().countryCode || "+91",
+//         role: "Customer",
+//         source: "customer"
+//       }));
+
+//       // Combine both collections
+//       const combinedUsers = [...usersData, ...customersData];
+//       setUsers(combinedUsers);
+//       setFilteredUsers(combinedUsers);
+//       calculateRoleCounts(combinedUsers);
+//     } catch (error) {
+//       console.error("Error loading users:", error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, []);
+
+//   const filterUsers = useCallback(() => {
+//     const search = debouncedSearch.toLowerCase();
+//     const normalizedRoleFilter = roleFilter.toLowerCase();
+
+//     const results = users.filter((user) => {
+//       const name = user.name.toLowerCase();
+//       const role = user.role.toLowerCase();
+//       const phone = user.phone.toLowerCase();
+//       const userId = user.userId.toLowerCase();
+//       const matchesSearch =
+//         name.includes(search) ||
+//         role.includes(search) ||
+//         phone.includes(search) ||
+//         userId.includes(search);
+//       const matchesRole = normalizedRoleFilter === "all" || role === normalizedRoleFilter;
+//       return matchesSearch && matchesRole;
+//     });
+
+//     const sortedUsers = results.sort((a, b) => {
+//       const direction = sortConfig.direction === "asc" ? 1 : -1;
+//       if (a[sortConfig.key] < b[sortConfig.key]) return -1 * direction;
+//       if (a[sortConfig.key] > b[sortConfig.key]) return 1 * direction;
+//       return 0;
+//     });
+
+//     setFilteredUsers(sortedUsers);
+//   }, [users, debouncedSearch, roleFilter, sortConfig]);
+
+//   const sortUsers = (key) => {
+//     let direction = "asc";
+//     if (sortConfig.key === key && sortConfig.direction === "asc") {
+//       direction = "desc";
+//     }
+//     setSortConfig({ key, direction });
+//   };
+
+//   const renderSortArrow = (column) => {
+//     if (sortConfig.key === column) {
+//       return sortConfig.direction === "asc" ? (
+//         <span className="ml-1">↑</span>
+//       ) : (
+//         <span className="ml-1">↓</span>
+//       );
+//     }
+//     return null;
+//   };
+
+//   // Debounce search input
+//   useEffect(() => {
+//     const delayDebounce = setTimeout(() => {
+//       setDebouncedSearch(searchTerm);
+//     }, 300);
+//     return () => clearTimeout(delayDebounce);
+//   }, [searchTerm]);
+
+//   useEffect(() => {
+//     filterUsers();
+//   }, [debouncedSearch, users, roleFilter, sortConfig, filterUsers]);
+
+//   useEffect(() => {
+//     const reload = location.state?.reload;
+//     const message = location.state?.message;
+
+//     if (reload) {
+//       if (message) {
+//         alert(message);
+//       }
+//       navigate(location.pathname, { replace: true });
+//     }
+
+//     loadUsers();
+//   }, []);
+
+//   return (
+//     <div className="container mx-auto px-4 py-8">
+//       <div className="flex justify-between items-center mb-8">
+//         <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
+//         <button
+//           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
+//           onClick={() => navigate("/admin/users/add-employee")}
+//         >
+//           <span className="mr-2">+</span> Add User
+//         </button>
+//       </div>
+
+//       {/* Summary Cards */}
+//       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+//         <div className="bg-white p-4 rounded-lg shadow">
+//           <h3 className="text-gray-500 text-sm">Total Users</h3>
+//           <p className="text-2xl font-bold">
+//             {Object.values(roleCounts).reduce((a, b) => a + b, 0)}
+//           </p>
+//         </div>
+//         <div className="bg-white p-4 rounded-lg shadow">
+//           <h3 className="text-gray-500 text-sm">Admins</h3>
+//           <p className="text-2xl font-bold text-purple-600">{roleCounts.Admin}</p>
+//         </div>
+//         <div className="bg-white p-4 rounded-lg shadow">
+//           <h3 className="text-gray-500 text-sm">Managers</h3>
+//           <p className="text-2xl font-bold text-blue-600">{roleCounts.Manager}</p>
+//         </div>
+//         <div className="bg-white p-4 rounded-lg shadow">
+//           <h3 className="text-gray-500 text-sm">Team Leaders</h3>
+//           <p className="text-2xl font-bold text-green-600">{roleCounts.TeamLeader}</p>
+//         </div>
+//         <div className="bg-white p-4 rounded-lg shadow">
+//           <h3 className="text-gray-500 text-sm">Employees</h3>
+//           <p className="text-2xl font-bold text-yellow-600">{roleCounts.Employee}</p>
+//         </div>
+//         <div className="bg-white p-4 rounded-lg shadow">
+//           <h3 className="text-gray-500 text-sm">Customers</h3>
+//           <p className="text-2xl font-bold text-red-600">{roleCounts.Customer}</p>
+//         </div>
+//       </div>
+
+//       {/* Filters */}
+//       <div className="bg-white p-4 rounded-lg shadow mb-6">
+//         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+//           <div className="w-full md:w-1/3">
+//             <label htmlFor="roleFilter" className="block text-sm font-medium text-gray-700 mb-1">
+//               Filter by Role
+//             </label>
+//             <select
+//               id="roleFilter"
+//               className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+//               value={roleFilter}
+//               onChange={(e) => setRoleFilter(e.target.value)}
+//             >
+//               <option value="all">All Users</option>
+//               <option value="admin">Admin</option>
+//               <option value="manager">Manager</option>
+//               <option value="teamleader">Team Leader</option>
+//               <option value="employee">Employee</option>
+//               <option value="customer">Customer</option>
+//             </select>
+//           </div>
+//           <div className="w-full md:w-2/3">
+//             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+//               Search
+//             </label>
+//             <input
+//               type="text"
+//               id="search"
+//               className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+//               placeholder="Search by name, phone, user ID, or role..."
+//               value={searchTerm}
+//               onChange={(e) => setSearchTerm(e.target.value)}
+//             />
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Users Table */}
+//       <div className="bg-white rounded-lg shadow overflow-hidden">
+//         {loading ? (
+//           <div className="p-8 text-center">
+//             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+//             <p className="mt-4 text-gray-600">Loading users...</p>
+//           </div>
+//         ) : (
+//           <div className="overflow-x-auto">
+//             <table className="min-w-full divide-y divide-gray-200">
+//               <thead className="bg-gray-50">
+//                 <tr>
+//                   <th
+//                     scope="col"
+//                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+//                     onClick={() => sortUsers("userId")}
+//                   >
+//                     <div className="flex items-center">
+//                       User ID
+//                       {renderSortArrow("userId")}
+//                     </div>
+//                   </th>
+//                   <th
+//                     scope="col"
+//                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+//                     onClick={() => sortUsers("name")}
+//                   >
+//                     <div className="flex items-center">
+//                       Name
+//                       {renderSortArrow("name")}
+//                     </div>
+//                   </th>
+//                   <th
+//                     scope="col"
+//                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+//                     onClick={() => sortUsers("phone")}
+//                   >
+//                     <div className="flex items-center">
+//                       Phone
+//                       {renderSortArrow("phone")}
+//                     </div>
+//                   </th>
+//                   <th
+//                     scope="col"
+//                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+//                     onClick={() => sortUsers("role")}
+//                   >
+//                     <div className="flex items-center">
+//                       Role
+//                       {renderSortArrow("role")}
+//                     </div>
+//                   </th>
+//                   <th
+//                     scope="col"
+//                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+//                   >
+//                     Type
+//                   </th>
+//                 </tr>
+//               </thead>
+//               <tbody className="bg-white divide-y divide-gray-200">
+//                 {filteredUsers.length === 0 ? (
+//                   <tr>
+//                     <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+//                       No users found
+//                     </td>
+//                   </tr>
+//                 ) : (
+//                   filteredUsers.map((user) => (
+//                     <tr
+//                       key={`${user.source}-${user.docId}`}
+//                       className="hover:bg-gray-50 cursor-pointer"
+//                       onClick={() => navigate(`/admin/user/${user.userId}`)}
+//                     >
+//                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+//                         {user.userId}
+//                       </td>
+//                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+//                         {user.name}
+//                       </td>
+//                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+//                         {user.countryCode} {user.phone}
+//                       </td>
+//                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+//                         <span
+//                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role.toLowerCase() === "admin"
+//                               ? "bg-purple-100 text-purple-800"
+//                               : user.role.toLowerCase() === "manager"
+//                                 ? "bg-blue-100 text-blue-800"
+//                                 : user.role.toLowerCase() === "teamleader"
+//                                   ? "bg-green-100 text-green-800"
+//                                   : user.role.toLowerCase() === "employee"
+//                                     ? "bg-yellow-100 text-yellow-800"
+//                                     : "bg-red-100 text-red-800"
+//                             }`}
+//                         >
+//                           {user.role}
+//                         </span>
+//                       </td>
+//                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+//                         {user.source === "customer" ? "Customer" : "Employee"}
+//                       </td>
+//                     </tr>
+//                   ))
+//                 )}
+//               </tbody>
+//             </table>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default Users;
+
 // src/pages/admin/Users.js
 import React, { useEffect, useState, useCallback } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs, query } from "firebase/firestore";
-import "../../css/Users.css";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const Users = () => {
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
+  // State management
+  const [employees, setEmployees] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [roleFilter, setRoleFilter] = useState("all");
+  const [userTypeFilter, setUserTypeFilter] = useState("all"); // New user type filter
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Role counts state
   const [roleCounts, setRoleCounts] = useState({
     Admin: 0,
     Manager: 0,
@@ -22,87 +615,141 @@ const Users = () => {
     Customer: 0
   });
 
+  // Sorting configuration
   const [sortConfig, setSortConfig] = useState({
     key: "name",
     direction: "asc",
   });
 
-  const calculateRoleCounts = (usersList) => {
-    const counts = {Admin: 0, Manager: 0 ,TeamLeader: 0,  Employee: 0, Customer: 0 };
-    usersList.forEach((user) => {
+  // Calculate role counts
+  const calculateRoleCounts = (employeesList, customersList) => {
+    const counts = {
+      Admin: 0,
+      Manager: 0,
+      TeamLeader: 0,
+      Employee: 0,
+      Customer: customersList.length
+    };
+
+    employeesList.forEach((user) => {
       const role = user.role?.toLowerCase();
       if (role === "admin") counts.Admin++;
       if (role === "manager") counts.Manager++;
       if (role === "teamleader") counts.TeamLeader++;
       if (role === "employee") counts.Employee++;
-      if (role === "customer") counts.Customer++;
     });
+
     setRoleCounts(counts);
   };
 
+  // Load users data
   const loadUsers = useCallback(async () => {
     try {
-      const userCollection = collection(db, "users_01");
-      const userQuery = query(userCollection);
-      const snapshot = await getDocs(userQuery);
-      const rawUsers = snapshot.docs.map((doc) => ({
+      setLoading(true);
+      
+      // Fetch employees
+      const userSnapshot = await getDocs(query(collection(db, "users_01")));
+      const employeesData = userSnapshot.docs.map((doc) => ({
         docId: doc.id,
+        userId: doc.data().userId || "N/A",
         name: doc.data().name || "N/A",
         phone: doc.data().phone || "N/A",
-        countryCode: doc.data().countryCode || "+91", // Add countryCode
+        countryCode: doc.data().countryCode || "+91",
         role: doc.data().role || "N/A",
-        customer_id: doc.data().customer_id || "N/A",
+        source: "employee"
       }));
-      setUsers(rawUsers);
-      setFilteredUsers(rawUsers);
-      calculateRoleCounts(rawUsers);
+
+      // Fetch customers
+      const customerSnapshot = await getDocs(query(collection(db, "customers")));
+      const customersData = customerSnapshot.docs.map((doc) => ({
+        docId: doc.id,
+        userId: doc.data().userId || "N/A",
+        name: doc.data().name || "N/A",
+        phone: doc.data().phone || "N/A",
+        countryCode: doc.data().countryCode || "+91",
+        role: "Customer",
+        source: "customer"
+      }));
+
+      setEmployees(employeesData);
+      setCustomers(customersData);
+      calculateRoleCounts(employeesData, customersData);
     } catch (error) {
       console.error("Error loading users:", error);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  
-  const filterUsers = useCallback(() => {
+  // Filter and sort data
+  const filterData = useCallback(() => {
     const search = debouncedSearch.toLowerCase();
     const normalizedRoleFilter = roleFilter.toLowerCase();
 
-    const results = users.filter((user) => {
-      const name = user.name.toLowerCase();
-      const role = user.role.toLowerCase();
-      const phone = user.phone.toLowerCase();
-      const userId = user.customer_id.toLowerCase();
-      const matchesSearch =
-        name.includes(search) || role.includes(search) || phone.includes(search) || userId.includes(search);
-      const matchesRole = normalizedRoleFilter === "all" || role === normalizedRoleFilter;
+    // Filter employees
+    const filteredEmps = employees.filter((user) => {
+      if (userTypeFilter === 'customers') return false;
+      
+      const matchesSearch = [
+        user.name.toLowerCase(),
+        user.phone.toLowerCase(),
+        user.userId.toLowerCase(),
+        user.role.toLowerCase()
+      ].some(field => field.includes(search));
+
+      const matchesRole = normalizedRoleFilter === "all" || 
+        user.role.toLowerCase() === normalizedRoleFilter;
+
       return matchesSearch && matchesRole;
     });
 
-    const sortedUsers = results.sort((a, b) => {
-      const direction = sortConfig.direction === "asc" ? 1 : -1;
-      if (a[sortConfig.key] < b[sortConfig.key]) return -1 * direction;
-      if (a[sortConfig.key] > b[sortConfig.key]) return 1 * direction;
-      return 0;
+    // Filter customers
+    const filteredCusts = customers.filter((customer) => {
+      if (userTypeFilter === 'employees') return false;
+      
+      return [
+        customer.name.toLowerCase(),
+        customer.phone.toLowerCase(),
+        customer.userId.toLowerCase()
+      ].some(field => field.includes(search));
     });
 
-    setFilteredUsers(sortedUsers);
-  }, [users, debouncedSearch, roleFilter, sortConfig]);
+    // Sort employees
+    const sortedEmps = [...filteredEmps].sort((a, b) => {
+      const direction = sortConfig.direction === "asc" ? 1 : -1;
+      const aValue = a[sortConfig.key]?.toLowerCase?.() || a[sortConfig.key];
+      const bValue = b[sortConfig.key]?.toLowerCase?.() || b[sortConfig.key];
+      return aValue.localeCompare(bValue) * direction;
+    });
 
+    // Sort customers
+    const sortedCusts = [...filteredCusts].sort((a, b) => {
+      const direction = sortConfig.direction === "asc" ? 1 : -1;
+      const aValue = a[sortConfig.key]?.toLowerCase?.() || a[sortConfig.key];
+      const bValue = b[sortConfig.key]?.toLowerCase?.() || b[sortConfig.key];
+      return aValue.localeCompare(bValue) * direction;
+    });
+
+    setFilteredEmployees(sortedEmps);
+    setFilteredCustomers(sortedCusts);
+  }, [employees, customers, debouncedSearch, roleFilter, sortConfig, userTypeFilter]);
+
+  // Sorting handlers
   const sortUsers = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc"
+    }));
   };
 
   const renderSortArrow = (column) => {
     if (sortConfig.key === column) {
       return sortConfig.direction === "asc" ? "↑" : "↓";
     }
-    return "";
+    return null;
   };
 
-  // Debounce search input
+  // Search debounce
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -110,117 +757,224 @@ const Users = () => {
     return () => clearTimeout(delayDebounce);
   }, [searchTerm]);
 
+  // Filter when dependencies change
   useEffect(() => {
-    filterUsers();
-  }, [debouncedSearch, users, roleFilter, sortConfig, filterUsers]);
+    filterData();
+  }, [debouncedSearch, filterData]);
 
+  // Initial load and reload handling
   useEffect(() => {
-    if (location.state?.reload) {
-      loadUsers();
-      if (location.state.message) {
-        alert(location.state.message);
-      }
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state, loadUsers]);
-
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-   /*change*/
-   useEffect(() => {
-    // Store and clear state only once on initial mount
     const reload = location.state?.reload;
     const message = location.state?.message;
-  
+
     if (reload) {
-      // Show the message once
       if (message) {
         alert(message);
       }
-  
-      // Clear the state using navigate replace
       navigate(location.pathname, { replace: true });
     }
-  
-    loadUsers(); // always load users on mount
-  }, []); /*change*/
-  
+
+    loadUsers();
+  }, [loadUsers, location, navigate]);
 
   return (
-    <div className="users-container">
-      <h1 className="users-heading">Users</h1>
-      <div className="add-buttons">
-        <button className="add-btn" onClick={() => navigate("/admin/users/add-employee")}>
-          ➕ Add User
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+          onClick={() => navigate("/admin/users/add-employee")}
+        >
+          <span className="mr-2">+</span> Add User
         </button>
       </div>
 
-      <div className="user-summary">
-        <p>Total Users: <strong>{Object.values(roleCounts).reduce((a, b) => a + b, 0)}</strong></p>
-        <p>Admins: <strong>{roleCounts.Admin}</strong></p>
-        <p>Managers: <strong>{roleCounts.Manager}</strong></p>
-        <p>Teamleaders: <strong>{roleCounts.TeamLeader}</strong></p>
-        <p>Employees: <strong>{roleCounts.Employee}</strong></p>
-        <p>Customers: <strong>{roleCounts.Customer}</strong></p>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-gray-500 text-sm">Total Users</h3>
+          <p className="text-2xl font-bold">
+            {employees.length + customers.length}
+          </p>
+        </div>
+        {Object.entries(roleCounts).map(([role, count]) => (
+          <div key={role} className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role + "s"}</h3>
+            <p className={`text-2xl font-bold ${
+              role === "Admin" ? "text-purple-600" :
+              role === "Manager" ? "text-blue-600" :
+              role === "TeamLeader" ? "text-green-600" :
+              role === "Employee" ? "text-yellow-600" : "text-red-600"
+            }`}>
+              {count}
+            </p>
+          </div>
+        ))}
       </div>
 
-      <div className="top-controls">
-        <div className="filter-container">
-          <label htmlFor="roleFilter">Filter by Role:</label>
-          <select
-            className="role-filter"
-            id="roleFilter"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-          >
-           <option value="all">All Users</option>
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="teamleader">Team Leader</option>
-            <option value="employee">Employee</option>
-            <option value="customer">Customer</option>
-          </select>
-        </div>
-
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder="Search by name, phone, or role..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <table className="users-table">
-        <thead>
-          <tr>
-            <th onClick={() => sortUsers("customer_id")}>User ID {renderSortArrow("customer_id")}</th>
-            <th onClick={() => sortUsers("name")}>Name {renderSortArrow("name")}</th>
-            <th onClick={() => sortUsers("phone")}>Phone {renderSortArrow("phone")}</th>
-            <th onClick={() => sortUsers("role")}>Role {renderSortArrow("role")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredUsers.length === 0 ? (
-            <tr>
-              <td colSpan="4" className="no-users">No users found</td>
-            </tr>
-          ) : (
-            filteredUsers.map((user) => (
-              <tr key={user.docId} onClick={() => navigate(`/admin/user/${user.docId}`)}>
-                <td>{user.customer_id}</td>
-                <td>{user.name}</td>
-                <td>{user.countryCode} {user.phone}</td>
-                <td>{user.role}</td>
-              </tr>
-            ))
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-lg shadow mb-6 sticky top-0 z-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="w-full md:w-1/3">
+            <label htmlFor="userTypeFilter" className="block text-sm font-medium text-gray-700 mb-1">
+              Show
+            </label>
+            <select
+              id="userTypeFilter"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              value={userTypeFilter}
+              onChange={(e) => setUserTypeFilter(e.target.value)}
+            >
+              <option value="all">All Users</option>
+              <option value="employees">Employees Only</option>
+              <option value="customers">Customers Only</option>
+            </select>
+          </div>
+          
+          {userTypeFilter !== 'customers' && (
+            <div className="w-full md:w-1/3">
+              <label htmlFor="roleFilter" className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Role
+              </label>
+              <select
+                id="roleFilter"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+              >
+                <option value="all">All Employees</option>
+                <option value="admin">Admin</option>
+                <option value="manager">Manager</option>
+                <option value="teamleader">Team Leader</option>
+                <option value="employee">Employee</option>
+              </select>
+            </div>
           )}
-        </tbody>
-      </table>
+          
+          <div className="w-full md:w-1/3">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              id="search"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Search across all users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Employees Table */}
+      {userTypeFilter !== 'customers' && (
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">
+            Employees ({filteredEmployees.length})
+          </h2>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['userId', 'name', 'phone', 'role'].map((column) => (
+                    <th
+                      key={column}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => sortUsers(column)}
+                    >
+                      <div className="flex items-center">
+                        {column === 'userId' ? 'User ID' : column.charAt(0).toUpperCase() + column.slice(1)}
+                        {renderSortArrow(column)}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredEmployees.map((user) => (
+                  <tr
+                    key={user.userId}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => navigate(`/admin/user/${user.userId}`)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {user.userId}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.countryCode} {user.phone}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        user.role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-800' :
+                        user.role.toLowerCase() === 'manager' ? 'bg-blue-100 text-blue-800' :
+                        user.role.toLowerCase() === 'teamleader' ? 'bg-green-100 text-green-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Customers Table */}
+      {userTypeFilter !== 'employees' && (
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">
+            Customers ({filteredCustomers.length})
+          </h2>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['userId', 'name', 'phone'].map((column) => (
+                    <th
+                      key={column}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => sortUsers(column)}
+                    >
+                      <div className="flex items-center">
+                        {column === 'userId' ? 'User ID' : column.charAt(0).toUpperCase() + column.slice(1)}
+                        {renderSortArrow(column)}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredCustomers.map((customer) => (
+                  <tr
+                    key={customer.userId}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => navigate(`/admin/user/${customer.userId}`)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {customer.userId}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {customer.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {customer.countryCode} {customer.phone}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 export default Users;
