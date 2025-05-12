@@ -1,169 +1,168 @@
+
 /* Basic resets */
-.safe-count-page * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  /* Body */
-  .safe-count-page body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f6f9;
-    color: #333;
-    line-height: 1.5;
-  }
-  
-  /* Main container */
-  .safe-count-page container {
-    width: 80%;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    margin-top: 40px;
-    margin-bottom: 40px;
-  }
-  
-  /* Header */
-  .safe-count-page h2{
-    text-align: center;
-    color: #2c3e50;
-    font-size: 24px;
-    margin-bottom: 20px;
-  }
-  
-  /* Session Buttons */
-  .session-buttons {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 20px;
-  }
-  
-  .session-buttons button {
-    background-color: #3498db;
-    color: #fff;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
-  }
-  
-  .session-buttons button:hover {
-    background-color: #2980b9;
-  }
-  
-  .session-buttons button:disabled {
-    background-color: #95a5a6;
-    cursor: not-allowed;
-  }
-  
-  /* Safe Count Table */
-  .safe-count-page table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-  }
-  
-  .safe-count-page table th, table td {
-    padding: 12px;
-    text-align: center;
-    border: 1px solid #ddd;
-  }
-  
-  .safe-count-page table th {
-    background-color: #2980b9;
-    color: white;
-  }
-  
-  .safe-count-page table td input {
-    width: 100%;
-    padding: 8px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    margin-top: 5px;
-  }
-  
-  .safe-count-page table td input:disabled {
-    background-color: #f0f0f0;
-  }
-  
-  /* Authorization Form */
-  .authorization-form {
-    margin-bottom: 20px;
-  }
-  
-  .authorization-form input {
-    padding: 10px;
-    margin: 10px 0;
-    width: 100%;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  .authorization-form label {
-    font-size: 16px;
-    display: block;
-    margin-bottom: 5px;
-  }
-  
-  .authorization-form .checkbox-group {
-    display: flex;
-    justify-content: space-between;
-  }
-  
-  .authorization-form .checkbox-group input {
-    width: auto;
-  }
-  
-  .authorization-form button {
-    background-color: #27ae60;
-    color: #fff;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    margin-top: 10px;
-    transition: background-color 0.3s ease;
-  }
-  
-  .authorization-form button:hover {
-    background-color: #2ecc71;
-  }
-  
-  /* Save button */
-  .safe-count-page button {
-    background-color: #e67e22;
-    color: #fff;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    display: block;
-    margin: 20px auto;
-    transition: background-color 0.3s ease;
-  }
-  
-  button:hover {
-    background-color: #d35400;
-  }
-  
-  button:disabled {
-    background-color: #bdc3c7;
-    cursor: not-allowed;
-  }
-  
-  /* Footer */
-  .safe-count-page footer {
-    text-align: center;
-    margin-top: 40px;
-    font-size: 14px;
-    color: #7f8c8d;
-  }
-  
-  
+/* * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+} */
+
+/* Body */
+/* body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f6f9;
+  color: #333;
+  line-height: 1.6;
+} */
+
+/* Main container */
+/* .container {
+  width: 80%;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 40px;
+  margin-bottom: 40px;
+} */
+
+/* Header */
+/* h2 {
+  text-align: center;
+  color: #2c3e50;
+  font-size: 24px;
+  margin-bottom: 20px;
+} */
+
+/* Session Buttons */
+/* .session-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.session-buttons button {
+  background-color: #3498db;
+  color: #fff;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.session-buttons button:hover {
+  background-color: #2980b9;
+}
+
+.session-buttons button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Safe Count Table */
+/* table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+table th, table td {
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+table th {
+  background-color: #2980b9;
+  color: white;
+}
+
+table td input {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-top: 5px;
+}
+
+table td input:disabled {
+  background-color: #f0f0f0;
+} */ 
+
+/* Authorization Form */
+/* .authorization-form {
+  margin-bottom: 20px;
+}
+
+.authorization-form input {
+  padding: 10px;
+  margin: 10px 0;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.authorization-form label {
+  font-size: 16px;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.authorization-form .checkbox-group {
+  display: flex;
+  justify-content: space-between;
+}
+
+.authorization-form .checkbox-group input {
+  width: auto;
+}
+
+.authorization-form button {
+  background-color: #27ae60;
+  color: #fff;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.authorization-form button:hover {
+  background-color: #2ecc71;
+} */
+
+/* Save button */
+/* button {
+  background-color: #e67e22;
+  color: #fff;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  display: block;
+  margin: 20px auto;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #d35400;
+}
+
+button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+} */
+
+/* Footer */
+/* footer {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 14px;
+  color: #7f8c8d;
+}
+  */

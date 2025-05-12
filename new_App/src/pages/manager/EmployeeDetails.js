@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../src/firebase/config";
 import { doc, getDoc, updateDoc, query, where, getDocs, collection } from "firebase/firestore";
-import "../../css/UserDetails.css";
 
 const Employees = () => {
   const { id } = useParams();
@@ -13,33 +12,30 @@ const Employees = () => {
   const [error, setError] = useState("");
   const editRef = useRef(null);
 
+ 
   useEffect(() => {
     const loadUser = async () => {
       try {
         const userRef = doc(db, "users_01", id);
         const userSnap = await getDoc(userRef);
-
+  
         if (!userSnap.exists()) {
           console.error("User not found");
           return;
         }
-
+  
         const userData = userSnap.data();
-        const memberSinceDate = userData.member_since?.toDate
-          ? userData.member_since.toDate()
-          : userData.member_since instanceof Date
-            ? userData.member_since
-            : null;
-
-        const formattedMemberSince = memberSinceDate
-          ? memberSinceDate.toISOString().split("T")[0]
+        
+        // Directly use the string value and split at 'T'
+        const formattedMemberSince = userData.member_since 
+          ? userData.member_since.split('T')[0]
           : "N/A";
-
+  
         setUser({
-          id: userData.customer_id,
+          id: userSnap.id,
           name: userData.name,
           phone: userData.phone,
-          email: userData.email, // Keep email for editing
+          email: userData.email,
           dob: userData.dob,
           address: userData.address,
           employeeID: userData.employeeID,
@@ -50,7 +46,7 @@ const Employees = () => {
         console.error("Error loading user:", error);
       }
     };
-
+  
     loadUser();
   }, [id]);
 
@@ -73,27 +69,22 @@ const Employees = () => {
       return;
     }
 
-    if (editableField === "email") {
-      // Check for duplicate email
-      const emailQuery = query(
-        collection(db, "users_01"),
-        where("email", "==", updatedValue)
-      );
-
-      const querySnapshot = await getDocs(emailQuery);
-
-      if (!querySnapshot.empty) {
-        // Email is already in use by another user
-        setError("Email is already taken. Please choose a different email.");
-        return;
-      }
-    }
-
     try {
-      const ref = doc(db, "users_01", id);
-      const updatedData = {};
-      updatedData[editableField] = updatedValue;
-      await updateDoc(ref, updatedData);
+      // Update users_01 collection
+      const userRef = doc(db, "users_01", id);
+      const updatedData = { [editableField]: updatedValue };
+      
+      // Check if user exists in customers collection
+      const customerRef = doc(db, "customers", id);
+      const customerSnap = await getDoc(customerRef);
+
+      const updates = [updateDoc(userRef, updatedData)];
+      
+      if (customerSnap.exists()) {
+        updates.push(updateDoc(customerRef, updatedData));
+      }
+
+      await Promise.all(updates);
 
       setUser((prevUser) => ({
         ...prevUser,
@@ -132,36 +123,39 @@ const Employees = () => {
     return "(Less than a month ago)";
   };
 
-  if (!user) return <p style={{ padding: "20px" }}>Loading user data...</p>;
+  if (!user) return <p className="p-5">Loading user data...</p>;
 
   const renderFieldRow = (fieldName, label, editable = false, type = "text") => (
-    <tr ref={editableField === fieldName ? editRef : null}>
-      <td><strong>{label}</strong></td>
-      <td>
+    <tr ref={editableField === fieldName ? editRef : null} className="border-b">
+      <td className="p-3 font-medium">{label}</td>
+      <td className="p-3">
         {editable && editableField === fieldName ? (
-          <>
+          <div className="flex flex-col">
             <input
               type={type}
-              className="input-field"
+              className="border rounded p-2 mb-1"
               value={updatedValue}
               onChange={(e) => setUpdatedValue(e.target.value)}
               autoFocus
             />
-            {error && <div className="error-message">{error}</div>}
-          </>
+            {error && <span className="text-red-500 text-sm">{error}</span>}
+          </div>
         ) : (
-          user[fieldName] || "N/A"
+          <span>{user[fieldName] || "N/A"}</span>
         )}
       </td>
-      <td>
+      <td className="p-3">
         {editable ? (
           editableField === fieldName ? (
-            <button className="save-button" onClick={handleSaveClick}>
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded"
+              onClick={handleSaveClick}
+            >
               Save
             </button>
           ) : (
             <button
-              className="edit-button"
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded"
               onClick={() => handleEditClick(fieldName, user[fieldName])}
             >
               Edit
@@ -175,46 +169,52 @@ const Employees = () => {
   );
 
   return (
-    <div className="employee-details-container">
-      <h2>Employee Details</h2>
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Employee Details</h2>
+        <button
+          className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+          onClick={() => navigate("/manager/employees")}
+        >
+          Back to Employees
+        </button>
+      </div>
 
-      <button
-        style={{ width: "150px" }}
-        className="back-button"
-        onClick={() => navigate("/manager/employees")}
-      >
-        Back to Users
-      </button>
-
-      <table className="employee-details-table">
-        <thead>
-          <tr>
-            <th>Field</th>
-            <th>Value</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {renderFieldRow("name", "Name", true)}
-          {renderFieldRow("phone", "Phone Number", false)}
-          {renderFieldRow("email", "Email", true, "email")}
-          {renderFieldRow("dob", "Date of Birth", true, "date")}
-          {renderFieldRow("id", "Customer ID", false)}
-          {renderFieldRow("employeeID", "Employee ID", false)}
-          {renderFieldRow("address", "Address", true)}
-          <tr>
-            <td><strong>Member Since</strong></td>
-            <td>
-              {user.createdAt}{" "}
-              <span style={{ color: "gray", fontSize: "0.9em" }}>
-                {calculateTimeAgo(user.createdAt)}
-              </span>
-            </td>
-            <td>-</td>
-          </tr>
-          {renderFieldRow("role", "Role", false)}
-        </tbody>
-      </table>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="p-3 text-left">Field</th>
+              <th className="p-3 text-left">Value</th>
+              <th className="p-3 text-left">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {renderFieldRow("name", "Name", true)}
+            {renderFieldRow("phone", "Phone Number", false)}
+            {renderFieldRow("email", "Email", true, "email")}
+            {renderFieldRow("dob", "Date of Birth", true, "date")}
+            <tr className="border-b">
+              <td className="p-3 font-medium">User ID</td>
+              <td className="p-3">{user.id}</td>
+              <td className="p-3">-</td>
+            </tr>
+            {renderFieldRow("employeeID", "Employee ID", false)}
+            {renderFieldRow("address", "Address", true)}
+            <tr className="border-b">
+              <td className="p-3 font-medium">Member Since</td>
+              <td className="p-3">
+                {user.createdAt}{" "}
+                <span className="text-gray-500 text-sm">
+                  {calculateTimeAgo(user.createdAt)}
+                </span>
+              </td>
+              <td className="p-3">-</td>
+            </tr>
+            {renderFieldRow("role", "Role", false)}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
