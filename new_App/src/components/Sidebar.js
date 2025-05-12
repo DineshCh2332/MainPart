@@ -8,6 +8,7 @@ const Sidebar = () => {
   const { user, logout, isAdmin, isManager, isTeamLeader } = useAuth();
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
   const [cashManagementExpanded, setCashManagementExpanded] = useState(false);
+  const [customerTrackingExpanded, setCustomerTrackingExpanded] = useState(false);
   const [tableManagementExpanded, setTableManagementExpanded] = useState(false);
   const [loginTime, setLoginTime] = useState('');
 
@@ -26,7 +27,7 @@ const Sidebar = () => {
         roleConfig.links = [
           { name: "Dashboard", path: "/admin/dashboard" },
           { name: "User Management", path: "/admin/users" },
-          { name: "Attendance Records", path: "/admin/AdminAttendance" }
+          { name: "Attendance Records", path: "/admin/AdminAttendance" },
         ];
         roleConfig.panelTitle = "Administration Panel";
         roleConfig.inventoryBasePath = "/admin";
@@ -105,35 +106,35 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
+      
       <div className="scrollable-section">
-      {/* Navigation Section */}
-      <nav className="main-navigation">
-        {links.map((link) => (
-          <NavLink
-            key={link.path}
-            to={link.path}
-            className={({ isActive }) =>
-              `nav-item ${isActive ? 'active-nav-item' : ''}`
-            }
-          >
-            {link.name}
-          </NavLink>
-        ))}
-      </nav>
+        {/* Navigation Section */}
+        <nav className="main-navigation">
+          {links.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                `nav-item ${isActive ? 'active-nav-item' : ''}`
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
+        </nav>
 
-
-      {/* Inventory Section */}
-      {(isAdmin || isManager || isTeamLeader) && (
-        <div className="management-section">
-          <button
-            className={`management-toggle ${inventoryExpanded ? 'expanded' : ''}`}
-            onClick={() => setInventoryExpanded(!inventoryExpanded)}
-          >
-            Inventory
-            <span className="toggle-indicator">
-              {inventoryExpanded ? '▼' : '▶'}
-            </span>
-          </button>
+        {/* Inventory Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
+          <div className="management-section">
+            <button
+              className={`management-toggle ${inventoryExpanded ? 'expanded' : ''}`}
+              onClick={() => setInventoryExpanded(!inventoryExpanded)}
+            >
+              Inventory
+              <span className="toggle-indicator">
+                {inventoryExpanded ? '▼' : '▶'}
+              </span>
+            </button>
 
           <div className={`management-submenu ${inventoryExpanded ? 'expanded' : ''}`}>
             <NavLink
@@ -160,21 +161,12 @@ const Sidebar = () => {
             >
               Stock Movement
             </NavLink>
-
-            <NavLink
-              to={`${inventoryBasePath}/inventory/inventoryrecords`}
-              className={({ isActive }) =>
-                `submenu-item ${isActive ? 'active-subitem' : ''}`
-              }
-            >
-              Inventory Records
-            </NavLink>
           </div>
         </div>
       )}
 
-      {/* Cash Management Section */}
-      {(isAdmin || isManager || isTeamLeader) && (
+        {/* Cash Management Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
           <div className="management-section">
             <button 
               className={`management-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
@@ -219,12 +211,11 @@ const Sidebar = () => {
               >
                 Banking
               </NavLink>
-              </div>
+            </div>
           </div>
-       
         )}
         {/* Items Management Section */}
-      {(isAdmin || isManager || isTeamLeader) && (
+        {(isAdmin || isManager || isTeamLeader) && (
           <div className="management-section">
             <button 
               className={`management-toggle ${tableManagementExpanded ? 'expanded' : ''}`}
@@ -262,22 +253,50 @@ const Sidebar = () => {
               >
                Items
               </NavLink>
-
+              </div>
+          </div>
+        )}
+        {/* Customer Tracking Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
+          <div className="management-section">
+            <button 
+              className={`management-toggle ${customerTrackingExpanded ? 'expanded' : ''}`}
+              onClick={() => setCustomerTrackingExpanded(!customerTrackingExpanded)}
+            >
+              Customer Tracking
+              <span className="toggle-indicator">
+                {customerTrackingExpanded ? '▼' : '▶'}
+              </span>
+            </button>
+            
+            <div className={`management-submenu ${customerTrackingExpanded ? 'expanded' : ''}`}>
+              <NavLink
+                to={`${inventoryBasePath}/customertracking/customerreport`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Customer Report
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/customertracking/kot`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                KOT Reports
+              </NavLink>
             </div>
           </div>
-       
         )}
-
-</div>
-<div className="logout-section">
-    <button
-      onClick={logout}
-      className="logout-button"
-    >
-      Logout
-    </button>
-  </div>
       </div>
+
+      <div className="logout-section">
+        <button onClick={logout} className="logout-button">
+          Logout
+        </button>
+      </div>
+    </div>
   );
 };
 

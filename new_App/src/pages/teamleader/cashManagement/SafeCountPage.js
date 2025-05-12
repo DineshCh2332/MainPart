@@ -3,8 +3,8 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase
 import { db } from '../../../firebase/config';
 import SessionButtons from './SessionButtons';
 import SafeCountTable from './SafeCountTable';
-import '../../../css/SafeCount.css';
-
+// import '../../../css/SafeCount.css';
+import DatePicker from 'react-datepicker';
 
 function SafeCountPage() {
   const [currentSession, setCurrentSession] = useState(null);
@@ -122,8 +122,8 @@ function SafeCountPage() {
       actualAmount,
       variance,
       values,
-      authCashierId,
-      authWitnessId,
+      cashier:authCashierId,
+      manager:authWitnessId,
     };
     const docRef = doc(db, 'safeCounts', currentDateStr);
     await setDoc(docRef, { [currentSession]: data }, { merge: true });
@@ -165,10 +165,12 @@ function SafeCountPage() {
       await calculateExpectedAmount(session);
       setActualAmount(0);
       setVariance(0);
+
       setAuthCashierId('');
       setAuthWitnessId('');
       setConfirmCashier(false);
       setConfirmManager(false);
+      
       setAuthDisabled(false);
       setSaveDisabled(false);
     }
@@ -263,10 +265,168 @@ function SafeCountPage() {
     }
   };
 
-  return (
-    <div className="container">
-      <h2>Safe Count</h2>
+  function SessionButtons({ sessions, currentSession, onSelect, disabledSessions, onTransferFloats }) {
+    return (
+      <div className="flex flex-wrap gap-4 mb-6">
+        {sessions.map((session) => (
+          <button
+            key={session}
+            onClick={() => onSelect(session)}
+            disabled={disabledSessions.includes(session)}
+            className={`px-5 py-3 rounded-lg font-medium text-sm sm:text-base transition-colors
+              ${
+                currentSession === session 
+                  ? 'bg-blue-800 text-white' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }
+              ${
+                disabledSessions.includes(session)
+                  ? 'disabled:bg-gray-300 disabled:cursor-not-allowed'
+                  : ''
+              }`}
+          >
+            {session.replace(/_/g, ' ').toUpperCase()}
+          </button>
+        ))}
+        <button
+          onClick={onTransferFloats}
+          className="px-5 py-3 bg-purple-600 text-white rounded-lg font-medium text-sm sm:text-base hover:bg-purple-700 transition-colors"
+        >
+          TRANSFER FLOATS
+        </button>
+      </div>
+    );
+  }
+
+//   return (
+//     <div className="container">
+//       <h2>Safe Count</h2>
       
+
+//       <SessionButtons
+//         sessions={['morning', 'changeover', 'night', 'change_receive']}
+//         currentSession={currentSession}
+//         onSelect={handleSessionSelect}
+//         disabledSessions={disabledSessions}
+//         onTransferFloats={handleTransferFloats}
+//       />
+
+//       {currentSession && !showTransferTable && (
+//         <>
+//           <SafeCountTable
+//             denominations={denominations}
+//             values={values}
+//             onChange={(index, type, value) => {
+//               const updatedValues = [...values];
+//               updatedValues[index][type] = parseFloat(value) || 0;
+//               updatedValues[index].value = (updatedValues[index].bags * denominations[index].bagValue) + (updatedValues[index].loose * denominations[index].value);
+//               setValues(updatedValues);
+//               const total = updatedValues.reduce((sum, row) => sum + row.value, 0);
+//               setActualAmount(total);
+//               setVariance(total - expectedAmount);
+//             }}
+//             actualAmount={actualAmount}
+//             onActualChange={e => {
+//               const actual = parseFloat(e.target.value) || 0;
+//               setActualAmount(actual);
+//               setVariance(actual - expectedAmount);
+//             }}
+//             expectedAmount={expectedAmount}
+//             variance={variance}
+//             readOnly={isReadOnly}
+//           />
+
+//           <div className="space-y-4">
+//             <div className="flex items-center space-x-2">
+
+//             <label className="w-40">Enter Cashier ID:</label>
+//             <input
+//             value={authCashierId}
+//             onChange={(e) => setAuthCashierId(e.target.value)}
+//             disabled={authDisabled} 
+//             className="border p-1 rounded w-40"/>
+
+//            <label className="flex items-center space-x-1">
+//             <input 
+//             type="checkbox"
+//             checked={confirmCashier} 
+//             onChange={(e) => setConfirmCashier(e.target.checked)}
+//             disabled={authDisabled} />
+//             <span> Confirm</span>
+//             </label>
+//           </div>
+
+//           <div className="flex items-center space-x-2">
+//             <label className="w-40">Enter Witness ID:</label>
+//             <input 
+           
+//             value={authWitnessId} 
+//             onChange={(e) => setAuthWitnessId(e.target.value)}
+//             className="border p-1 rounded w-40"
+//             disabled={authDisabled} />
+            
+//              <label className="flex items-center space-x-1">
+//             <input
+//              type="checkbox" 
+//              checked={confirmManager} 
+//              onChange={(e) => setConfirmManager(e.target.checked)} 
+//              disabled={authDisabled} /> 
+//              <span>Confirm</span>
+//              </label>
+//           </div>
+
+//           <button onClick={handleSave} disabled={saveDisabled}>Save Session</button>
+//           </div>
+//         </>
+        
+//       )}
+
+//       {showTransferTable && (
+//         <>
+//           <h3>Transfer Floats</h3>
+//           <table>
+//             <thead>
+//               <tr>
+//                 <th>Denomination</th>
+//                 <th>Loose</th>
+//                 <th>Value</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {transferValues.map((row, idx) => (
+//                 <tr key={idx}>
+//                   <td>{row.name}</td>
+//                   <td>
+//                     <input
+//                       type="number"
+//                       value={row.loose}
+//                       onChange={(e) => {
+//                         const loose = parseFloat(e.target.value) || 0;
+//                         const updated = [...transferValues];
+//                         updated[idx].loose = loose;
+//                         updated[idx].value = loose * denominations.find(d => d.name === row.name).value;
+//                         setTransferValues(updated);
+//                         const total = updated.reduce((sum, d) => sum + d.value, 0);
+//                         setTransferTotal(total);
+//                       }}
+//                     />
+//                   </td>
+//                   <td>£{row.value.toFixed(2)}</td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//           <p>Total: £{transferTotal.toFixed(2)}</p>
+
+//           <button onClick={handleSaveTransferFloats}>Save Transfer Floats</button>
+//         </>
+//       )}
+//     </div>
+//   );
+// }
+return (
+    <div className="container mx-auto p-6 max-w-4xl bg-white rounded-lg shadow-xl mt-8 mb-8">
+      <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Safe Count</h2>
 
       <SessionButtons
         sessions={['morning', 'changeover', 'night', 'change_receive']}
@@ -277,14 +437,16 @@ function SafeCountPage() {
       />
 
       {currentSession && !showTransferTable && (
-        <>
+        <div className="mt-8">
           <SafeCountTable
             denominations={denominations}
             values={values}
             onChange={(index, type, value) => {
               const updatedValues = [...values];
               updatedValues[index][type] = parseFloat(value) || 0;
-              updatedValues[index].value = (updatedValues[index].bags * denominations[index].bagValue) + (updatedValues[index].loose * denominations[index].value);
+              updatedValues[index].value = 
+                (updatedValues[index].bags * denominations[index].bagValue) + 
+                (updatedValues[index].loose * denominations[index].value);
               setValues(updatedValues);
               const total = updatedValues.reduce((sum, row) => sum + row.value, 0);
               setActualAmount(total);
@@ -301,93 +463,130 @@ function SafeCountPage() {
             readOnly={isReadOnly}
           />
 
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
+          <div className="mt-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Cashier ID
+                  <input
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    value={authCashierId}
+                    onChange={(e) => setAuthCashierId(e.target.value)}
+                    disabled={authDisabled}
+                  />
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    checked={confirmCashier}
+                    onChange={(e) => setConfirmCashier(e.target.checked)}
+                    disabled={authDisabled}
+                  />
+                  <span className="text-sm text-gray-700">Confirm Cashier</span>
+                </label>
+              </div>
 
-            <label className="w-40">Enter Cashier ID:</label>
-            <input
-            value={authCashierId}
-            onChange={(e) => setAuthCashierId(e.target.value)}
-            disabled={authDisabled} 
-            className="border p-1 rounded w-40"/>
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Witness ID
+                  <input
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    value={authWitnessId}
+                    onChange={(e) => setAuthWitnessId(e.target.value)}
+                    disabled={authDisabled}
+                  />
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    checked={confirmManager}
+                    onChange={(e) => setConfirmManager(e.target.checked)}
+                    disabled={authDisabled}
+                  />
+                  <span className="text-sm text-gray-700">Confirm Manager</span>
+                </label>
+              </div>
+            </div>
 
-           <label className="flex items-center space-x-1">
-            <input 
-            type="checkbox"
-            checked={confirmCashier} 
-            onChange={(e) => setConfirmCashier(e.target.checked)}
-            disabled={authDisabled} />
-            <span> Confirm</span>
-            </label>
+            <button
+              className={`w-full py-3 px-6 rounded-md font-semibold text-white transition-colors
+                ${saveDisabled 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-orange-500 hover:bg-orange-600 shadow-sm'}`}
+              onClick={handleSave}
+              disabled={saveDisabled}
+            >
+              SAVE SESSION
+            </button>
           </div>
-
-          <div className="flex items-center space-x-2">
-            <label className="w-40">Enter Witness ID:</label>
-            <input 
-           
-            value={authWitnessId} 
-            onChange={(e) => setAuthWitnessId(e.target.value)}
-            className="border p-1 rounded w-40"
-            disabled={authDisabled} />
-            
-             <label className="flex items-center space-x-1">
-            <input
-             type="checkbox" 
-             checked={confirmManager} 
-             onChange={(e) => setConfirmManager(e.target.checked)} 
-             disabled={authDisabled} /> 
-             <span>Confirm</span>
-             </label>
-          </div>
-
-          <button onClick={handleSave} disabled={saveDisabled}>Save Session</button>
-          </div>
-        </>
-        
+        </div>
       )}
 
       {showTransferTable && (
-        <>
-          <h3>Transfer Floats</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Denomination</th>
-                <th>Loose</th>
-                <th>Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transferValues.map((row, idx) => (
-                <tr key={idx}>
-                  <td>{row.name}</td>
-                  <td>
-                    <input
-                      type="number"
-                      value={row.loose}
-                      onChange={(e) => {
-                        const loose = parseFloat(e.target.value) || 0;
-                        const updated = [...transferValues];
-                        updated[idx].loose = loose;
-                        updated[idx].value = loose * denominations.find(d => d.name === row.name).value;
-                        setTransferValues(updated);
-                        const total = updated.reduce((sum, d) => sum + d.value, 0);
-                        setTransferTotal(total);
-                      }}
-                    />
-                  </td>
-                  <td>£{row.value.toFixed(2)}</td>
+        <div className="mt-8">
+          <h3 className="text-2xl font-semibold text-gray-800 mb-6">Transfer Floats</h3>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-blue-500">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-white">
+                    Denomination
+                  </th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-white">
+                    Loose
+                  </th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-white">
+                    Value
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <p>Total: £{transferTotal.toFixed(2)}</p>
-
-          <button onClick={handleSaveTransferFloats}>Save Transfer Floats</button>
-        </>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {transferValues.map((row, idx) => (
+                  <tr key={idx}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {row.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <input
+                        type="number"
+                        className="w-24 px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-center"
+                        value={row.loose}
+                        onChange={(e) => {
+                          const loose = parseFloat(e.target.value) || 0;
+                          const updated = [...transferValues];
+                          updated[idx].loose = loose;
+                          updated[idx].value = loose * denominations.find(d => d.name === row.name).value;
+                          setTransferValues(updated);
+                          const total = updated.reduce((sum, d) => sum + d.value, 0);
+                          setTransferTotal(total);
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                      £{row.value.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-6 flex justify-between items-center">
+            <span className="text-lg font-semibold">Total:</span>
+            <span className="text-2xl font-bold text-blue-600">
+              £{transferTotal.toFixed(2)}
+            </span>
+          </div>
+          <button
+            className="w-full mt-6 py-3 px-6 bg-green-500 text-white rounded-md hover:bg-green-600 font-semibold shadow-sm transition-colors"
+            onClick={handleSaveTransferFloats}
+          >
+            SAVE TRANSFER FLOATS
+          </button>
+        </div>
       )}
     </div>
   );
 }
-
 export default SafeCountPage;

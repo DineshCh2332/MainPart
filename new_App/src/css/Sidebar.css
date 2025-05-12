@@ -75,7 +75,7 @@
 
 .management-section {
   margin: 0.5rem 1rem;
-  margin-top: -1.2rem;
+  margin-top: -0.5rem;
   margin-left: 20px;
   
 }
@@ -114,7 +114,7 @@
 
 .management-submenu.expanded {
   max-height: 500px; /* Adjust based on content height */
-  margin-top: -25px;
+
 }
 
 .submenu-item {

@@ -1,0 +1,78 @@
+Here’s a concise **Logic Document** outlining the system’s workflow, rules, and edge-case handling:
+
+---
+
+# **System Logic: User/Customer Management**  
+**Objective:** Maintain distinct roles (customer/employee) while enabling shared identity and preventing duplication.  
+
+---
+
+### **1. Collections & Schema**  
+- **`/customers` Collection**  
+  - Fields: `user_id`, `name`, `phone`, `role: "customer"`, [customer-specific fields].  
+  - Purpose: Stores **only customers** (created via POS/website).  
+
+- **`/users_01` Collection**  
+  - Fields: `user_id`, `name`, `phone`, `role: ("employee"/"manager"/etc.)`, `alsoCustomer: boolean` (optional).  
+  - Purpose: Stores **employees, managers**, or admins.  
+
+---
+
+### **2. Key Rules**  
+
+#### **A. `user_id` Uniqueness**  
+- **Rule:** `user_id` must be globally unique across **both `/customers` and `/users_01`**.  
+- **Implementation:**  
+  - During user/customer creation (POS, website, admin panel):  
+    - Check if `user_id` exists in **either collection**.  
+    - If duplicate, reject creation and throw error: *“User ID already exists”*.  
+
+#### **B. Role Promotion (Customer → Employee)**  
+- **Process:**  
+  1. **Verify existence:** Ensure the customer’s `user_id` exists in `/customers`.  
+  2. **Create employee record:** Add a new document to `/users_01` with:  
+     - Same `user_id` as the customer.  
+     - Role: `"employee"` (or other non-customer role).  
+     - `alsoCustomer: true` (to flag dual-role status).  
+  3. **Retain customer record:** Do not modify/delete the original `/customers` entry.  
+
+#### **C. Admin Panel Behavior**  
+- **Display Logic:**  
+  - **Employees/Managers:** Fetch from `/users_01`.  
+    - If `alsoCustomer: true`, show a badge (e.g., “Also a Customer”).  
+  - **Customers:** Fetch from `/customers`.  
+    - If a customer’s `user_id` exists in `/users_01`, append a note (e.g., “Also an Employee”).  
+- **No Merging:** Treat `/customers` and `/users_01` as separate entities; combine data only in UI.  
+
+#### **D. Data Updates**  
+- **Role-Specific Updates:**  
+  - Changes to employee data (e.g., job title) → Update only `/users_01`.  
+  - Changes to customer data (e.g., shipping address) → Update only `/customers`.  
+- **Shared Fields (e.g., phone):**  
+  - Optional: Implement sync logic (e.g., update both collections if phone changes).  
+  - Default: Keep fields isolated unless explicitly required.  
+
+---
+
+### **3. Edge Cases & Handling**  
+| **Scenario** | **Resolution** |  
+|-------------------------------|----------------|  
+| Duplicate `user_id` creation (e.g., typo) | Block creation, enforce checks at all entry points. |  
+| Customer promoted multiple times (e.g., to manager) | Update role in `/users_01`; retain `alsoCustomer: true`. |  
+| Customer-turned-employee deletes customer account | Set `alsoCustomer: false` in `/users_01`; delete `/customers` entry. |  
+
+---
+
+### **4. Security & Privacy**  
+- **`user_id` Exposure:** Never expose `user_id` publicly (e.g., URLs, APIs) to prevent enumeration attacks.  
+- **Role-Based Access:** Ensure admin panel enforces permissions (e.g., only managers can promote customers).  
+
+---
+
+### **5. Future Scalability**  
+- **New Roles:** Add roles (e.g., `vendor`) to `/users_01` without affecting `/customers`.  
+- **Unified Querying:** For analytics, use `user_id` to join data across collections.  
+
+--- 
+
+This logic ensures data integrity, clarity in role separation, and scalability. Let stakeholders review and sign off! 🚀

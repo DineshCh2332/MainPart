@@ -1,45 +1,34 @@
+// Shiftrunnersdetails.js
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../firebase/config";
-import { doc, getDoc } from "firebase/firestore";
-import "../../css/UserDetails.css";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 const Shiftrunnersdetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userRef = doc(db, "users_01", id);
-        const userSnap = await getDoc(userRef);
-
-        if (!userSnap.exists()) {
+        const q = query(collection(db, "users_01"), where("userId", "==", id));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
           console.error("User not found");
           return;
         }
 
-        const userData = userSnap.data();
-        const memberSinceDate = userData.member_since?.toDate
-          ? userData.member_since.toDate()
-          : userData.member_since instanceof Date
-            ? userData.member_since
-            : null;
-
-        const formattedMemberSince = memberSinceDate
-          ? memberSinceDate.toISOString().split("T")[0]
-          : "N/A";
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data();
+        
+   // Directly use the string value and split at 'T'
+   const formattedMemberSince = userData.member_since 
+   ? userData.member_since.split('T')[0]
+   : "N/A";
 
         setUser({
-          id: userData.customer_id,
-          name: userData.name,
-          phone: userData.phone,
-          email: userData.email,
-          dob: userData.dob,
-          address: userData.address,
-          employeeID: userData.employeeID,
-          role: userData.role,
+          ...userData,
           createdAt: formattedMemberSince,
         });
       } catch (error) {
@@ -82,44 +71,60 @@ const Shiftrunnersdetails = () => {
   );
 
   return (
-    <div className="employee-details-container">
-      <h2>Employee Details</h2>
+    <div className="p-6 max-w-3xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Employee Details</h2>
+        <button
+          onClick={() => navigate("/teamleader/shiftrunners")}
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        >
+          Back to Employees
+        </button>
+      </div>
 
-      <button
-        style={{ width: "150px" }}
-        className="back-button"
-        onClick={() => navigate("/teamleader/shiftrunners")}
-      >
-        Back to Employees
-      </button>
-
-      <table className="employee-details-table">
-        <thead>
-          <tr>
-            <th>Field</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {renderFieldRow("name", "Name")}
-          {renderFieldRow("phone", "Phone Number")}
-          {renderFieldRow("email", "Email")}
-          {renderFieldRow("dob", "Date of Birth")}
-          {renderFieldRow("id", "Customer ID")}
-          {renderFieldRow("employeeID", "Employee ID")}
-          {renderFieldRow("address", "Address")}
-          <tr>
-            <td><strong>Member Since</strong></td>
-            <td>
-              {user.createdAt}{" "}
-              <span style={{ color: "gray", fontSize: "0.9em" }}>
-                {calculateTimeAgo(user.createdAt)}
-              </span>
-            </td>
-          </tr>
-          {renderFieldRow("role", "Role")}
-        </tbody>
-      </table>
+      <div className="bg-white shadow rounded-lg p-6">
+        <table className="w-full">
+          <tbody>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">Name</td>
+              <td className="p-2">{user.name || "N/A"}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">Phone Number</td>
+              <td className="p-2">{user.phone || "N/A"}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">Email</td>
+              <td className="p-2">{user.email || "N/A"}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">Date of Birth</td>
+              <td className="p-2">{user.dob || "N/A"}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">User ID</td>
+              <td className="p-2">{user.userId || "N/A"}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">Address</td>
+              <td className="p-2">{user.address || "N/A"}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">Member Since</td>
+              <td className="p-2">
+                {user.createdAt}
+                <span className="text-gray-500 ml-2">
+                  {calculateTimeAgo(user.createdAt)}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td className="p-2 font-semibold">Role</td>
+              <td className="p-2">{user.role || "N/A"}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
