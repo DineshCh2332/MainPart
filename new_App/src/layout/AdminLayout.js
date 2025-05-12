@@ -12,6 +12,10 @@ import AdminAttendance from "../pages/admin/AdminAttendance";
 import WasteManagement from "../pages/admin/inventory/WasteManagement";
 import StockCount from "../pages/admin/inventory/StockCount";
 import InventoryAndWasteHistory from "../pages/admin/inventory/StockMovement";
+import InventoryRecords from "../pages/admin/inventory/inventoryrecords";
+import Addinventory from '../pages/admin/inventory/Addinventory'; // Adjust path based on your file structure
+
+
 
 
 //Cash Management pages
@@ -45,6 +49,10 @@ const AdminLayout = () => {
             <Route path="inventory/wastemanagement" element={<WasteManagement />} />
             <Route path="inventory/stockcount" element={<StockCount />} />
             <Route path="inventory/stockmovement" element={<InventoryAndWasteHistory />} />
+            <Route path="inventory/inventoryrecords" element={<InventoryRecords/>} />
+            <Route path="inventory/addinventory" element={<Addinventory />} />
+
+
 
             {/*Cash Management */}
             <Route path="cashManagement/opencashier" element={<OpenCashier/>}/>
