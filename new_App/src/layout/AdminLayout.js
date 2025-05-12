@@ -8,6 +8,7 @@ import UserDetails from "../pages/admin/UserDetails";
 import Users from "../pages/admin/User";
 import AdminAttendance from "../pages/admin/AdminAttendance";
 
+
 // Inventory pages
 import WasteManagement from "../pages/admin/inventory/WasteManagement";
 import StockCount from "../pages/admin/inventory/StockCount";
@@ -19,6 +20,11 @@ import OpenCashier from "../pages/admin/cashManagement/OpenCashier";
 import CloseCashier from "../pages/admin/cashManagement/CloseCashier"
 import SafeCountPage from "../pages/admin/cashManagement/SafeCountPage";
 import BankingPage from "../pages/admin/cashManagement/BankingPage";
+
+//customer tracking
+import KOT from "../pages/admin/customerTracking/KOT";
+//import Reports from "../pages/admin/customerTracking/Reports";
+import CustomerReport from "../pages/admin/customerTracking/CustomerReport";
 
 const AdminLayout = () => {
   return (
@@ -33,6 +39,10 @@ const AdminLayout = () => {
             <Route path="users/add-employee" element={<AddUser />} />
             <Route path="user/:id" element={<UserDetails />} />
             <Route path="AdminAttendance" element={<AdminAttendance />} />
+            {/*<Route path="kot" element={<KOT />} />
+            <Route path="reports" element={<Reports />} />
+  <Route path="customerreport" element={<CustomerReport />} />*/}
+
 
 
             {/* Inventory Management */}
@@ -45,6 +55,10 @@ const AdminLayout = () => {
             <Route path="cashManagement/closecashier" element={<CloseCashier/>} />
             <Route path="cashManagement/safecountpage" element={<SafeCountPage/>} />
             <Route path="cashManagement/bankingpage" element={<BankingPage/>} />
+
+            <Route path="customerTracking/customerreport" element={<CustomerReport/>}/>
+            <Route path="customerTracking/kot" element={<KOT />}/>
+
           </Routes>
         </div>
       </div>

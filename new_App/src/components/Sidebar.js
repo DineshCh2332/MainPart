@@ -8,6 +8,7 @@ const Sidebar = () => {
   const { user, logout, isAdmin, isManager, isTeamLeader } = useAuth();
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
   const [cashManagementExpanded, setCashManagementExpanded] = useState(false);
+  const [customerTrackingExpanded, setCustomerTrackingExpanded] = useState(false);
   const [loginTime, setLoginTime] = useState('');
 
   // Memoized role configuration
@@ -25,7 +26,7 @@ const Sidebar = () => {
         roleConfig.links = [
           { name: "Dashboard", path: "/admin/dashboard" },
           { name: "User Management", path: "/admin/users" },
-          { name: "Attendance Records", path: "/admin/AdminAttendance" }
+          { name: "Attendance Records", path: "/admin/AdminAttendance" },
         ];
         roleConfig.panelTitle = "Administration Panel";
         roleConfig.inventoryBasePath = "/admin";
@@ -104,67 +105,67 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
+      
       <div className="scrollable-section">
-      {/* Navigation Section */}
-      <nav className="main-navigation">
-        {links.map((link) => (
-          <NavLink
-            key={link.path}
-            to={link.path}
-            className={({ isActive }) =>
-              `nav-item ${isActive ? 'active-nav-item' : ''}`
-            }
-          >
-            {link.name}
-          </NavLink>
-        ))}
-      </nav>
-
-
-      {/* Inventory Section */}
-      {(isAdmin || isManager || isTeamLeader) && (
-        <div className="management-section">
-          <button
-            className={`management-toggle ${inventoryExpanded ? 'expanded' : ''}`}
-            onClick={() => setInventoryExpanded(!inventoryExpanded)}
-          >
-            Inventory
-            <span className="toggle-indicator">
-              {inventoryExpanded ? '▼' : '▶'}
-            </span>
-          </button>
-
-          <div className={`management-submenu ${inventoryExpanded ? 'expanded' : ''}`}>
+        {/* Navigation Section */}
+        <nav className="main-navigation">
+          {links.map((link) => (
             <NavLink
-              to={`${inventoryBasePath}/inventory/wastemanagement`}
+              key={link.path}
+              to={link.path}
               className={({ isActive }) =>
-                `submenu-item ${isActive ? 'active-subitem' : ''}`
+                `nav-item ${isActive ? 'active-nav-item' : ''}`
               }
             >
-              Waste Count
+              {link.name}
             </NavLink>
-            <NavLink
-              to={`${inventoryBasePath}/inventory/stockcount`}
-              className={({ isActive }) =>
-                `submenu-item ${isActive ? 'active-subitem' : ''}`
-              }
+          ))}
+        </nav>
+
+        {/* Inventory Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
+          <div className="management-section">
+            <button
+              className={`management-toggle ${inventoryExpanded ? 'expanded' : ''}`}
+              onClick={() => setInventoryExpanded(!inventoryExpanded)}
             >
-              Stock Count
-            </NavLink>
-            <NavLink
-              to={`${inventoryBasePath}/inventory/stockmovement`}
-              className={({ isActive }) =>
-                `submenu-item ${isActive ? 'active-subitem' : ''}`
-              }
-            >
-              Stock Movement
-            </NavLink>
+              Inventory
+              <span className="toggle-indicator">
+                {inventoryExpanded ? '▼' : '▶'}
+              </span>
+            </button>
+
+            <div className={`management-submenu ${inventoryExpanded ? 'expanded' : ''}`}>
+              <NavLink
+                to={`${inventoryBasePath}/inventory/wastemanagement`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Waste Count
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/inventory/stockcount`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Stock Count
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/inventory/stockmovement`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Stock Movement
+              </NavLink>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Cash Management Section */}
-      {(isAdmin || isManager || isTeamLeader) && (
+        {/* Cash Management Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
           <div className="management-section">
             <button 
               className={`management-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
@@ -209,21 +210,51 @@ const Sidebar = () => {
               >
                 Banking
               </NavLink>
-              </div>
+            </div>
           </div>
-       
         )}
 
-</div>
-<div className="logout-section">
-    <button
-      onClick={logout}
-      className="logout-button"
-    >
-      Logout
-    </button>
-  </div>
+        {/* Customer Tracking Section */}
+        {(isAdmin || isManager || isTeamLeader) && (
+          <div className="management-section">
+            <button 
+              className={`management-toggle ${customerTrackingExpanded ? 'expanded' : ''}`}
+              onClick={() => setCustomerTrackingExpanded(!customerTrackingExpanded)}
+            >
+              Customer Tracking
+              <span className="toggle-indicator">
+                {customerTrackingExpanded ? '▼' : '▶'}
+              </span>
+            </button>
+            
+            <div className={`management-submenu ${customerTrackingExpanded ? 'expanded' : ''}`}>
+              <NavLink
+                to={`${inventoryBasePath}/customertracking/customerreport`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Customer Report
+              </NavLink>
+              <NavLink
+                to={`${inventoryBasePath}/customertracking/kot`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                KOT Reports
+              </NavLink>
+            </div>
+          </div>
+        )}
       </div>
+
+      <div className="logout-section">
+        <button onClick={logout} className="logout-button">
+          Logout
+        </button>
+      </div>
+    </div>
   );
 };
 
