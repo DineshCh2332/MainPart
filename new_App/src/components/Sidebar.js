@@ -161,6 +161,14 @@ const Sidebar = () => {
             >
               Stock Movement
             </NavLink>
+            <NavLink
+              to={`${inventoryBasePath}/inventory/inventoryrecords`}
+              className={({ isActive }) =>
+                `submenu-item ${isActive ? 'active-subitem' : ''}`
+              }
+            >
+              Inventory Records
+            </NavLink>
           </div>
         </div>
       )}
