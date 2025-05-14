@@ -34,30 +34,6 @@ const KOT = () => {
     return () => unsubscribe();
   }, []);
 
-  // Add test data function
-  const addTestKOT = async () => {
-    try {
-      await addDoc(collection(db, "KOT"), {
-        id: `KOT-${Date.now()}`,
-        amount: 100.50,
-        cashPaid: 100.50,
-        creditsUsed: 0,
-        customerID: "test01",
-        date: serverTimestamp(),
-        earnedPoints: 10,
-        items: [
-          {
-            id: "Item01",
-            name: "Test Item",
-            price: 50,
-            quantity: 2
-          }
-        ]
-      });
-    } catch (error) {
-      console.error("Error adding KOT:", error);
-    }
-  };
 
   return (
     <div className="kot-container">

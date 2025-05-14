@@ -172,13 +172,32 @@
 
 
 
+/KOT
+ └── {kotId}
+     ├── amount              (number)
+     ├── cashPaid            (number)
+     ├── creditsUsed         (number)
+     ├── customerID          (string)     // Reference to /Customers/{customerID}
+     ├── date                (timestamp)
+     ├── earnedPoints        (number)
+     ├── items               (array of maps)
+     │    ├── id             (string)     // item ID
+     │    ├── name           (string)
+     │    ├── price          (number)
+     │    ├── quantity       (number)
+     ├── kot_id              (string)
 
 
 
+/Reports
+ └── {reportId}
+     ├── Amount              (number)
+     ├── TransactionDate     (timestamp)
+     ├── item_id             (array of maps)
+     │    ├── id             (string)     // item ID
+     │    ├── kot_id         (string)     // Reference to /KOT/{kotId}
+     │    ├── quantity       (number)
 
-
-
-Visual Representation Code :- 
 Table users_01 {
   userId varchar 
   name varchar
@@ -292,7 +311,7 @@ Table category {
 }
 
 Table sauceGroups {
-  id varchar [pk] // Same as category name
+  id varchar [pk]
   sauces json
 }
 
@@ -326,6 +345,25 @@ Table safeFloats {
   retainedAt datetime
 }
 
+Table KOT {
+  kotId varchar [pk]
+  kot_id varchar
+  amount float
+  cashPaid float
+  creditsUsed float
+  customerID varchar // FK to customers.customerID
+  date datetime
+  earnedPoints int
+  items json // [{id, name, price, quantity}]
+}
+
+Table Reports {
+  reportId varchar [pk]
+  Amount float
+  TransactionDate datetime
+  item_id json // [{id, kot_id, quantity}]
+}
+
 Ref: customers.userId > users_01.userId
 Ref: inventory.categoryId > category.id
 Ref: wasteItems.wasteLogId > wasteLogs.id
@@ -339,3 +377,5 @@ Ref: floatClosures.floatId > floats.id
 Ref: floatClosures.cashierId > users_01.employeeID
 Ref: floatClosures.authorizedBy > users_01.employeeID
 Ref: safeFloats.cashierId > users_01.employeeID
+Ref: KOT.customerID > customers.customerID
+Ref: Reports.item_id > KOT.kotId
