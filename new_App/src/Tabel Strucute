@@ -180,9 +180,9 @@
 
 Visual Representation Code :- 
 Table users_01 {
-  userId varchar [pk]
+  userId varchar 
   name varchar
-  phone varchar
+  phone varchar [pk]
   email varchar
   role varchar
   status varchar
@@ -233,8 +233,8 @@ Table inventory {
 }
 
 Table wasteLogs {
-  id varchar [pk]
-  timestamp datetime
+  id varchar 
+  timestamp datetime [pk]
   totalWaste int
 }
 
@@ -253,8 +253,8 @@ Table wasteItems {
 }
 
 Table inventoryLog {
-  id varchar [pk]
-  date date
+  id varchar 
+  date date [pk]
   timestamp datetime
   countType varchar
   status varchar
@@ -283,16 +283,7 @@ Table items {
   itemName varchar
   price float
   categoryId varchar
-}
-
-Table sauces {
-  id varchar [pk]
-  name varchar
-}
-
-Table itemSauces {
-  itemId varchar
-  sauceId varchar
+  sauces json
 }
 
 Table category {
@@ -342,8 +333,6 @@ Ref: wasteItems.itemId > inventory.itemId
 Ref: inventoryLogItems.inventoryLogId > inventoryLog.id
 Ref: inventoryLogItems.itemId > inventory.itemId
 Ref: items.categoryId > category.id
-Ref: itemSauces.itemId > items.itemId
-Ref: itemSauces.sauceId > sauces.id
 Ref: floats.cashierId > users_01.employeeID
 Ref: cashierSessions.floatId > floats.id
 Ref: floatClosures.floatId > floats.id
