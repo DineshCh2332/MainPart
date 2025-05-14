@@ -1,9 +1,7 @@
-// src/pages/admin/Dashboard.js
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
 import { Link, useLocation } from "react-router-dom";
-import "../../css/AdminDashboard.css";
 
 const Dashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
@@ -13,30 +11,47 @@ const Dashboard = () => {
     Teamleader: 0,
     Employee: 0,
     Customer: 0,
-    
   });
   const location = useLocation();
 
   const fetchUsers = async () => {
-    const usersSnapshot = await getDocs(collection(db, "users_01"));
-    const usersData = usersSnapshot.docs.map(doc => doc.data());
+    try {
+      // Fetch users from users_01 collection
+      const usersSnapshot = await getDocs(collection(db, "users_01"));
+      const usersData = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
-    setTotalUsers(usersData.length);
+      // Fetch customers from customers collection
+      const customersSnapshot = await getDocs(collection(db, "customers"));
+      const customersData = customersSnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        role: doc.data().role || "customer" // Assume customer role if not specified
+      }));
 
-    const counts = { Admin: 0, Manager: 0, Employee: 0, Customer: 0, Teamleader: 0 };
-    usersData.forEach(user => {
-      const role = user.role ? user.role.toLowerCase() : "";
-      if (role === "admin") counts.Admin++;
-      if (role === "manager") counts.Manager++;
-      if (role === "teamleader") counts.Teamleader++;
-      if (role === "employee") counts.Employee++;
-      if (role === "customer") counts.Customer++;
-    });
+      // Combine both datasets
+      const combinedData = [...usersData, ...customersData];
 
-    setRoleCounts(counts);
+      // Set total users
+      setTotalUsers(combinedData.length);
+
+      // Count roles
+      const counts = { Admin: 0, Manager: 0, Teamleader: 0, Employee: 0, Customer: 0 };
+      combinedData.forEach(user => {
+        const role = user.role ? user.role.toLowerCase() : "";
+        if (role === "admin") counts.Admin++;
+        else if (role === "manager") counts.Manager++;
+        else if (role === "teamleader") counts.Teamleader++;
+        else if (role === "employee") counts.Employee++;
+        else if (role === "customer") counts.Customer++;
+      });
+
+      setRoleCounts(counts);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
   };
 
-  // ✅ Fetch again if redirected after update
+  // Fetch again if redirected after update
   useEffect(() => {
     if (location.state?.reload) {
       fetchUsers();
@@ -49,36 +64,41 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="admin-dashboard">
-      <h1>Admin Dashboard</h1>
-      <div className="overview">
-        <div className="summary-box">
-          <h2>Total Users</h2>
-          <p>{totalUsers}</p>
+    <div className="max-w-7xl mx-auto p-6 bg-gray-100 min-h-screen">
+      <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">Admin Dashboard</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Total Users</h2>
+          <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
         </div>
-        <div className="summary-box">
-          <h2>Admins</h2>
-          <p>{roleCounts.Manager}</p>
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Admins</h2>
+          <p className="text-2xl font-bold text-gray-900">{roleCounts.Admin}</p>
         </div>
-        <div className="summary-box">
-          <h2>Managers</h2>
-          <p>{roleCounts.Manager}</p>
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Managers</h2>
+          <p className="text-2xl font-bold text-gray-900">{roleCounts.Manager}</p>
         </div>
-        <div className="summary-box">
-          <h2>Team Leader</h2>
-          <p>{roleCounts.Teamleader}</p>
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Team Leaders</h2>
+          <p className="text-2xl font-bold text-gray-900">{roleCounts.Teamleader}</p>
         </div>
-        <div className="summary-box">
-          <h2>Employees</h2>
-          <p>{roleCounts.Employee}</p>
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Employees</h2>
+          <p className="text-2xl font-bold text-gray-900">{roleCounts.Employee}</p>
         </div>
-        <div className="summary-box">
-          <h2>Customers</h2>
-          <p>{roleCounts.Customer}</p>
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Customers</h2>
+          <p className="text-2xl font-bold text-gray-900">{roleCounts.Customer}</p>
         </div>
       </div>
-      <div className="actions">
-        <Link to="/admin/users" className="button">Manage Users</Link>
+      <div className="text-center">
+        <Link
+          to="/admin/users"
+          className="inline-block bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Manage Users
+        </Link>
       </div>
     </div>
   );

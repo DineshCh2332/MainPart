@@ -651,7 +651,9 @@ const AdminAttendance = () => {
   const fetchEmployees = async () => {
     const empCollection = collection(db, "users_01");
     const empSnapshot = await getDocs(empCollection);
-    const empList = empSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const empList = empSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(emp => ['manager', 'teamleader', 'employee'].includes(emp.role?.toLowerCase()));
     setEmployees(empList);
   };
 
@@ -747,7 +749,6 @@ const AdminAttendance = () => {
         editedAt: serverTimestamp()
       };
 
-      // Track which fields were edited
       if (record.checkInStr !== editData.checkInStr) {
         updates.checkInEdited = true;
       }
@@ -865,134 +866,148 @@ const AdminAttendance = () => {
   }, [date]);
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Admin Attendance Management</h1>
-        <div style={styles.dateInputContainer}>
-          <input
-            type="date"
-            value={format(date, 'yyyy-MM-dd')}
-            onChange={(e) => setDate(new Date(e.target.value))}
-            style={styles.dateInput}
-          />
-        </div>
+    <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-gray-800">Admin Attendance Management</h1>
+        <input
+          type="date"
+          value={format(date, 'yyyy-MM-dd')}
+          onChange={(e) => setDate(new Date(e.target.value))}
+          className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
-      <div style={styles.dateRow}>
-        <div style={styles.dateDisplay}>Date: {formattedDate}</div>
-      </div>
-
-      <div style={styles.timeRange}>
+      <div className="mb-2 text-sm text-gray-600">Date: {formattedDate}</div>
+      <div className="mb-4 text-xs text-gray-500">
         Showing shifts between {startTimeStr} and {endTimeStr}
       </div>
 
       {loading ? (
-        <div style={styles.loading}>Loading attendance data...</div>
+        <div className="text-center py-4 text-gray-600">Loading attendance data...</div>
       ) : (
-        <table style={styles.attendanceTable}>
-          <thead>
-            <tr>
-              <th style={styles.tableHeader}>Employee</th>
-              <th style={styles.tableHeader}>Check-In</th>
-              <th style={styles.tableHeader}>Check-Out</th>
-              <th style={styles.tableHeader}>Hours Worked</th>
-              {isTodayDate && <th style={styles.tableHeader}>Actions</th>}
-            </tr>
-          </thead>
-          <tbody >
-            {filteredData.length > 0 ? (
-              filteredData.map((record, index) => (
-                <tr key={index} style={styles.tableRow}>
-                  <td style={styles.tableCell}>{record.empName}</td>
-                  <td style={styles.tableCell}>
-                    {editing === index ? (
-                      <input
-                        type="time"
-                        value={editData.checkInStr}
-                        onChange={(e) => setEditData({...editData, checkInStr: e.target.value})}
-                        style={styles.timeInput}
-                      />
-                    ) : (
-                      <div style={styles.timeCell}>
-                        <div>{record.checkInStr || "-"}</div>
-                        {record.checkInEdited && <div style={styles.editedLabel}>Edited</div>}
-                      </div>
-                    )}
-                  </td>
-                  <td style={styles.tableCell}>
-                    {editing === index ? (
-                      <input
-                        type="time"
-                        value={editData.checkOutStr}
-                        onChange={(e) => setEditData({...editData, checkOutStr: e.target.value})}
-                        style={styles.timeInput}
-                      />
-                    ) : (
-                      <div style={styles.timeCell}>
-                        <div>{record.checkOutStr || "-"}</div>
-                        {record.checkOutEdited && <div style={styles.editedLabel}>Edited</div>}
-                      </div>
-                    )}
-                  </td>
-                  <td style={styles.tableCell}>{record.worked}</td>
-                  {isTodayDate && (
-                    <td style={styles.tableCell}>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-blue-600 text-white text-sm">
+                <th className="p-2 text-left">Employee</th>
+                <th className="p-2 text-left">Check-In</th>
+                <th className="p-2 text-left">Check-Out</th>
+                <th className="p-2 text-left">Hours Worked</th>
+                {isTodayDate && <th className="p-2 text-left">Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredData.length > 0 ? (
+                filteredData.map((record, index) => (
+                  <tr key={index} className="border-b border-gray-200">
+                    <td className="p-2 text-sm text-gray-700">{record.empName}</td>
+                    <td className="p-2 text-sm text-gray-700">
                       {editing === index ? (
-                        <>
-                          <button onClick={() => saveEdit(record)} style={styles.saveButton}>Save</button>
-                          <button onClick={() => setEditing(null)} style={styles.cancelButton}>Cancel</button>
-                        </>
+                        <input
+                          type="time"
+                          value={editData.checkInStr}
+                          onChange={(e) => setEditData({ ...editData, checkInStr: e.target.value })}
+                          className="p-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                       ) : (
-                        <div style={styles.actionButtons}>
-                          <button 
-                            onClick={() => {
-                              setEditing(index);
-                              setEditData({
-                                checkInStr: record.checkInStr || '',
-                                checkOutStr: record.checkOutStr || ''
-                              });
-                            }} 
-                            style={styles.editButton}
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => deleteShift(record)} 
-                            style={styles.deleteButton}
-                          >
-                            Delete
-                          </button>
+                        <div className="flex flex-col gap-1">
+                          <div>{record.checkInStr || "-"}</div>
+                          {record.checkInEdited && (
+                            <div className="text-xs text-gray-500 italic">Edited</div>
+                          )}
                         </div>
                       )}
                     </td>
-                  )}
+                    <td className="p-2 text-sm text-gray-700">
+                      {editing === index ? (
+                        <input
+                          type="time"
+                          value={editData.checkOutStr}
+                          onChange={(e) => setEditData({ ...editData, checkOutStr: e.target.value })}
+                          className="p-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <div>{record.checkOutStr || "-"}</div>
+                          {record.checkOutEdited && (
+                            <div className="text-xs text-gray-500 italic">Edited</div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-2 text-sm text-gray-700">{record.worked}</td>
+                    {isTodayDate && (
+                      <td className="p-2 text-sm">
+                        {editing === index ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => saveEdit(record)}
+                              className="bg-green-500 text-white px-3 py-1 rounded-md text-xs hover:bg-green-600 transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditing(null)}
+                              className="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditing(index);
+                                setEditData({
+                                  checkInStr: record.checkInStr || '',
+                                  checkOutStr: record.checkOutStr || ''
+                                });
+                              }}
+                              className="bg-blue-500 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-600 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteShift(record)}
+                              className="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={isTodayDate ? 5 : 4}
+                    className="p-4 text-center text-gray-500 text-sm"
+                  >
+                    No attendance records found for this date
+                  </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={isTodayDate ? 5 : 4} style={styles.noRecords}>
-                  No attendance records found for this date
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <div style={styles.addSection}>
-        <button 
-          onClick={() => setAddingNew(!addingNew)} 
-          style={styles.addButton}
+      <div className="mt-6">
+        <button
+          onClick={() => setAddingNew(!addingNew)}
+          className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 transition-colors"
         >
           {addingNew ? "Cancel" : "➕ Add Attendance"}
         </button>
 
         {addingNew && (
-          <div style={styles.addForm}>
-            <select 
-              value={newData.empId} 
+          <div className="mt-4 flex flex-col gap-4">
+            <select
+              value={newData.empId}
               onChange={(e) => setNewData({ ...newData, empId: e.target.value })}
-              style={styles.selectInput}
+              className="p-2 border border-gray-300 rounded-md text-sm w-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Employee</option>
               {employees.map(emp => (
@@ -1000,43 +1015,43 @@ const AdminAttendance = () => {
               ))}
             </select>
 
-            <div style={styles.dateTimeGroup}>
-              <div style={styles.dateTimeInput}>
-                <label>Start Date</label>
+            <div className="flex gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-600">Start Date</label>
                 <input
                   type="date"
                   value={format(shiftStartDate, 'yyyy-MM-dd')}
                   onChange={(e) => setShiftStartDate(new Date(e.target.value))}
-                  style={styles.dateInput}
+                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="time"
                   value={newData.checkInStr}
                   onChange={(e) => setNewData({ ...newData, checkInStr: e.target.value })}
-                  style={styles.timeInput}
+                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Start time"
                 />
               </div>
 
-              <div style={styles.dateTimeInput}>
-                <label>End Date</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-600">End Date</label>
                 <input
                   type="date"
                   value={format(shiftEndDate, 'yyyy-MM-dd')}
                   onChange={(e) => setShiftEndDate(new Date(e.target.value))}
-                  style={styles.dateInput}
+                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="time"
                   value={newData.checkOutStr}
                   onChange={(e) => setNewData({ ...newData, checkOutStr: e.target.value })}
-                  style={styles.timeInput}
+                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="End time"
                 />
               </div>
             </div>
 
-            <div style={styles.preview}>
+            <div className="text-sm text-gray-600">
               {newData.checkInStr && (
                 <div>Start: {formatDateTimeDisplay(shiftStartDate, newData.checkInStr)}</div>
               )}
@@ -1045,183 +1060,17 @@ const AdminAttendance = () => {
               )}
             </div>
 
-            <button onClick={addNewAttendance} style={styles.saveButton}>Add</button>
+            <button
+              onClick={addNewAttendance}
+              className="bg-green-500 text-white px-4 py-2 rounded-md text-sm hover:bg-green-600 transition-colors"
+            >
+              Add
+            </button>
           </div>
         )}
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    fontFamily: 'Arial, sans-serif',
-    maxWidth: '900px',
-    margin: '20px auto',
-    padding: '20px',
-    border: '1px solid #e0e0e0',
-    borderRadius: '4px',
-    backgroundColor: '#fff',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '15px',
-  },
-  title: {
-    fontSize: '22px',
-    fontWeight: 'bold',
-    margin: 0,
-    color: '#333',
-  },
-  dateInputContainer: {
-    position: 'relative',
-  },
-  dateInput: {
-    padding: '8px 12px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '14px',
-  },
-  dateRow: {
-    marginBottom: '10px',
-  },
-  dateDisplay: {
-    fontSize: '14px',
-    color: '#333',
-  },
-  timeRange: {
-    fontSize: '13px',
-    color: '#666',
-    marginBottom: '20px',
-  },
-  attendanceTable: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '15px',
-  },
-  tableHeader: {
-    backgroundColor: '#1a73e8',
-    textAlign: 'left',
-    padding: '10px',
-    borderBottom: '1px solid #ddd',
-    fontSize: '14px',
-  },
-  tableCell: {
-    padding: '10px',
-    borderBottom: '1px solid #eee',
-    fontSize: '13px',
-    verticalAlign: 'top',
-  },
-  timeCell: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  editedLabel: {
-    fontSize: '10px',
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  timeInput: {
-    padding: '5px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    marginRight: '5px',
-  },
-  tableRow: {},
-  editButton: {
-    backgroundColor: '#1a73e8',
-    color: '#fff',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-  },
-  saveButton: {
-    backgroundColor: '#34a853',
-    color: '#fff',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    marginRight: '5px',
-  },
-  cancelButton: {
-    backgroundColor: '#ea4335',
-    color: '#fff',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-  },
-  noRecords: {
-    padding: '20px',
-    textAlign: 'center',
-    color: '#999',
-    fontSize: '14px',
-  },
-  loading: {
-    padding: '20px',
-    textAlign: 'center',
-    color: '#666',
-  },
-  addSection: {
-    marginTop: '20px',
-  },
-  addButton: {
-    backgroundColor: '#1a73e8',
-    color: '#fff',
-    border: 'none',
-    padding: '8px 12px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  addForm: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    marginTop: '10px',
-  },
-  selectInput: {
-    padding: '5px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    minWidth: '150px',
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: '5px',
-  },
-  deleteButton: {
-    backgroundColor: '#ea4335',
-    color: '#fff',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-  },
-  dateTimeGroup: {
-    display: 'flex',
-    gap: '15px',
-    margin: '10px 0',
-  },
-  dateTimeInput: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '5px',
-  },
-  preview: {
-    margin: '10px 0',
-    fontSize: '14px',
-    color: '#555',
-  },
 };
 
 export default AdminAttendance;
