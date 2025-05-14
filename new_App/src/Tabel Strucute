@@ -1,72 +1,352 @@
-users_01 (Collection)
-└── {phone numer} (Document)
-    ├── address: string
-    ├── bank_details (map)
-    │   ├── account_number: string
-    │   ├── bank_name: string
-    │   ├── branch_name: string
-    │   ├── ifsc_code: string
-    ├── dob: string
-    ├── document_number: string
-    ├── email: string
-    ├── employeeID: string
-   ├── userId: string
-    ├── member_since: string
-    ├── name: string
-    ├── otp: string
-    ├── phone: string
-    ├── role: string
-    ├── shareCode: string
+├── users_01 (Collection)
+│   └── {userId} (Document)
+│       ├── active: boolean
+│       ├── archivedAt: timestamp
+│       ├── bank_details (Map)
+│       │   ├── account_number
+│       │   ├── bank_name
+│       │   ├── branch_name
+│       │   └── ifsc_code
+│       ├── changeField (Array<Map>)
+│       │   └── [{ changedAt, changedBy, field, newValue, oldValue }]
+│       ├── countryCode: string
+│       ├── created_at: timestamp
+│       ├── customerID: string
+│       ├── dob: string
+│       ├── document_number: string
+│       ├── email: string
+│       ├── employeeID: string
+│       ├── member_since: string
+│       ├── name: string
+│       ├── originalRole: string
+│       ├── otp: string
+│       ├── phone: string
+│       ├── role: string
+│       ├── shareCode: string
+│       ├── status: string
+│       ├── updatedAt: timestamp
+│       └── userId: string
 
-customers (Collection)
-└── {phone number} (Document)
-    ├── address: string
-    ├── bank_details (map)
-    │   ├── account_number: string
-    │   ├── bank_name: string
-    │   ├── branch_name: string
-    │   ├── ifsc_code: string
-    ├── userId: string
-    ├── dob: string
-    ├── document_number: string
-    ├── email: string
-    ├── customerID: string
-    ├── member_since: string
-    ├── name: string
-    ├── otp: string
-    ├── phone: string
-    ├── role: string
-    ├── shareCode: string
+├── customers (Collection)
+│   └── {phone} (Document)
+│       ├── address: string
+│       ├── bank_details (Map)
+│       ├── convertedAt: timestamp
+│       ├── customerID: string
+│       ├── dob: string
+│       ├── document_number: string
+│       ├── email: string
+│       ├── member_since: string
+│       ├── name: string
+│       ├── phone: string
+│       ├── role: string
+│       ├── shareCode: string
+│       ├── status: string
+│       ├── updatedAt: timestamp
+│       └── userId: string
+
+├── inventory (Collection)
+│   └── {itemId} (Document)
+│       ├── innerPerBox: number
+│       ├── itemId: string
+│       ├── itemName: string
+│       ├── lastUpdated: timestamp
+│       ├── timestamp: timestamp
+│       ├── totalStockOnHand: number
+│       └── unitsPerInner: number
+
+├── wasteLogs (Collection)
+│   └── {logId} (Document)
+│       ├── id: string
+│       ├── timestamp: timestamp
+│       ├── totalWaste: number
+│       └── wasteItems (Subcollection)
+│           └── {wasteItemId} (Document)
+│               ├── boxesCount: number
+│               ├── datePerformed: string
+│               ├── innerCount: number
+│               ├── itemId (Reference to /inventory/{itemId})
+│               ├── itemName: string
+│               ├── reason: string
+│               ├── timestamp: timestamp
+│               ├── totalWaste: number
+│               └── unitsCount: number
+
+├── inventoryLog (Collection)
+│   └── {logId} (Document)
+│       ├── countType: string
+│       ├── date: string
+│       ├── status: string
+│       ├── timestamp: timestamp
+│       ├── totalVariance: number
+│       └── items (Subcollection)
+│           └── {itemId} (Document)
+│               ├── boxesCount: number
+│               ├── innerCount: number
+│               ├── itemId: string
+│               ├── itemName: string
+│               ├── needsRecount: boolean
+│               ├── newStock: number
+│               ├── previousStock: number
+│               ├── status: string
+│               ├── timestamp: timestamp
+│               ├── totalCounted: number
+│               ├── unitsCount: number
+│               └── variance: number
+
+├── category (Collection)
+│   └── cat03name: string ("Street Bites")
+
+├── items (Collection)
+│   └── {itemId} (Document)
+│       ├── categoryId (Reference to /category/{catId})
+│       ├── itemName: string
+│       ├── price: number
+│       ├── sauces (Reference to /sauceGroups/{group})
+│       └── sauces (Array<string>)
+│           └── ["Peri Peri", "BBQ", "Signature Schezwan"]
+
+├── sauceGroups (Collection)
+│   └── {groupId} (Document)
+│       └── sauces (Array<string>)
+
+├── floats (Collection)
+│   └── {floatId} (e.g., floatA_2025-05-01) (Document)
+│       ├── EmployeeId: string
+│       ├── authorisedBy (Map)
+│       ├── cashierEmployeeId: string
+│       ├── witnessEmployeeId: string
+│       ├── closed: boolean
+│       ├── closedAt: timestamp
+│       ├── date: string
+│       ├── entries (Array<Map>)
+│       │   └── [{ count, denomination, value }]
+│       ├── initialCount: number
+│       ├── isOpen: boolean
+│       ├── openedAt: timestamp
+│       ├── total: number
+│       ├── type: string
+│       └── variance: number
+
+├── cashierSessions (Collection)
+│   └── {sessionId} (Document)
+│       ├── authorizedBy (Map)
+│       ├── cashierId: string
+│       ├── closedAt: timestamp
+│       ├── denominations (Array<Map>)
+│       │   └── [{ count, denomination, value }]
+│       ├── expected: number
+│       ├── floatId: string
+│       ├── openedAt: timestamp
+│       ├── reason: string
+│       ├── retainedAmount: number
+│       ├── total: number
+│       └── variance: number
+
+├── cashierSessions/{sessionId}/subCollection CasheriSessions
+│   └── {sessionId_with_timestamp} (Document)
+│       ├── EmployeeId: string
+│       ├── closedAt: timestamp
+│       └── openedAt: timestamp
+
+├── floatClosures (Collection)
+│   └── {floatClosureId} (e.g., 10096_2025-05-02) (Document)
+│       ├── authorizedBy (Map)
+│       ├── cashierId: string
+│       ├── date: string
+│       ├── entries (Array<Map>)
+│       │   └── [{ count, denomination, value }]
+│       ├── expected: number
+│       ├── reason: string
+│       ├── timestamp: timestamp
+│       ├── total: number
+│       ├── type: string ("cashier_close")
+│       └── variance: number
+
+├── SafeFloats (Collection)
+│   └── {safeFloatId} (e.g., 10096_2025-05-02) (Document)
+│       ├── cashierId: string
+│       ├── denominations (Array<Map>)
+│       │   └── [{ count, denomination, type, value }]
+│       └── timestamp: timestamp
 
 
 
-floats (Collection)
-└── floatA_2025-05-02 (Document)
-    ├── authorisedBy (map)
-    │   ├── cashier: string
-    │   ├── witness: string
-    │   ├── cashierId: string
-    ├── closed: boolean
-    ├── date: string
-    ├── entries (array of maps)
-    │   ├── [0]
-    │   │   ├── count: number
-    │   │   ├── denomination: string
-    │   │   ├── value: number
-    │   ├── ...
-    │   ├── [11]
-    │   │   ├── count: number
-    │   │   ├── denomination: string
-    │   │   ├── value: number
-    ├── initialCount: number
-    ├── isOpen: boolean
-    ├── openedAt: timestamp
-    ├── total: number
-    ├── type: string
-    ├── variance: number
 
-    └── cashierSessions (Subcollection)
-        └── 10096_1746216891658 (Document)
-            ├── EmployeeId: string
-            ├── closedAt: timestamp
-            ├── openedAt: timestamp
+
+
+
+
+
+Visual Representation Code :- 
+Table users_01 {
+  userId varchar [pk]
+  name varchar
+  phone varchar
+  email varchar
+  role varchar
+  status varchar
+  address varchar
+  dob date
+  employeeID varchar
+  originalRole varchar
+  countryCode varchar
+  shareCode varchar
+  customerID varchar
+  otp varchar
+  created_at datetime
+  updatedAt datetime
+  archivedAt datetime
+  bank_account_number varchar
+  bank_name varchar
+  branch_name varchar
+  ifsc_code varchar
+}
+
+Table customers {
+  phone varchar [pk]
+  customerID varchar
+  name varchar
+  email varchar
+  address varchar
+  document_number varchar
+  dob date
+  status varchar
+  member_since datetime
+  updatedAt datetime
+  role varchar
+  shareCode varchar
+  convertedAt datetime
+  userId varchar
+}
+
+Table inventory {
+  itemId varchar [pk]
+  itemName varchar
+  price float
+  innerPerBox int
+  unitsPerInner int
+  totalStockOnHand int
+  timestamp datetime
+  lastUpdated datetime
+  categoryId varchar
+}
+
+Table wasteLogs {
+  id varchar [pk]
+  timestamp datetime
+  totalWaste int
+}
+
+Table wasteItems {
+  wasteItemId varchar [pk]
+  wasteLogId varchar
+  itemId varchar
+  itemName varchar
+  reason varchar
+  datePerformed datetime
+  timestamp datetime
+  boxesCount int
+  innerCount int
+  unitsCount int
+  totalWaste int
+}
+
+Table inventoryLog {
+  id varchar [pk]
+  date date
+  timestamp datetime
+  countType varchar
+  status varchar
+  totalVariance int
+}
+
+Table inventoryLogItems {
+  id varchar [pk]
+  inventoryLogId varchar
+  itemId varchar
+  itemName varchar
+  previousStock int
+  newStock int
+  totalCounted int
+  variance int
+  unitsCount int
+  boxesCount int
+  innerCount int
+  needsRecount boolean
+  status varchar
+  timestamp datetime
+}
+
+Table items {
+  itemId varchar [pk]
+  itemName varchar
+  price float
+  categoryId varchar
+}
+
+Table sauces {
+  id varchar [pk]
+  name varchar
+}
+
+Table itemSauces {
+  itemId varchar
+  sauceId varchar
+}
+
+Table category {
+  id varchar [pk]
+  name varchar
+}
+
+Table sauceGroups {
+  id varchar [pk] // Same as category name
+  sauces json
+}
+
+Table floats {
+  id varchar [pk]
+  cashierId varchar
+  sessionStatus varchar
+}
+
+Table cashierSessions {
+  id varchar [pk]
+  floatId varchar
+  openedAt datetime
+  closedAt datetime
+  totals json
+}
+
+Table floatClosures {
+  id varchar [pk]
+  floatId varchar
+  cashierId varchar
+  authorizedBy varchar
+  timestamp datetime
+  totals json
+}
+
+Table safeFloats {
+  id varchar [pk]
+  cashierId varchar
+  denominations json
+  retainedAt datetime
+}
+
+Ref: customers.userId > users_01.userId
+Ref: inventory.categoryId > category.id
+Ref: wasteItems.wasteLogId > wasteLogs.id
+Ref: wasteItems.itemId > inventory.itemId
+Ref: inventoryLogItems.inventoryLogId > inventoryLog.id
+Ref: inventoryLogItems.itemId > inventory.itemId
+Ref: items.categoryId > category.id
+Ref: itemSauces.itemId > items.itemId
+Ref: itemSauces.sauceId > sauces.id
+Ref: floats.cashierId > users_01.employeeID
+Ref: cashierSessions.floatId > floats.id
+Ref: floatClosures.floatId > floats.id
+Ref: floatClosures.cashierId > users_01.employeeID
+Ref: floatClosures.authorizedBy > users_01.employeeID
+Ref: safeFloats.cashierId > users_01.employeeID
