@@ -619,7 +619,7 @@
 // export default AdminAttendance;
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays, isToday, isBefore } from 'date-fns';
+import { format, addDays, isToday, isBefore, startOfWeek, addWeeks, isWithinInterval } from 'date-fns';
 import { 
   collection, 
   query, 
@@ -644,16 +644,27 @@ const AdminAttendance = () => {
   const [employees, setEmployees] = useState([]);
   const [shiftStartDate, setShiftStartDate] = useState(new Date());
   const [shiftEndDate, setShiftEndDate] = useState(new Date());
+  
+  // Calculate the editable date range (past Monday to next Monday)
+  const currentDate = new Date();
+  const lastMonday = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const nextMonday = addWeeks(lastMonday, 1);
+  const isDateEditable = (dateToCheck) => {
+    return isWithinInterval(dateToCheck, {
+      start: lastMonday,
+      end: nextMonday
+    });
+  };
+
   const isTodayDate = isToday(date);
+  const isEditableDate = isDateEditable(date);
 
   const formatFirebaseDate = (date) => format(date, 'yyyy-MM-dd');
   
   const fetchEmployees = async () => {
     const empCollection = collection(db, "users_01");
     const empSnapshot = await getDocs(empCollection);
-    const empList = empSnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(emp => ['manager', 'teamleader', 'employee'].includes(emp.role?.toLowerCase()));
+    const empList = empSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setEmployees(empList);
   };
 
@@ -749,6 +760,7 @@ const AdminAttendance = () => {
         editedAt: serverTimestamp()
       };
 
+      // Track which fields were edited
       if (record.checkInStr !== editData.checkInStr) {
         updates.checkInEdited = true;
       }
@@ -786,6 +798,12 @@ const AdminAttendance = () => {
     try {
       if (!newData.empId || !newData.checkInStr || !newData.checkOutStr) {
         alert("Please fill all fields.");
+        return;
+      }
+
+      // Check if selected dates are within editable range
+      if (!isDateEditable(shiftStartDate) || !isDateEditable(shiftEndDate)) {
+        alert("You can only add attendance for dates between last Monday and next Monday.");
         return;
       }
 
@@ -866,209 +884,230 @@ const AdminAttendance = () => {
   }, [date]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="font-sans max-w-4xl mx-auto my-5 p-5 border border-gray-200 rounded bg-white">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">Admin Attendance Management</h1>
-        <input
-          type="date"
-          value={format(date, 'yyyy-MM-dd')}
-          onChange={(e) => setDate(new Date(e.target.value))}
-          className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <h1 className="text-xl font-bold text-gray-800">Admin Attendance Management</h1>
+        <div className="relative">
+          <input
+            type="date"
+            value={format(date, 'yyyy-MM-dd')}
+            onChange={(e) => setDate(new Date(e.target.value))}
+            className="p-2 border border-gray-300 rounded text-sm"
+          />
+        </div>
       </div>
 
-      <div className="mb-2 text-sm text-gray-600">Date: {formattedDate}</div>
-      <div className="mb-4 text-xs text-gray-500">
+      <div className="mb-3 flex justify-between items-center">
+        <div className="text-sm text-gray-700">Date: {formattedDate}</div>
+        {isEditableDate && (
+          <div className="text-xs text-gray-500 italic">
+            (Editable: {format(lastMonday, 'dd MMM')} - {format(nextMonday, 'dd MMM')})
+          </div>
+        )}
+      </div>
+
+      <div className="text-xs text-gray-500 mb-5">
         Showing shifts between {startTimeStr} and {endTimeStr}
       </div>
 
       {loading ? (
-        <div className="text-center py-4 text-gray-600">Loading attendance data...</div>
+        <div className="py-5 text-center text-gray-600">Loading attendance data...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-blue-600 text-white text-sm">
-                <th className="p-2 text-left">Employee</th>
-                <th className="p-2 text-left">Check-In</th>
-                <th className="p-2 text-left">Check-Out</th>
-                <th className="p-2 text-left">Hours Worked</th>
-                {isTodayDate && <th className="p-2 text-left">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.length > 0 ? (
-                filteredData.map((record, index) => (
-                  <tr key={index} className="border-b border-gray-200">
-                    <td className="p-2 text-sm text-gray-700">{record.empName}</td>
-                    <td className="p-2 text-sm text-gray-700">
-                      {editing === index ? (
-                        <input
-                          type="time"
-                          value={editData.checkInStr}
-                          onChange={(e) => setEditData({ ...editData, checkInStr: e.target.value })}
-                          className="p-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      ) : (
-                        <div className="flex flex-col gap-1">
-                          <div>{record.checkInStr || "-"}</div>
-                          {record.checkInEdited && (
-                            <div className="text-xs text-gray-500 italic">Edited</div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-2 text-sm text-gray-700">
-                      {editing === index ? (
-                        <input
-                          type="time"
-                          value={editData.checkOutStr}
-                          onChange={(e) => setEditData({ ...editData, checkOutStr: e.target.value })}
-                          className="p-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      ) : (
-                        <div className="flex flex-col gap-1">
-                          <div>{record.checkOutStr || "-"}</div>
-                          {record.checkOutEdited && (
-                            <div className="text-xs text-gray-500 italic">Edited</div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-2 text-sm text-gray-700">{record.worked}</td>
-                    {isTodayDate && (
-                      <td className="p-2 text-sm">
-                        {editing === index ? (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => saveEdit(record)}
-                              className="bg-green-500 text-white px-3 py-1 rounded-md text-xs hover:bg-green-600 transition-colors"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditing(null)}
-                              className="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                setEditing(index);
-                                setEditData({
-                                  checkInStr: record.checkInStr || '',
-                                  checkOutStr: record.checkOutStr || ''
-                                });
-                              }}
-                              className="bg-blue-500 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-600 transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => deleteShift(record)}
-                              className="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
+        <table className="w-full border-collapse mt-4">
+          <thead>
+            <tr>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Employee</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Check-In</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Check-Out</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Hours Worked</th>
+              {isEditableDate && <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.length > 0 ? (
+              filteredData.map((record, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="p-2 text-sm border-b">{record.empName}</td>
+                  <td className="p-2 text-sm border-b">
+                    {editing === index ? (
+                      <input
+                        type="time"
+                        value={editData.checkInStr}
+                        onChange={(e) => setEditData({...editData, checkInStr: e.target.value})}
+                        className="p-1 border border-gray-300 rounded mr-1"
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        <div>{record.checkInStr || "-"}</div>
+                        {record.checkInEdited && <div className="text-xs text-gray-500 italic">Edited</div>}
+                      </div>
                     )}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={isTodayDate ? 5 : 4}
-                    className="p-4 text-center text-gray-500 text-sm"
-                  >
-                    No attendance records found for this date
                   </td>
+                  <td className="p-2 text-sm border-b">
+                    {editing === index ? (
+                      <input
+                        type="time"
+                        value={editData.checkOutStr}
+                        onChange={(e) => setEditData({...editData, checkOutStr: e.target.value})}
+                        className="p-1 border border-gray-300 rounded mr-1"
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        <div>{record.checkOutStr || "-"}</div>
+                        {record.checkOutEdited && <div className="text-xs text-gray-500 italic">Edited</div>}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-2 text-sm border-b">{record.worked}</td>
+                  {isEditableDate && (
+                    <td className="p-2 text-sm border-b">
+                      {editing === index ? (
+                        <>
+                          <button 
+                            onClick={() => saveEdit(record)} 
+                            className="bg-green-600 text-white border-none px-2 py-1 rounded text-xs mr-1 cursor-pointer"
+                          >
+                            Save
+                          </button>
+                          <button 
+                            onClick={() => setEditing(null)} 
+                            className="bg-red-500 text-white border-none px-2 py-1 rounded text-xs cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => {
+                              setEditing(index);
+                              setEditData({
+                                checkInStr: record.checkInStr || '',
+                                checkOutStr: record.checkOutStr || ''
+                              });
+                            }} 
+                            className="bg-blue-600 text-white border-none px-2 py-1 rounded text-xs cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => deleteShift(record)} 
+                            className="bg-red-500 text-white border-none px-2 py-1 rounded text-xs cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  )}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={isEditableDate ? 5 : 4} className="py-4 text-center text-gray-500 text-sm">
+                  No attendance records found for this date
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       )}
 
-      <div className="mt-6">
-        <button
-          onClick={() => setAddingNew(!addingNew)}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 transition-colors"
-        >
-          {addingNew ? "Cancel" : "➕ Add Attendance"}
-        </button>
+      {isEditableDate && (
+        <div className="mt-5">
+          <button 
+            onClick={() => setAddingNew(!addingNew)} 
+            className="bg-blue-600 text-white border-none px-3 py-2 rounded text-sm cursor-pointer"
+          >
+            {addingNew ? "Cancel" : "➕ Add Attendance"}
+          </button>
 
-        {addingNew && (
-          <div className="mt-4 flex flex-col gap-4">
-            <select
-              value={newData.empId}
-              onChange={(e) => setNewData({ ...newData, empId: e.target.value })}
-              className="p-2 border border-gray-300 rounded-md text-sm w-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Employee</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.name}</option>
-              ))}
-            </select>
+          {addingNew && (
+            <div className="flex flex-col gap-2 mt-3">
+              <select 
+                value={newData.empId} 
+                onChange={(e) => setNewData({ ...newData, empId: e.target.value })}
+                className="p-1 border border-gray-300 rounded min-w-[150px]"
+              >
+                <option value="">Select Employee</option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+              </select>
 
-            <div className="flex gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm text-gray-600">Start Date</label>
-                <input
-                  type="date"
-                  value={format(shiftStartDate, 'yyyy-MM-dd')}
-                  onChange={(e) => setShiftStartDate(new Date(e.target.value))}
-                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="time"
-                  value={newData.checkInStr}
-                  onChange={(e) => setNewData({ ...newData, checkInStr: e.target.value })}
-                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Start time"
-                />
+              <div className="flex gap-4 my-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs">Start Date</label>
+                  <input
+                    type="date"
+                    value={format(shiftStartDate, 'yyyy-MM-dd')}
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      if (isDateEditable(selectedDate)) {
+                        setShiftStartDate(selectedDate);
+                      } else {
+                        alert("You can only add attendance for dates between last Monday and next Monday.");
+                      }
+                    }}
+                    className="p-1 border border-gray-300 rounded text-sm"
+                    min={format(lastMonday, 'yyyy-MM-dd')}
+                    max={format(nextMonday, 'yyyy-MM-dd')}
+                  />
+                  <input
+                    type="time"
+                    value={newData.checkInStr}
+                    onChange={(e) => setNewData({ ...newData, checkInStr: e.target.value })}
+                    className="p-1 border border-gray-300 rounded text-sm"
+                    placeholder="Start time"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs">End Date</label>
+                  <input
+                    type="date"
+                    value={format(shiftEndDate, 'yyyy-MM-dd')}
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      if (isDateEditable(selectedDate)) {
+                        setShiftEndDate(selectedDate);
+                      } else {
+                        alert("You can only add attendance for dates between last Monday and next Monday.");
+                      }
+                    }}
+                    className="p-1 border border-gray-300 rounded text-sm"
+                    min={format(lastMonday, 'yyyy-MM-dd')}
+                    max={format(nextMonday, 'yyyy-MM-dd')}
+                  />
+                  <input
+                    type="time"
+                    value={newData.checkOutStr}
+                    onChange={(e) => setNewData({ ...newData, checkOutStr: e.target.value })}
+                    className="p-1 border border-gray-300 rounded text-sm"
+                    placeholder="End time"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm text-gray-600">End Date</label>
-                <input
-                  type="date"
-                  value={format(shiftEndDate, 'yyyy-MM-dd')}
-                  onChange={(e) => setShiftEndDate(new Date(e.target.value))}
-                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="time"
-                  value={newData.checkOutStr}
-                  onChange={(e) => setNewData({ ...newData, checkOutStr: e.target.value })}
-                  className="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="End time"
-                />
+              <div className="text-sm text-gray-600 my-1">
+                {newData.checkInStr && (
+                  <div>Start: {formatDateTimeDisplay(shiftStartDate, newData.checkInStr)}</div>
+                )}
+                {newData.checkOutStr && (
+                  <div>End: {formatDateTimeDisplay(shiftEndDate, newData.checkOutStr)}</div>
+                )}
               </div>
-            </div>
 
-            <div className="text-sm text-gray-600">
-              {newData.checkInStr && (
-                <div>Start: {formatDateTimeDisplay(shiftStartDate, newData.checkInStr)}</div>
-              )}
-              {newData.checkOutStr && (
-                <div>End: {formatDateTimeDisplay(shiftEndDate, newData.checkOutStr)}</div>
-              )}
+              <button 
+                onClick={addNewAttendance} 
+                className="bg-green-600 text-white border-none px-2 py-1 rounded text-sm cursor-pointer self-start"
+              >
+                Add
+              </button>
             </div>
-
-            <button
-              onClick={addNewAttendance}
-              className="bg-green-500 text-white px-4 py-2 rounded-md text-sm hover:bg-green-600 transition-colors"
-            >
-              Add
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

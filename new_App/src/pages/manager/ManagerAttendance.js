@@ -634,7 +634,7 @@ const ManagerAttendance = () => {
                       record.isToday && (
                         <button 
                           onClick={() => {
-                            setEditing(index);
+                            setEditing(index); 
                             setEditData({
                               checkInStr: record.checkInStr || '',
                               checkOutStr: record.checkOutStr || ''
