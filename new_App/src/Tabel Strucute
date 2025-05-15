@@ -198,6 +198,68 @@
      │    ├── kot_id         (string)     // Reference to /KOT/{kotId}
      │    ├── quantity       (number)
 
+/
+├── SafeFloats
+│   └── {cashierId}_{date}
+│       ├── cashierId
+│       ├── timestamp
+│       └── denominations (array)
+│           ├── 0
+│           │   ├── denomination
+│           │   ├── count
+│           │   └── type
+│           ├── 1
+│           │   ├── denomination
+│           │   ├── count
+│           │   └── type
+│           ├── ...
+│
+├── SafeDrop
+│   └── {timestamp}
+│       ├── actualAmount
+│       ├── expectedAmount
+│       ├── shiftRunner
+│       ├── timestamp
+│       ├── witness
+│       ├── variance
+│       └── values (array)
+│           ├── 0
+│           │   ├── denomination
+│           │   ├── loose
+│           │   └── value
+│           ├── 1
+│           │   ├── denomination
+│           │   ├── loose
+│           │   └── value
+│           ├── ...
+
+├── safeCounts
+│   └── {date}
+│       └── morning
+│           ├── actualAmount
+│           ├── expectedAmount
+│           ├── cashier
+│           ├── manager
+│           ├── variance
+│           └── values (array)
+│               ├── 0
+│               │   ├── bags
+│               │   ├── loose
+│               │   └── value
+│               ├── 1
+│               │   ├── bags
+│               │   ├── loose
+│               │   └── value
+│               ├── ...
+
+
+
+
+
+
+
+
+
 Table users_01 {
   userId varchar 
   name varchar

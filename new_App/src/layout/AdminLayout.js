@@ -7,7 +7,7 @@ import Dashboard from "../pages/admin/Dashboard";
 import UserDetails from "../pages/admin/UserDetails";
 import Users from "../pages/admin/User";
 import AdminAttendance from "../pages/admin/AdminAttendance";
-
+import ChangePhoneNumber from "../pages/admin/phoneNumberChange";
 
 // Inventory pages
 import WasteManagement from "../pages/admin/inventory/WasteManagement";
@@ -47,6 +47,7 @@ const AdminLayout = () => {
             <Route path="users" element={<Users />} />
             <Route path="users/add-employee" element={<AddUser />} />
             <Route path="user/:userId" element={<UserDetails />} />
+            <Route path="user/changephoneNumber" element={<ChangePhoneNumber />} />
             <Route path="AdminAttendance" element={<AdminAttendance />} />
             {/*<Route path="kot" element={<KOT />} />
             <Route path="reports" element={<Reports />} />
