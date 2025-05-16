@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../../firebase/config';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp , query, where, getDocs  } from 'firebase/firestore';
 
 const Addinventory = () => {
   const navigate = useNavigate();
@@ -19,42 +19,78 @@ const Addinventory = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const { itemId, itemName, unitsPerInner, innerPerBox, totalStockOnHand } = form;
+  const { itemId, itemName, unitsPerInner, innerPerBox, totalStockOnHand } = form;
 
-    if (!itemId || !itemName || !unitsPerInner || !innerPerBox || !totalStockOnHand) {
-      alert('All fields are required.');
+  //  Check all fields are filled
+  if (!itemId || !itemName || !unitsPerInner || !innerPerBox || !totalStockOnHand) {
+    alert('All fields are required.');
+    return;
+  }
+
+  //Normalize the entered itemId (lowercase, trimmed, remove leading zeros)
+  const normalizedInputId = itemId.trim().toLowerCase().replace(/\s+/g, '');
+
+  // Extract the numeric part from the end
+  const match = normalizedInputId.match(/^item0*(\d+)$/);  // e.g., item07 -> 7
+  if (!match) {
+    alert('Invalid item ID format. Use format like "item07" or "item7".');
+    return;
+  }
+
+  const inputNumeric = match[1]; // e.g., "7"
+
+  try {
+    const snapshot = await getDocs(collection(db, 'inventory'));
+
+    let itemExists = false;
+
+    snapshot.forEach((doc) => {
+      const existingId = doc.data().itemId;
+      if (!existingId) return;
+
+      // Normalize existing item ID
+      const normalizedExistingId = existingId.trim().toLowerCase().replace(/\s+/g, '');
+      const existingMatch = normalizedExistingId.match(/^item0*(\d+)$/);
+      if (existingMatch && existingMatch[1] === inputNumeric) {
+        itemExists = true;
+      }
+    });
+
+    //  Check if itemId (after normalization) already exists
+    if (itemExists) {
+      alert('This item ID already exists. Please try another one.');
       return;
     }
 
-    try {
-      await addDoc(collection(db, 'inventory'), {
-        itemId: itemId.trim(),
-        itemName: itemName.trim(),
-        unitsPerInner: Number(unitsPerInner),
-        innerPerBox: Number(innerPerBox),
-        totalStockOnHand: Number(totalStockOnHand),
-        lastUpdated: serverTimestamp(),
-      });
+    //  Add new item to Firestore
+    await addDoc(collection(db, 'inventory'), {
+      itemId: normalizedInputId, // use normalized (e.g., item07 becomes item7)
+      itemName: itemName.trim(),
+      unitsPerInner: Number(unitsPerInner),
+      innerPerBox: Number(innerPerBox),
+      totalStockOnHand: Number(totalStockOnHand),
+      lastUpdated: serverTimestamp(),
+    });
 
-      alert('Inventory added successfully!');
-      setForm({
-        itemId: '',
-        itemName: '',
-        unitsPerInner: '',
-        innerPerBox: '',
-        totalStockOnHand: '',
-      });
+    alert('Inventory added successfully!');
+    setForm({
+      itemId: '',
+      itemName: '',
+      unitsPerInner: '',
+      innerPerBox: '',
+      totalStockOnHand: '',
+    });
 
-      setTimeout(() => {
-        navigate('/admin/inventory/inventoryrecords');
-      }, 1500);
-    } catch (err) {
-      console.error('Error adding inventory:', err);
-      alert('Failed to add inventory. Please try again.');
-    }
-  };
+    setTimeout(() => {
+      navigate('/admin/inventory/inventoryrecords');
+    }, 1500);
+  } catch (err) {
+    console.error('Error adding inventory:', err);
+    alert('Failed to add inventory. Please try again.');
+  }
+};
 
   return (
     <div className="max-w-xl mx-auto mt-16 p-8 bg-white border border-gray-300 rounded-2xl shadow-lg">

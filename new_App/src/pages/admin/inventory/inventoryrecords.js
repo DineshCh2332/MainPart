@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, doc, updateDoc,deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { useNavigate } from 'react-router-dom';
-
 
 const InventoryRecords = () => {
   const [inventory, setInventory] = useState([]);
@@ -18,10 +17,16 @@ const InventoryRecords = () => {
         const items = [];
         querySnapshot.forEach(doc => {
           const data = doc.data();
-          const itemId = data.itemId || data.itemID || 'N/A';
+          const itemId = data.itemId;
           items.push({ id: doc.id, itemId, ...data });
         });
-        setInventory(items);
+        items.sort((a, b) => {
+  const idA = parseInt(a.itemId);
+  const idB = parseInt(b.itemId);
+  return idA - idB;
+});
+setInventory(items);
+
       } catch (error) {
         console.error('Error fetching inventory:', error);
       }
@@ -38,54 +43,75 @@ const InventoryRecords = () => {
 
   const isNumeric = (val) => /^[0-9\b]+$/.test(val) || val === '';
 
-  const handleSave = async (itemId) => {
-    try {
-      const oldItem = inventory.find(item => item.id === itemId);
-      const changedFields = [];
-
-      Object.entries(editedItem).forEach(([key, newValue]) => {
-        const oldValue = oldItem[key] || '';
-        if (String(oldValue) !== String(newValue)) {
-          changedFields.push({ field: key, oldValue, newValue });
-        }
-      });
-
-      const updatedData = {
-        ...oldItem,
-        ...editedItem,
-        lastUpdated: new Date(),
-        changedFields: changedFields.length > 0 ? changedFields : oldItem.changedFields || [],
-      };
-
-      const itemDocRef = doc(db, 'inventory', itemId);
-      await updateDoc(itemDocRef, updatedData);
-
-      setInventory(prev =>
-        prev.map(item => (item.id === itemId ? { ...item, ...updatedData } : item))
-      );
-      setEditingRowId(null);
-      setEditedItem({});
-
-      alert('Changes saved successfully!');
-    } catch (error) {
-      console.error('Error saving item:', error);
-    }
-  };
-
-  const handleDelete = async (itemId) => {
-  const confirmDelete = window.confirm('Are you sure you want to delete this record?');
-  if (!confirmDelete) return;
-
+const handleSave = async (itemId) => {
   try {
-    await deleteDoc(doc(db, 'inventory', itemId));
-    setInventory(prev => prev.filter(item => item.id !== itemId));
-    alert('Item deleted successfully!');
+    const oldItem = inventory.find(item => item.id === itemId);
+
+    // Build changedFields list
+    const changedFields = [];
+    Object.entries(editedItem).forEach(([key, newValue]) => {
+      const oldValue = oldItem[key] || '';
+      if (String(oldValue) !== String(newValue)) {
+        changedFields.push({ field: key, oldValue, newValue });
+      }
+    });
+
+    // Whitelist ONLY these fields for update (exclude 'id')
+    const allowedFields = ['itemId', 'itemName', 'unitsPerInner', 'innerPerBox', 'totalStockOnHand'];
+
+    // Build updatedData manually
+    const updatedData = {};
+
+    // Copy old values for allowed fields if not edited
+    allowedFields.forEach(field => {
+      if (editedItem.hasOwnProperty(field)) {
+        updatedData[field] = editedItem[field];
+      } else if (oldItem.hasOwnProperty(field)) {
+        updatedData[field] = oldItem[field];
+      }
+    });
+
+    updatedData.lastUpdated = new Date();
+    updatedData.changedFields = changedFields.length > 0 ? changedFields : (oldItem.changedFields || []);
+
+    //  DEBUG: Confirm no 'id' in updatedData
+    if (updatedData.id) {
+      console.error("Error: 'id' should NOT be in updatedData!");
+    }
+    console.log("Data going to Firestore:", updatedData);
+
+    // Firestore update
+    const itemDocRef = doc(db, 'inventory', itemId);
+    await updateDoc(itemDocRef, updatedData);
+
+    // Update state (merge manually)
+    setInventory(prev =>
+      prev.map(item => item.id === itemId ? { ...item, ...updatedData } : item)
+    );
+
+    setEditingRowId(null);
+    setEditedItem({});
+    alert('Changes saved successfully!');
   } catch (error) {
-    console.error('Error deleting item:', error);
-    alert('Failed to delete item.');
+    console.error('Error saving item:', error);
   }
 };
 
+
+
+  const handleDelete = async (itemId) => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this record?');
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDoc(doc(db, 'inventory', itemId));
+      setInventory(prev => prev.filter(item => item.id !== itemId));
+      alert('Item deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert('Failed to delete item.');
+    }
+  };
 
   const handleInputChange = (e, field) => {
     const value = e.target.value;
@@ -105,7 +131,7 @@ const InventoryRecords = () => {
             className="bg-green-600 text-white font-bold px-6 py-2 rounded hover:bg-green-700 text-sm"
             style={{ height: '42px', width: '150px' }}
           >
-            Add Inventory 
+            Add Inventory
           </button>
         </div>
 
@@ -129,7 +155,7 @@ const InventoryRecords = () => {
         <table className="table-auto border-collapse w-full max-w-5xl mx-auto text-sm shadow rounded">
           <thead>
             <tr className="bg-gray-200 text-gray-800 text-left">
-              <th className="border px-3 py-2">Item ID</th>
+              <th className="border px-3 py-2">Item Id</th>
               <th className="border px-3 py-2">Item Name</th>
               <th className="border px-3 py-2">Units Per Inner</th>
               <th className="border px-3 py-2">Inner Per Box</th>
@@ -139,136 +165,136 @@ const InventoryRecords = () => {
             </tr>
           </thead>
           <tbody>
-  {filteredInventory.length > 0 ? (
-    filteredInventory.map((item) => (
-      <tr key={item.id} className="text-center">
-        <td className="border px-2 py-1 font-semibold text-gray-800">
-          {editingRowId === item.id ? (
-            <input
-              type="text"
-              value={editedItem.itemId}
-              onChange={(e) => handleInputChange(e, 'itemId')}
-              className="border rounded px-2 py-1 font-semibold w-full"
-            />
-          ) : (
-            item.itemId || 'N/A'
-          )}
-        </td>
-        <td className="border px-2 py-1">
-          {editingRowId === item.id ? (
-            <input
-              type="text"
-              value={editedItem.itemName}
-              onChange={(e) => handleInputChange(e, 'itemName')}
-              className="border rounded px-2 py-1 font-semibold w-full"
-            />
-          ) : (
-            <span className="font-semibold">{item.itemName || 'N/A'}</span>
-          )}
-        </td>
-        <td className="border px-2 py-1">
-          {editingRowId === item.id ? (
-            <input
-              type="text"
-              value={editedItem.unitsPerInner}
-              onChange={(e) => handleInputChange(e, 'unitsPerInner')}
-              className="border rounded px-2 py-1 font-semibold w-full"
-            />
-          ) : (
-            <span className="font-semibold">{item.unitsPerInner || 'N/A'}</span>
-          )}
-        </td>
-        <td className="border px-2 py-1">
-          {editingRowId === item.id ? (
-            <input
-              type="text"
-              value={editedItem.innerPerBox}
-              onChange={(e) => handleInputChange(e, 'innerPerBox')}
-              className="border rounded px-2 py-1 font-semibold w-full"
-            />
-          ) : (
-            <span className="font-semibold">{item.innerPerBox || 'N/A'}</span>
-          )}
-        </td>
-        <td className="border px-2 py-1">
-          {editingRowId === item.id ? (
-            <input
-              type="text"
-              value={editedItem.totalStockOnHand}
-              onChange={(e) => handleInputChange(e, 'totalStockOnHand')}
-              className="border rounded px-2 py-1 font-semibold w-full"
-            />
-          ) : (
-            <span className="font-semibold">{item.totalStockOnHand || 'N/A'}</span>
-          )}
-        </td>
-        <td className="border px-2 py-1 font-semibold text-gray-800">
-          {item.lastUpdated
-            ? new Date(item.lastUpdated.seconds * 1000).toLocaleString()
-            : 'Not Updated yet'}
-        </td>
-        <td className="border px-2 py-1">
-  {editingRowId === item.id ? (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}> {/* Align buttons vertically */}
-      <button
-        onClick={() => handleSave(item.id)}
-        className="bg-blue-600 text-white font-bold px-3 py-2 rounded hover:bg-blue-700 mb-2"
-        style={{ height: '42px', width: '100px', marginBottom: '10px' }} // Margin to space out buttons
-      >
-        Save
-      </button>
-      <button
-        onClick={() => {
-          setEditingRowId(null);
-          setEditedItem({});
-        }}
-        className="bg-red-600 text-white font-bold px-3 py-2 rounded hover:bg-red-700"
-        style={{ height: '42px', width: '100px' }} // Same height and width
-      >
-        Cancel
-      </button>
-    </div>
-  ) : (
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <button
-        onClick={() => {
-          setEditingRowId(item.id);
-          setEditedItem({
-            itemId: item.itemId || '',
-            itemName: item.itemName || '',
-            unitsPerInner: item.unitsPerInner || '',
-            innerPerBox: item.innerPerBox || '',
-            totalStockOnHand: item.totalStockOnHand || '',
-          });
-        }}
-        className="bg-blue-600 text-white font-bold px-3 py-2 rounded hover:bg-blue-700"
-        style={{ height: '42px', width: '100px', marginRight: '5px' }}
-      >
-        Edit
-      </button>
-      <button
-        onClick={() => handleDelete(item.id)}
-        className="bg-red-600 text-white font-bold px-3 py-2 rounded hover:bg-red-700"
-        style={{ height: '42px', width: '100px' }}
-      >
-        Delete
-      </button>
-    </div>
-  )}
-</td>
-
-
-      </tr>
-    ))
-  ) : (
-    <tr>
-      <td colSpan="7" className="text-center py-4">
-        No records found.
-      </td>
-    </tr>
-  )}
-</tbody>
-
+            {filteredInventory.length > 0 ? (
+              filteredInventory.map((item) => (
+                <tr key={item.id} className="text-center">
+                  <td className="border px-2 py-1 font-semibold text-gray-800">
+                    {editingRowId === item.id ? (
+                      <input
+                        type="text"
+                        value={editedItem.itemId}
+                        onChange={(e) => handleInputChange(e, 'itemId')}
+                        className="border rounded px-2 py-1 font-semibold w-full"
+                      />
+                    ) : (
+                      item.itemId || 'N/A'
+                    )}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {editingRowId === item.id ? (
+                      <input
+                        type="text"
+                        value={editedItem.itemName}
+                        onChange={(e) => handleInputChange(e, 'itemName')}
+                        className="border rounded px-2 py-1 font-semibold w-full"
+                      />
+                    ) : (
+                      <span className="font-semibold">{item.itemName || 'N/A'}</span>
+                    )}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {editingRowId === item.id ? (
+                      <input
+                        type="text"
+                        value={editedItem.unitsPerInner}
+                        onChange={(e) => handleInputChange(e, 'unitsPerInner')}
+                        className="border rounded px-2 py-1 font-semibold w-full"
+                      />
+                    ) : (
+                      <span className="font-semibold">{item.unitsPerInner || 'N/A'}</span>
+                    )}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {editingRowId === item.id ? (
+                      <input
+                        type="text"
+                        value={editedItem.innerPerBox}
+                        onChange={(e) => handleInputChange(e, 'innerPerBox')}
+                        className="border rounded px-2 py-1 font-semibold w-full"
+                      />
+                    ) : (
+                      <span className="font-semibold">{item.innerPerBox || 'N/A'}</span>
+                    )}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {editingRowId === item.id ? (
+                      <input
+                        type="text"
+                        value={editedItem.totalStockOnHand}
+                        onChange={(e) => handleInputChange(e, 'totalStockOnHand')}
+                        className="border rounded px-2 py-1 font-semibold w-full"
+                      />
+                    ) : (
+                      <span className="font-semibold">{item.totalStockOnHand || 'N/A'}</span>
+                    )}
+                  </td>
+                  <td className="border px-2 py-1 font-semibold text-gray-800">
+                    {item.lastUpdated
+                      ? new Date(item.lastUpdated.seconds * 1000).toLocaleString()
+                      : 'Not Updated yet'}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {editingRowId === item.id ? (
+                      <div
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                      >
+                        {/* Align buttons vertically */}
+                        <button
+                          onClick={() => handleSave(item.id)}
+                          className="bg-blue-600 text-white font-bold px-3 py-2 rounded hover:bg-blue-700 mb-2"
+                          style={{ height: '42px', width: '100px', marginBottom: '10px' }} // Margin to space out buttons
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingRowId(null);
+                            setEditedItem({});
+                          }}
+                          className="bg-red-600 text-white font-bold px-3 py-2 rounded hover:bg-red-700"
+                          style={{ height: '42px', width: '100px' }} // Same height and width
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <button
+                          onClick={() => {
+                            setEditingRowId(item.id);
+                            setEditedItem({
+                              itemId: item.itemId || '',
+                              itemName: item.itemName || '',
+                              unitsPerInner: item.unitsPerInner || '',
+                              innerPerBox: item.innerPerBox || '',
+                              totalStockOnHand: item.totalStockOnHand || '',
+                            });
+                          }}
+                          className="bg-blue-600 text-white font-bold px-3 py-2 rounded hover:bg-blue-700"
+                          style={{ height: '42px', width: '100px', marginRight: '5px' }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="bg-red-600 text-white font-bold px-3 py-2 rounded hover:bg-red-700"
+                          style={{ height: '42px', width: '100px' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7" className="text-center py-4">
+                  No records found.
+                </td>
+              </tr>
+            )}
+          </tbody>
         </table>
       </div>
     </div>
