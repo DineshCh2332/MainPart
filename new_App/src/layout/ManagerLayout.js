@@ -18,6 +18,10 @@ import CloseCashier from "../pages/manager/cashManagement/CloseCashier"
 import SafeCountPage from "../pages/manager/cashManagement/SafeCountPage";
 import BankingPage from "../pages/manager/cashManagement/BankingPage";
 
+//Items Management pages
+import Categories from "../pages/manager/itemsManagement/categories";
+import Sauces from "../pages/manager/itemsManagement/sauces";
+import ItemsManager from "../pages/manager/itemsManagement/items";
 
 const ManagerLayout = () => {
   return (
@@ -42,6 +46,10 @@ const ManagerLayout = () => {
           <Route path="cashManagement/safecountpage" element={<SafeCountPage />} />
           <Route path="cashManagement/bankingpage" element={<BankingPage />} />
 
+{/*Items Management */}
+            <Route path="itemsManagement/Categories" element={<Categories/>} />
+            <Route path="itemsManagement/sauces" element={<Sauces/>} />
+            <Route path="itemsManagement/items" element={<ItemsManager/>}/>
         </Routes>
       </div>
     </div>

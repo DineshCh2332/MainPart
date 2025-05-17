@@ -22,18 +22,18 @@ function SafeCountPage() {
   const currentDateStr = selectedDate.toISOString().slice(0, 10);
 
   const denominations = useMemo(() => [
-    { name: '1p', value: 0.01, bagValue: 1.00 },
-    { name: '2p', value: 0.02, bagValue: 1.00 },
-    { name: '5p', value: 5.00, bagValue: 5.00 },
-    { name: '10p', value: 10.00, bagValue: 5.00 },
-    { name: '20p', value: 20.00, bagValue: 10.00 },
-    { name: '50p', value: 50.00, bagValue: 10.00 },
-    { name: '£1', value: 100.00, bagValue: 20.00 },
-    { name: '£2', value: 200.00, bagValue: 50.00 },
-    { name: '£5', value: 500.00, bagValue: 500.00 },
-    { name: '£10', value: 1000.00, bagValue: 1000.00 },
-    { name: '£20', value: 2000.00, bagValue: 2000.00 },
-    { name: '£50', value: 5000.00, bagValue: 5000.00 },
+    { name: '1p', value: 0.01, bagValue: 100.00 },
+    { name: '2p', value: 0.02, bagValue: 50.00 },
+    { name: '5p', value: 0.05, bagValue: 100.00 },
+    { name: '10p', value: 0.1, bagValue: 50.00 },
+    { name: '20p', value: 0.2, bagValue: 50.00 },
+    { name: '50p', value: 0.5, bagValue: 20.00 },
+    { name: '£1', value: 1.00, bagValue: 20.00 },
+    { name: '£2', value: 2.00, bagValue: 20.00 },
+    { name: '£5', value: 5.00, bagValue: 0.00 },
+    { name: '£10', value: 10.00, bagValue: 0.00 },
+    { name: '£20', value: 20.00, bagValue: 0.00 },
+    { name: '£50', value: 50.00, bagValue: 0.00 },
   ], []);
 
   const [values, setValues] = useState(denominations.map(() => ({ bags: 0, loose: 0, value: 0 })));

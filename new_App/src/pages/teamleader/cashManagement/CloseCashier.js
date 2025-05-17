@@ -37,6 +37,10 @@ export default function CloseCashier() {
   const [authRequired, setAuthRequired] = useState(false);
   const [showReasonForm, setShowReasonForm] = useState(false);
   const [isClosed, setIsClosed] = useState(false); //  New state to track if float is closed
+  const [confirmCashierChecked, setConfirmCashierChecked] = useState(false);
+const [confirmWitnessChecked, setConfirmWitnessChecked] = useState(false);
+
+ 
 
   // Fetch cashiers from Firestore
   useEffect(() => {
@@ -117,6 +121,7 @@ export default function CloseCashier() {
       return;
     }
 
+ 
     // Check for variance and attempts
     if (Math.abs(variance) <= 1) {
       setAuthRequired(true);
@@ -129,6 +134,7 @@ export default function CloseCashier() {
       setShowReasonForm(true); // Show the reason form
       alert("Please provide a reason for the variance.");
     }
+
   };
 
   // Handle saving the reason after 3 failed attempts
@@ -142,11 +148,30 @@ export default function CloseCashier() {
 
   // Handle authorization (password verification)
   const handleAuthorization = async () => {
-    if (!auth.password) {
-      alert("Please enter cashier ID");
+    if (!auth.password || !auth.witnessId) {
+      alert("Please enter cashier and witness ID");
       return;
     }
+    if (!confirmCashierChecked || !confirmWitnessChecked) {
+  alert("Both cashier and witness must confirm float closure by checking the boxes.");
+  return;
+}
     try {
+
+      // 1. Validate witness (manager) from users_01
+    const witnessSnap = await getDocs(
+      query(collection(db, "users_01"), where("employeeID", "==", auth.witnessId))
+    );
+    if (witnessSnap.empty) {
+      alert("Invalid witness ID: No such user found.");
+      return;
+    }
+    const witness = witnessSnap.docs[0].data();
+    if (witness.role !== "manager") {
+      alert("Authorization failed: Witness must be a manager.");
+      return;
+    }
+
       // 1. Find matching float
       const floatSnap = await getDocs(collection(db, "floats"));
       const matchingFloat = floatSnap.docs
@@ -171,7 +196,7 @@ export default function CloseCashier() {
       await updateDoc(doc(db, "floats", matchingFloat.id), {
         closed: true,
         isOpen: false,
-        closedAt: serverTimestamp() // 👈 Add this line
+        closedAt: serverTimestamp() //  Add this line
       });
 
       // 3. Update cashier session in subcollection
@@ -205,7 +230,10 @@ export default function CloseCashier() {
           value: Number(((counts[d.label] || 0) * d.value).toFixed(2)),
         })),
         reason: reason || null,
-        authorizedBy: { id: auth.password },
+        authorizedBy: { 
+          cashierEmployeeId: auth.password ,
+          witnessManagerId:auth.witnessId,
+      },
       };
 
       // Save to floatClosures
@@ -279,151 +307,167 @@ export default function CloseCashier() {
   };
 
   return (
-    <div className="p-4 max-w-3xl mx-auto bg-white rounded shadow">
-      <h2 className="text-lg font-bold mb-4">Cashier Close</h2>
+    <div className="p-6 border rounded-2xl shadow-lg bg-white max-w-4xl mx-auto mt-8">
+  <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Close Cashier</h2>
 
-      {/* Cashier selection */}
-      <div className="mb-4">
-        <label className="block font-medium mb-1">Select Cashier:</label>
-        <select
-          className="border p-2 rounded w-full"
-          value={selectedCashier}
-          onChange={(e) => setSelectedCashier(e.target.value)}
-        >
-          <option value="">-- Select --</option>
-          {cashiers.map((c) => (
-            <option key={c.employeeID} value={c.employeeID}>  {/* Use employeeID as value */}
-                  {c.name}
-            </option>
-          ))}
-        </select>
+  {/* Cashier Selection */}
+  <div className="mb-6">
+    <label className="block text-base font-semibold text-gray-700 mb-2">Select Cashier</label>
+    <select
+      className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      value={selectedCashier}
+      onChange={(e) => setSelectedCashier(e.target.value)}
+    >
+      <option value="">-- Select --</option>
+      {cashiers.map((c) => (
+        <option key={c.employeeID} value={c.employeeID}>
+          {c.name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {expectedFloat !== null && (
+    <>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Count Register</h3>
+
+      {/* Denomination Table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300 text-base bg-white shadow-sm">
+          <thead>
+            <tr className="bg-blue-600 text-white">
+              <th className="p-2 text-left">Denomination</th>
+              <th className="p-2 text-left">Loose</th>
+              <th className="p-2 text-right">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {denominations.map((d) => (
+              <tr key={d.label} className="border-b">
+                <td className="p-2">{d.label}</td>
+                <td className="p-2">
+                  <input
+                    type="number"
+                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    value={counts[d.label] || ""}
+                    onChange={(e) => handleCountChange(d.label, e.target.value)}
+                    disabled={isClosed}
+                  />
+                </td>
+                <td className="p-2 text-right font-medium text-gray-700">£{calculateValue(d.label)}</td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan="2" className="text-right font-bold p-2">Total:</td>
+              <td className="text-right font-bold p-2 text-green-700">£{totalValue.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {expectedFloat !== null && (
-        <>
-          <h3 className="font-bold mb-2">Count Register</h3>
-          <table className="w-full border text-medium bg-gray-100">
-            <thead>
-              <tr className="bg-blue-500">
-                <th className="border p-1">Denomination</th>
-                <th className="border p-1">Loose</th>
-                <th className="border p-1">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {denominations.map((d) => (
-                <tr key={d.label}>
-                  <td className="border p-1">{d.label}</td>
-                  <td className="border p-1">
-                    <input
-                      type="number"
-                      className="w-full p-1 border rounded"
-                      value={counts[d.label] || ""}
-                      onChange={(e) =>
-                        handleCountChange(d.label, e.target.value)
-                      }
-                      disabled={isClosed}
-                    />
-                  </td>
-                  <td className="border p-1 text-right">
-                    £{calculateValue(d.label)}
-                  </td>
-                </tr>
-              ))}
-              <tr>
-                <td colSpan="2" className="text-right font-bold pr-2">
-                  Total:
-                </td>
-                <td className="text-right font-bold">£{totalValue.toFixed(2)}</td>
-              </tr>
-
-            </tbody>
-          </table>
-
-          {/* Continue button */}
+      {!showReasonForm && !authRequired && !isClosed && (
+        <div className="text-center mt-6">
           <button
             onClick={handleSubmit}
-            className={`mt-4 px-4 py-2 rounded text-white ${isClosed ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
-              }`}
-            disabled={isClosed}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Continue
           </button>
-
-          {/* Reason Form Display */}
-          {showReasonForm && (
-            <div className="mt-6 p-4 border rounded bg-yellow-50 shadow">
-              <h3 className="text-lg font-semibold mb-2">Variance Explanation Required</h3>
-
-              <div className="mb-2">
-                <label className="block text-sm font-medium">Expected Float:</label>
-                <div className="text-gray-800 font-semibold">£{expectedFloat.toFixed(2)}</div>
-              </div>
-
-              <div className="mb-2">
-                <label className="block text-sm font-medium">Counted Total:</label>
-                <div className="text-gray-800 font-semibold">£{totalValue.toFixed(2)}</div>
-              </div>
-
-              <div className="mb-2">
-                <label className="block text-sm font-medium">Variance:</label>
-                <div className="text-red-600 font-semibold">£{variance.toFixed(2)}</div>
-              </div>
-
-              <div className="mb-3">
-                <label className="block text-sm font-medium">Reason for Variance:</label>
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  rows="3"
-                />
-              </div>
-
-              <button
-                onClick={handleSaveWithReason}
-                className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
-              >
-                Save Reason
-              </button>
-            </div>
-          )}
-
-
-
-          {/* Authorization form */}
-          {authRequired && (
-            <div className="mt-6 p-4 border rounded bg-blue-50 shadow">
-              <h3 className="text-lg font-semibold mb-2">Authorization</h3>
-
-              <div className="mb-3">
-                <label className="block text-sm font-medium">Enter Cashier'Id:</label>
-                <input
-                  type="password"
-                  value={auth.password}
-                  onChange={(e) =>
-                    setAuth({ ...auth, password: e.target.value })
-                  }
-                  className="w-full p-2 border rounded"
-                />
-
-              </div>
-
-              <button
-                onClick={handleAuthorization}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Authorize and Close
-              </button>
-            </div>
-          )}
-          {isClosed && (
-            <div className="mt-4 text-red-600 font-medium">
-              This float is already closed. You cannot enter denominations.
-            </div>
-          )}
-        </>
+        </div>
       )}
-    </div>
+
+      {/* Reason for Variance */}
+      {showReasonForm && (
+        <div className="mt-8 border-t pt-6">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">Variance Explanation</h3>
+          <div className="text-base space-y-1 mb-4">
+            <div><strong>Expected Float:</strong> £{expectedFloat.toFixed(2)}</div>
+            <div><strong>Counted Total:</strong> £{totalValue.toFixed(2)}</div>
+            <div className="text-red-700"><strong>Variance:</strong> £{variance.toFixed(2)}</div>
+          </div>
+
+          <label className="block text-base font-medium text-gray-700 mb-2">Reason for Variance</label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+            rows="3"
+          />
+
+          <div className="text-center mt-4">
+            <button
+              onClick={handleSaveWithReason}
+              className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
+            >
+              Save Reason
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Authorization */}
+      {authRequired && (
+        <div className="mt-8 border-t pt-6">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">Authorization</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-base font-medium text-gray-700 mb-2">Cashier ID</label>
+              <input
+                type="password"
+                className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500"
+                value={auth.password}
+                onChange={(e) => setAuth({ ...auth, password: e.target.value })}
+              />
+              <div className="flex items-center space-x-2 mt-2">
+        <input
+          type="checkbox"
+          checked={confirmCashierChecked}
+          onChange={(e) => setConfirmCashierChecked(e.target.checked)}
+          className="w-5 h-5 text-blue-600 border-gray-300 rounded"
+        />
+        <label className="text-sm text-gray-700">Cashier confirms float details.</label>
+      </div>
+            </div>
+           <div>
+    <label className="block text-base font-medium text-gray-700 mb-2">Witness Manager ID</label>
+    <input
+      type="password"
+      className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-green-500"
+      value={auth.witnessId || ""}
+      onChange={(e) => setAuth({ ...auth, witnessId: e.target.value })}
+    />
+     <div className="flex items-center space-x-2 mt-2">
+        <input
+          type="checkbox"
+          checked={confirmWitnessChecked}
+          onChange={(e) => setConfirmWitnessChecked(e.target.checked)}
+          className="w-5 h-5 text-green-600 border-gray-300 rounded"
+        />
+        <label className="text-sm text-gray-700">Manager confirms float closure.</label>
+      </div>
+  </div> 
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={handleAuthorization}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            >
+              Authorize and Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isClosed && (
+        <div className="mt-6 text-center text-red-600 font-semibold text-base">
+          This float is already closed. You cannot enter denominations.
+        </div>
+      )}
+    </>
+  )}
+</div>
+
+
   );
 }

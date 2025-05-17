@@ -225,7 +225,7 @@ const Sidebar = () => {
         )}
 
         {/* Items Management Section */}
-        {isAdmin && (
+         {(isAdmin || isManager || isTeamLeader) && (
           <div className="management-section">
             <button
               className={`management-toggle ${tableManagementExpanded ? 'expanded' : ''}`}

@@ -17,6 +17,10 @@ import CloseCashier from "../pages/teamleader/cashManagement/CloseCashier"
 import SafeCountPage from "../pages/teamleader/cashManagement/SafeCountPage";
 import BankingPage from "../pages/teamleader/cashManagement/BankingPage";
 
+//Items Management pages
+import Categories from "../pages/manager/itemsManagement/categories";
+import Sauces from "../pages/manager/itemsManagement/sauces";
+import ItemsManager from "../pages/manager/itemsManagement/items";
 
 const TeamLeaderLayout = () => {
     return (
@@ -41,6 +45,10 @@ const TeamLeaderLayout = () => {
                     <Route path="cashManagement/safecountpage" element={<SafeCountPage />} />
                     <Route path="cashManagement/bankingpage" element={<BankingPage />} />
 
+                   {/*Items Management */}
+            <Route path="itemsManagement/Categories" element={<Categories/>} />
+            <Route path="itemsManagement/sauces" element={<Sauces/>} />
+            <Route path="itemsManagement/items" element={<ItemsManager/>}/>
                 </Routes>
             </div>
         </div>

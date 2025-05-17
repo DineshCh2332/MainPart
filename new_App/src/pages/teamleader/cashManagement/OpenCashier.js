@@ -39,7 +39,7 @@ export default function OpenCashier() {
   const [confirmCashier, setConfirmCashier] = useState(false);
   const [confirmWitness, setConfirmWitness] = useState(false);
 
-  // ✅ Fetch cashiers from Firestore
+  //  Fetch cashiers from Firestore
   useEffect(() => {
     const fetchCashiers = async () => {
       const q = query(
@@ -233,148 +233,146 @@ export default function OpenCashier() {
   };
 
   return (
-    <div className="p-4 border rounded shadow-md bg-white max-w-3xl mx-auto">
-      <h2 className="text-2xl text-center font-bold mb-4">Open Cashier</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label className="block font-medium mb-1">Select Float Type:</label>
-          <select
-            className="border p-2 rounded w-full"
-            value={floatType}
-            onChange={(e) => setFloatType(e.target.value)}
-          >
-            <option value="">-- Select --</option>
-            <option value="A">Float A</option>
-            <option value="B">Float B</option>
-            <option value="C">Float C</option>
-            <option value="D">Float D</option>
-          </select>
-        </div>
+<div className="p-6 border rounded-2xl shadow-lg bg-white max-w-4xl mx-auto mt-8">
+  <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Open Cashier</h2>
 
-        <div>
-          <label className="block font-medium mb-1">Select Cashier:</label>
-          <select
-            className="border p-2 rounded w-full"
-            value={selectedCashier}
-            onChange={(e) => setSelectedCashier(e.target.value)}
-          >
-            <option value="">-- Select --</option>
-            {cashiers.map((c) => (
-            <option key={c.employeeID} value={c.employeeID}>
-          {c.name} 
-              </option>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+    <div>
+      <label className="block text-base font-semibold text-gray-700 mb-2">Select Float Type</label>
+      <select
+        className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        value={floatType}
+        onChange={(e) => setFloatType(e.target.value)}
+      >
+        <option value="">-- Select --</option>
+        <option value="A">Float A</option>
+        <option value="B">Float B</option>
+        <option value="C">Float C</option>
+        <option value="D">Float D</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-base font-semibold text-gray-700 mb-2">Select Cashier</label>
+      <select
+        className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        value={selectedCashier}
+        onChange={(e) => setSelectedCashier(e.target.value)}
+      >
+        <option value="">-- Select --</option>
+        {cashiers.map((c) => (
+          <option key={c.employeeID} value={c.employeeID}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+
+  {floatType && (
+    <>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Starting Float Count</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300 text-base bg-white shadow-sm">
+          <thead>
+            <tr className="bg-blue-600 text-white">
+              <th className="p-2 text-left">Denomination</th>
+              <th className="p-2 text-left">Loose</th>
+              <th className="p-2 text-right">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {denominations.map((d) => (
+              <tr key={d.label} className="border-b">
+                <td className="p-2">{d.label}</td>
+                <td className="p-2">
+                  <input
+                    type="number"
+                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    value={counts[d.label] || ""}
+                    onChange={(e) => handleCountChange(d.label, e.target.value)}
+                  />
+                </td>
+                <td className="p-2 text-right font-medium text-gray-700">£{calculateValue(d.label)}</td>
+              </tr>
             ))}
-          </select>
-        </div>
+            <tr>
+              <td colSpan="2" className="text-right font-bold p-2">Total:</td>
+              <td className="text-right font-bold p-2 text-green-700">£{(totalValue + retainedAmount).toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {floatType && (
-        <>
-          <h3 className="font-bold mb-4">Starting Float Count</h3>
-          <table className="w-full border text-sm bg-gray-100">
-            <thead>
-              <tr className="bg-blue-600 text-white">
-                <th className="border p-1">Denomination</th>
-                <th className="border p-1">Loose</th>
-                <th className="border p-1">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {denominations.map((d) => (
-                <tr key={d.label}>
-                  <td className="border p-1">{d.label}</td>
-                  <td className="border p-1">
-                    <input
-                      type="number"
-                      className="w-full p-1 border rounded"
-                      value={counts[d.label] || ""}
-                      onChange={(e) =>
-                        handleCountChange(d.label, e.target.value)
-                      }
-                    />
-                  </td>
-                  <td className="border p-1 text-right">
-                    £{calculateValue(d.label)}
-                  </td>
-                </tr>
-              ))}
-              <tr>
-                <td colSpan="2" className="font-bold text-right pr-2">
-                  Total:
-                </td>
-                <td className="font-bold text-right">
-                  £{(totalValue + retainedAmount).toFixed(2)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {!showAuthorization && (
-            <button
-              onClick={handleContinue}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Continue
-            </button>
-          )}
-
-          {showAuthorization && (
-            <div className="mt-6 border-t pt-4">
-              <h3 className="font-bold mb-2">Authorization</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block font-medium mb-1">
-                    Cashier Employee ID:
-                  </label>
-                  <input
-                    type="text"
-                    className="border p-2 rounded w-full"
-                    value={authCashierId}
-                    onChange={(e) => setAuthCashierId(e.target.value)}
-                  />
-                  <div className="mt-2">
-                    <input
-                      type="checkbox"
-                      checked={confirmCashier}
-                      onChange={(e) => setConfirmCashier(e.target.checked)}
-                    />{" "}
-                    Cashier Confirm
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-medium mb-1">
-                    Witness Employee ID:
-                  </label>
-                  <input
-                    type="text"
-                    className="border p-2 rounded w-full"
-                    value={authWitnessId}
-                    onChange={(e) => setAuthWitnessId(e.target.value)}
-                  />
-                  <div className="mt-2">
-                    <input
-                      type="checkbox"
-                      checked={confirmWitness}
-                      onChange={(e) => setConfirmWitness(e.target.checked)}
-                    />{" "}
-                    Witness Confirm
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                Submit Float
-              </button>
-            </div>
-          )}
-        </>
+      {!showAuthorization && (
+        <div className="text-center mt-6">
+          <button
+            onClick={handleContinue}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Continue
+          </button>
+        </div>
       )}
-    </div>
-  );
+
+      {showAuthorization && (
+        <div className="mt-8 border-t pt-6">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">Authorization</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-base font-medium text-gray-700 mb-2">Cashier Employee ID</label>
+              <input
+                type="text"
+                className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500"
+                value={authCashierId}
+                onChange={(e) => setAuthCashierId(e.target.value)}
+              />
+              <div className="mt-2 text-base">
+                <input
+                  type="checkbox"
+                  checked={confirmCashier}
+                  onChange={(e) => setConfirmCashier(e.target.checked)}
+                  className="w-5 h-5 text-green-600 border-gray-300 rounded"
+                />{" "}
+                <label className="text-sm text-gray-700">Cashier Confirm</label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-base font-medium text-gray-700 mb-2">Witness Employee ID</label>
+              <input
+                type="text"
+                className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500"
+                value={authWitnessId}
+                onChange={(e) => setAuthWitnessId(e.target.value)}
+              />
+              <div className="mt-2 text-base">
+                <input
+                  type="checkbox"
+                  checked={confirmWitness}
+                  onChange={(e) => setConfirmWitness(e.target.checked)}
+                  className="w-5 h-5 text-green-600 border-gray-300 rounded"
+                />{" "}
+                <label className="text-sm text-gray-700">Witness Confirm</label>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={handleSubmit}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            >
+              Submit Float
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )}
+</div>
+);
+
 }
