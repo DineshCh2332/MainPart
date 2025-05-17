@@ -26,27 +26,38 @@
 │       ├── status: string
 │       ├── updatedAt: timestamp
 │       └── userId: string
-|       └── attendance (Subcollection)
-           └── 2025-05 (Document - Year-Month)
-            └── days (Map)
-                └── 16 (Map - Day of the month)
-                    ├── isClockedIn: false (Boolean)
-                    ├── sessions (Array of Maps)
-                    │   ├── 0
-                    │   │   ├── checkIn: Timestamp
-                    │   │   └── checkOut: Timestamp
-                    │   ├── 1
-                    │   │   ├── checkIn: Timestamp
-                    │   │   └── checkOut: Timestamp
-                    │   ├── 2
-                    │   │   ├── checkIn: Timestamp
-                    │   │   └── checkOut: Timestamp
-                    │   └── 3
-                    │       ├── checkIn: Timestamp
-                    │       └── checkOut: Timestamp
-                    └── metadata (Map)
-                        ├── created: Timestamp
-                        └── lastUpdated: Timestamp
+
+users_01/<userDocId>/attendance/<yearMonth>
+  days: {
+    <day>: {
+      isClockedIn: boolean,
+      metadata: {
+        created: Timestamp,
+        lastUpdated: Timestamp
+      },
+      sessions: [
+        {
+          checkIn: Timestamp,
+          checkInEdited: boolean,
+          checkOut: Timestamp | null,
+          checkOutEdited: boolean,
+          editedAt: Timestamp,
+          editedBy: string,
+          status: string
+        },
+        ...
+      ],
+      metadata: {
+        created: Timestamp,
+        lastUpdated: Timestamp
+      }
+    },
+    ...
+  },
+  metadata: {
+    created: Timestamp,
+    lastUpdated: Timestamp
+  }
 
 ├── customers (Collection)
 │   └── {phone} (Document)
