@@ -140,8 +140,9 @@ const AddUser = () => {
         ...formData,
         userId: userId,
         phone: docId,
-        member_since: new Date().toISOString(), // Modified here
+        member_since: new Date().toISOString(),
         created_at: Timestamp.now(),
+        active: formData.role !== "customer" ? true : undefined
       };
 
       if (formData.role === "customer") {

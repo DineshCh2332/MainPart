@@ -1,415 +1,13 @@
-// import React, { useState, useEffect, useRef } from 'react';
-// import { format, addDays, isToday } from 'date-fns';
-// import Calendar from 'react-calendar';
-// import 'react-calendar/dist/Calendar.css';
-// import { collection, query, where, getDocs,getDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-// import { db } from '../../firebase/config';
-
-// const ManagerAttendance = () => {
-//   const [date, setDate] = useState(new Date());
-//   const [showCalendar, setShowCalendar] = useState(false);
-//   const [attendanceData, setAttendanceData] = useState([]);
-//   const [loading, setLoading] = useState(false);
-//   const [editing, setEditing] = useState(null);
-//   const [editData, setEditData] = useState({});
-//   const calendarRef = useRef(null);
-
-//   const formatFirebaseDate = (date) => format(date, 'yyyy-MM-dd');
-
-//   useEffect(() => {
-//     const handleClickOutside = (event) => {
-//       if (calendarRef.current && !calendarRef.current.contains(event.target)) {
-//         setShowCalendar(false);
-//       }
-//     };
-
-//     document.addEventListener('mousedown', handleClickOutside);
-//     return () => document.removeEventListener('mousedown', handleClickOutside);
-//   }, []);
-
-//   const fetchAttendanceData = async (selectedDate) => {
-//     setLoading(true);
-//     try {
-//       const dateStr = formatFirebaseDate(selectedDate);
-//       const sessionsRef = collection(db, "attendance", dateStr, "sessions");
-//       const q = query(sessionsRef, where("role", "==", "employee"));
-      
-//       const sessionSnapshot = await getDocs(q);
-//       const logs = await Promise.all(sessionSnapshot.docs.map(async (sessionDoc) => {
-//         const sessionData = sessionDoc.data();
-//         const userSnap = await getDoc(sessionData.user);
-//         const empData = userSnap.exists() ? userSnap.data() : {};
-        
-//         const checkIn = sessionData.checkIn?.toDate();
-//         const checkOut = sessionData.checkOut?.toDate();
-
-//         let worked = "Incomplete";
-//         if (checkIn && checkOut) {
-//           const duration = checkOut - checkIn;
-//           const hrs = Math.floor(duration / (1000 * 60 * 60));
-//           const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-//           worked = `${hrs}h ${mins}m`;
-//         }
-
-//         return {
-//           empName: empData.name || "Unknown",
-//           checkInStr: checkIn ? format(checkIn, 'HH:mm') : "",
-//           checkOutStr: checkOut ? format(checkOut, 'HH:mm') : "",
-//           worked,
-//           empId: sessionData.user.id,
-//           sessionId: sessionDoc.id,
-//           checkInTime: checkIn?.getTime() || 0,
-//           originalCheckIn: checkIn,
-//           originalCheckOut: checkOut,
-//           editedBy: sessionData.editedBy,
-//           editedAt: sessionData.editedAt?.toDate(),
-//           checkInEdited: sessionData.checkInEdited || false,
-//           checkOutEdited: sessionData.checkOutEdited || false,
-//           isToday: isToday(checkIn),
-//           source: sessionData.source || "system"
-//         };
-//       }));
-
-//       setAttendanceData(logs.sort((a, b) => b.checkInTime - a.checkInTime));
-//     } catch (error) {
-//       console.error("Error fetching attendance data:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const saveEdit = async (record) => {
-//     try {
-//       const dateStr = formatFirebaseDate(date);
-//       const sessionRef = doc(db, "attendance", dateStr, "sessions", record.sessionId);
-
-//       const [checkInHour, checkInMinute] = editData.checkInStr.split(':').map(Number);
-//       const [checkOutHour, checkOutMinute] = editData.checkOutStr.split(':').map(Number);
-
-//       const newCheckIn = new Date(record.originalCheckIn);
-//       newCheckIn.setHours(checkInHour, checkInMinute);
-//       const newCheckOut = new Date(record.originalCheckOut || newCheckIn);
-//       newCheckOut.setHours(checkOutHour, checkOutMinute);
-
-//       const checkInEdited = record.checkInStr !== editData.checkInStr;
-//       const checkOutEdited = record.checkOutStr !== editData.checkOutStr;
-
-//       await updateDoc(sessionRef, {
-//         checkIn: newCheckIn,
-//         checkOut: newCheckOut,
-//         editedBy: "Manager",
-//         editedAt: serverTimestamp(),
-//         checkInEdited: checkInEdited || record.checkInEdited,
-//         checkOutEdited: checkOutEdited || record.checkOutEdited
-//       });
-
-//       setEditing(null);
-//       fetchAttendanceData(date);
-//     } catch (error) {
-//       console.error("Error updating attendance:", error);
-//     }
-//   };
-
-
-//   const startTime = new Date(date);
-//   startTime.setHours(1, 0, 0, 0);
-//   const endTime = addDays(startTime, 1);
-
-//   const formattedDate = format(date, 'dd-MMM-yyyy');
-//   const startTimeStr = format(startTime, 'dd MMM yyyy hh:mm a');
-//   const endTimeStr = format(endTime, 'dd MMM yyyy hh:mm a');
-
-//   const filteredData = attendanceData.filter(record => {
-//     const recordDate = new Date(record.checkInTime);
-//     return recordDate >= startTime && recordDate < endTime;
-//   });
-
-//   useEffect(() => {
-//     fetchAttendanceData(date);
-//   }, [date]);
-
-//   return (
-//     <div style={styles.container}>
-//       <div style={styles.header}>
-//         <h1 style={styles.title}>Manager Attendance</h1>
-//         <button 
-//           style={styles.calendarButton}
-//           onClick={() => setShowCalendar(!showCalendar)}
-//         >
-//           <svg style={styles.calendarIcon} viewBox="0 0 24 24">
-//             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-//             <line x1="16" y1="2" x2="16" y2="6"></line>
-//             <line x1="8" y1="2" x2="8" y2="6"></line>
-//             <line x1="3" y1="10" x2="21" y2="10"></line>
-//           </svg>
-//         </button>
-//       </div>
-
-//       <div style={styles.dateRow}>
-//         <div style={styles.dateDisplay}>Date: {formattedDate}</div>
-//       </div>
-
-//       <div style={styles.timeRange}>
-//         Showing shifts between {startTimeStr} and {endTimeStr}
-//       </div>
-
-//       {showCalendar && (
-//         <div style={styles.calendarPopup} ref={calendarRef}>
-//           <Calendar 
-//             onChange={(newDate) => {
-//               setDate(newDate);
-//               setShowCalendar(false);
-//             }} 
-//             value={date} 
-//           />
-//         </div>
-//       )}
-
-//       {loading ? (
-//         <div style={styles.loading}>Loading attendance data...</div>
-//       ) : (
-//         <table style={styles.attendanceTable}>
-//           <thead>
-//             <tr>
-//               <th style={styles.tableHeader}>Employee</th>
-//               <th style={styles.tableHeader}>Check-In</th>
-//               <th style={styles.tableHeader}>Check-Out</th>
-//               <th style={styles.tableHeader}>Hours Worked</th>
-//               <th style={styles.tableHeader}>Actions</th>
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {filteredData.length > 0 ? (
-//               filteredData.map((record, index) => (
-//                 <tr key={index} style={styles.tableRow}>
-//                   <td style={styles.tableCell}>{record.empName}</td>
-//                   <td style={styles.tableCell}>
-//                     {editing === index ? (
-//                       <input
-//                         type="time"
-//                         value={editData.checkInStr}
-//                         onChange={(e) => setEditData({ ...editData, checkInStr: e.target.value })}
-//                         style={styles.timeInput}
-//                       />
-//                     ) : (
-//                       <div style={styles.timeCell}>
-//                         <div>{record.checkInStr || "-"}</div>
-//                         {record.checkInEdited && (
-//                           <div style={styles.editedLabel}>Edited</div>
-//                         )}
-//                       </div>
-//                     )}
-//                   </td>
-//                   <td style={styles.tableCell}>
-//                     {editing === index ? (
-//                       <input
-//                         type="time"
-//                         value={editData.checkOutStr}
-//                         onChange={(e) => setEditData({ ...editData, checkOutStr: e.target.value })}
-//                         style={styles.timeInput}
-//                       />
-//                     ) : (
-//                       <div style={styles.timeCell}>
-//                         <div>{record.checkOutStr || "-"}</div>
-//                         {record.checkOutEdited && (
-//                           <div style={styles.editedLabel}>Edited</div>
-//                         )}
-//                       </div>
-//                     )}
-//                   </td>
-//                   <td style={styles.tableCell}>{record.worked}</td>
-//                   <td style={styles.tableCell}>
-//         {editing === index ? (
-//           <>
-//             <button onClick={() => saveEdit(record)} style={styles.saveButton}>Save</button>
-//             <button onClick={() => setEditing(null)} style={styles.cancelButton}>Cancel</button>
-//           </>
-//         ) : (
-//           record.isToday && ( // Only show edit button if it's today's record
-//             <button 
-//               onClick={() => {
-//                 setEditing(index);
-//                 setEditData({
-//                   checkInStr: record.checkInStr,
-//                   checkOutStr: record.checkOutStr
-//                 });
-//               }} 
-//               style={styles.editButton}
-//             >
-//               Edit
-//             </button>
-//           )
-//         )}
-//       </td>
-//                 </tr>
-//               ))
-//             ) : (
-//               <tr>
-//                 <td colSpan="5" style={styles.noRecords}>
-//                   No attendance records found for this date
-//                 </td>
-//               </tr>
-//             )}
-//           </tbody>
-//         </table>
-//       )}
-//     </div>
-//   );
-// };
-
-// const styles = {
-//   container: {
-//     fontFamily: 'Arial, sans-serif',
-//     maxWidth: '900px',
-//     margin: '20px auto',
-//     padding: '20px',
-//     border: '1px solid #e0e0e0',
-//     borderRadius: '4px',
-//     backgroundColor: '#fff',
-//     position: 'relative',
-//   },
-//   header: {
-//     display: 'flex',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     marginBottom: '15px',
-//   },
-//   title: {
-//     fontSize: '22px',
-//     fontWeight: 'bold',
-//     margin: 0,
-//     color: '#333',
-//   },
-//   dateRow: {
-//     marginBottom: '10px',
-//   },
-//   dateDisplay: {
-//     fontSize: '14px',
-//     color: '#333',
-//   },
-//   timeRange: {
-//     fontSize: '13px',
-//     color: '#666',
-//     marginBottom: '20px',
-//   },
-//   calendarButton: {
-//     background: '#1a73e8',
-//     border: 'none',
-//     borderRadius: '4px',
-//     cursor: 'pointer',
-//     height: '32px',
-//     width: '32px',
-//     display: 'flex',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     padding: 0,
-//   },
-//   calendarIcon: {
-//     width: '16px',
-//     height: '16px',
-//     stroke: '#fff',
-//     strokeWidth: '2',
-//   },
-//   calendarPopup: {
-//     position: 'absolute',
-//     top: '60px',
-//     right: '20px',
-//     zIndex: 100,
-//     backgroundColor: '#fff',
-//     border: '1px solid #ddd',
-//     borderRadius: '4px',
-//     boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-//   },
-//   attendanceTable: {
-//     width: '100%',
-//     borderCollapse: 'collapse',
-//     marginTop: '15px',
-//   },
-//   tableHeader: {
-//     backgroundColor: '#f5f5f5',
-//     textAlign: 'left',
-//     padding: '10px',
-//     borderBottom: '1px solid #ddd',
-//     fontSize: '14px',
-//   },
-//   tableCell: {
-//     padding: '10px',
-//     borderBottom: '1px solid #eee',
-//     fontSize: '13px',
-//     verticalAlign: 'top',
-//   },
-//   timeCell: {
-//     display: 'flex',
-//     flexDirection: 'column',
-//     gap: '2px',
-//   },
-//   editedLabel: {
-//     fontSize: '10px',
-//     color: '#666',
-//     fontStyle: 'italic',
-//   },
-//   timeInput: {
-//     padding: '5px',
-//     border: '1px solid #ddd',
-//     borderRadius: '4px',
-//   },
-//   tableRow: {},
-//   editButton: {
-//     backgroundColor: '#1a73e8',
-//     color: '#fff',
-//     border: 'none',
-//     padding: '5px 10px',
-//     borderRadius: '4px',
-//     cursor: 'pointer',
-//     fontSize: '12px',
-//     marginRight: '5px',
-//   },
-//   saveButton: {
-//     backgroundColor: '#34a853',
-//     color: '#fff',
-//     border: 'none',
-//     padding: '5px 10px',
-//     borderRadius: '4px',
-//     cursor: 'pointer',
-//     fontSize: '12px',
-//     marginRight: '5px',
-//   },
-//   cancelButton: {
-//     backgroundColor: '#ea4335',
-//     color: '#fff',
-//     border: 'none',
-//     padding: '5px 10px',
-//     borderRadius: '4px',
-//     cursor: 'pointer',
-//     fontSize: '12px',
-//   },
-//   noRecords: {
-//     padding: '20px',
-//     textAlign: 'center',
-//     color: '#999',
-//     fontSize: '14px',
-//   },
-//   loading: {
-//     padding: '20px',
-//     textAlign: 'center',
-//     color: '#666',
-//   },
-// };
-
-// export default ManagerAttendance;
-
-
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays, isToday, isBefore } from 'date-fns';
+import { format, isToday, isBefore } from 'date-fns';
 import { 
   collection, 
-  query, 
   getDocs, 
   doc, 
-  updateDoc, 
-  serverTimestamp,
-  getDoc
+  setDoc, // Changed to setDoc to match AdminAttendance
+  getDoc,
+  serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 
@@ -420,66 +18,7 @@ const ManagerAttendance = () => {
   const [editing, setEditing] = useState(null);
   const [editData, setEditData] = useState({});
 
-  const formatFirebaseDate = (date) => format(date, 'yyyy-MM-dd');
-
-  const fetchAttendanceData = async (selectedDate) => {
-    setLoading(true);
-    try {
-      const dateStr = formatFirebaseDate(selectedDate);
-      
-      // Connect to the same attendance collection used by Admin
-      const sessionsCollection = collection(db, "attendance", dateStr, "sessions");
-      const sessionsSnapshot = await getDocs(sessionsCollection);
-
-      let logs = [];
-
-      for (const sessionDoc of sessionsSnapshot.docs) {
-        const sessionData = sessionDoc.data();
-        const userRef = sessionData.user;
-        let userData = {};
-        let empName = "Unknown";
-        
-        try {
-          const userDoc = await getDoc(userRef);
-          if (userDoc.exists()) {
-            userData = userDoc.data();
-            empName = userData.name || userRef.id;
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-
-        const checkIn = sessionData.checkIn?.toDate();
-        const checkOut = sessionData.checkOut?.toDate();
-
-        logs.push({
-          empName,
-          checkInStr: checkIn ? format(checkIn, 'HH:mm') : "",
-          checkOutStr: checkOut ? format(checkOut, 'HH:mm') : "",
-          worked: calculateWorkedHours(checkIn, checkOut),
-          empId: userRef.id,
-          sessionId: sessionDoc.id,
-          checkInTime: checkIn?.getTime() || 0,
-          originalCheckIn: checkIn,
-          originalCheckOut: checkOut,
-          status: sessionData.status || "open",
-          role: sessionData.role || "employee",
-          checkInEdited: sessionData.checkInEdited || false,
-          checkOutEdited: sessionData.checkOutEdited || false,
-          isToday: isToday(checkIn),
-          source: sessionData.source || "system"
-        });
-      }
-
-      logs.sort((a, b) => b.checkInTime - a.checkInTime);
-      setAttendanceData(logs);
-    } catch (error) {
-      console.error("Error fetching attendance data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Calculate worked hours
   const calculateWorkedHours = (checkIn, checkOut) => {
     if (!checkIn || !checkOut) return "Incomplete";
     const duration = checkOut - checkIn;
@@ -488,170 +27,255 @@ const ManagerAttendance = () => {
     return `${hrs}h ${mins}m`;
   };
 
+  // Fetch attendance data
+  const fetchAttendanceData = async (selectedDate) => {
+    setLoading(true);
+    try {
+      const yearMonth = format(selectedDate, 'yyyy-MM');
+      const day = format(selectedDate, 'd');
+      const allUsers = await getDocs(collection(db, "users_01"));
+      const logs = [];
+
+      for (const userDoc of allUsers.docs) {
+        const userData = userDoc.data();
+        // Only include active employees
+        if (!userData.active || userData.role !== 'employee') {
+          continue;
+        }
+
+        const userId = userDoc.id;
+        const attendanceRef = doc(db, "users_01", userId, "attendance", yearMonth);
+        const attendanceSnap = await getDoc(attendanceRef);
+
+        if (!attendanceSnap.exists()) continue;
+
+        const daysMap = attendanceSnap.data().days || {};
+        const dayData = daysMap[day];
+
+        if (!dayData?.sessions?.length) continue;
+
+        dayData.sessions.forEach((session, index) => {
+          const checkIn = session.checkIn?.toDate();
+          const checkOut = session.checkOut?.toDate();
+
+          logs.push({
+            empName: userData.name,
+            checkInStr: checkIn ? format(checkIn, 'HH:mm') : '',
+            checkOutStr: checkOut ? format(checkOut, 'HH:mm') : '',
+            worked: calculateWorkedHours(checkIn, checkOut),
+            empId: userId,
+            sessionId: `${yearMonth}-${day}-${index}`,
+            checkInTime: checkIn?.getTime() || 0,
+            originalCheckIn: checkIn,
+            originalCheckOut: checkOut,
+            checkInEdited: session.checkInEdited || false,
+            checkOutEdited: session.checkOutEdited || false,
+            isToday: checkIn ? isToday(checkIn) : false
+          });
+        });
+      }
+
+      setAttendanceData(logs.sort((a, b) => b.checkInTime - a.checkInTime));
+    } catch (error) {
+      console.error("Error fetching attendance data:", error);
+      alert("Failed to fetch attendance data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save edited attendance
   const saveEdit = async (record) => {
     try {
-      const dateStr = formatFirebaseDate(date);
-      const sessionRef = doc(db, "attendance", dateStr, "sessions", record.sessionId);
+      if (!record.isToday) {
+        alert("You can only edit records from today.");
+        return;
+      }
+
+      const parts = record.sessionId.split('-');
+      if (parts.length !== 4) {
+        console.error("Invalid sessionId format:", record.sessionId);
+        alert("Invalid session data. Please try again.");
+        return;
+      }
+      const yearMonth = `${parts[0]}-${parts[1]}`; // e.g., "2025-05"
+      const day = parts[2]; // e.g., "17"
+      const index = parseInt(parts[3]); // e.g., 0
+      const userId = record.empId;
+
+      const userAttendanceRef = doc(db, "users_01", userId, "attendance", yearMonth);
+      const userAttendanceSnap = await getDoc(userAttendanceRef);
+
+      let days = {};
+      let dayData = { sessions: [], isClockedIn: false };
+
+      if (userAttendanceSnap.exists()) {
+        const userData = userAttendanceSnap.data();
+        days = { ...userData.days } || {};
+        dayData = days[day] ? { ...days[day] } : dayData;
+      }
+
+      const sessions = [...(dayData.sessions || [])];
+      if (index >= sessions.length) {
+        console.error("Session index out of bounds:", index);
+        alert("Session data not found. Please try again.");
+        return;
+      }
 
       const [checkInHour, checkInMinute] = editData.checkInStr.split(':').map(Number);
       const [checkOutHour, checkOutMinute] = editData.checkOutStr.split(':').map(Number);
 
-      const baseDate = record.originalCheckIn || new Date();
+      const newCheckIn = new Date(record.originalCheckIn || date);
+      newCheckIn.setHours(checkInHour, checkInMinute, 0, 0);
 
-      const newCheckIn = new Date(baseDate);
-      newCheckIn.setHours(checkInHour);
-      newCheckIn.setMinutes(checkInMinute);
-
-      const newCheckOut = new Date(baseDate);
-      newCheckOut.setHours(checkOutHour);
-      newCheckOut.setMinutes(checkOutMinute);
+      const newCheckOut = new Date(record.originalCheckOut || newCheckIn);
+      newCheckOut.setHours(checkOutHour, checkOutMinute, 0, 0);
 
       if (isBefore(newCheckOut, newCheckIn)) {
-        alert("End time cannot be before start time!");
+        alert("Check-out time must be after check-in time!");
         return;
       }
 
-      const updates = {
+      sessions[index] = {
+        ...sessions[index],
         checkIn: newCheckIn,
         checkOut: newCheckOut,
-        status: "closed",
         editedBy: "Manager",
-        editedAt: serverTimestamp()
+        editedAt: new Date(), // Use Date instead of serverTimestamp() to avoid array issues
+        checkInEdited: record.checkInStr !== editData.checkInStr,
+        checkOutEdited: record.checkOutStr !== editData.checkOutStr
       };
 
-      // Track which fields were edited
-      if (record.checkInStr !== editData.checkInStr) {
-        updates.checkInEdited = true;
-      }
-      if (record.checkOutStr !== editData.checkOutStr) {
-        updates.checkOutEdited = true;
-      }
+      dayData.sessions = sessions;
+      dayData.isClockedIn = sessions.some(s => s.checkIn && !s.checkOut);
+      days[day] = {
+        ...dayData,
+        metadata: {
+          created: days[day]?.metadata?.created || new Date(), // Avoid serverTimestamp() in arrays
+          lastUpdated: new Date() // Use Date to ensure consistency
+        }
+      };
 
-      await updateDoc(sessionRef, updates);
-
+      // Use setDoc with merge to match AdminAttendance and avoid array issues
+      await setDoc(userAttendanceRef, { days }, { merge: true });
       setEditing(null);
+      setEditData({});
       fetchAttendanceData(date);
     } catch (error) {
       console.error("Error updating attendance:", error);
+      alert("Failed to update attendance: " + error.message);
     }
   };
-
-  const startTime = new Date(date);
-  startTime.setHours(1, 0, 0, 0);
-  const endTime = addDays(startTime, 1);
-
-  const formattedDate = format(date, 'dd-MMM-yyyy');
-  const startTimeStr = format(startTime, 'dd MMM yyyy hh:mm a');
-  const endTimeStr = format(endTime, 'dd MMM yyyy hh:mm a');
-
-  const filteredData = attendanceData.filter(record => {
-    const recordDate = new Date(record.checkInTime);
-    return recordDate >= startTime && recordDate < endTime;
-  });
 
   useEffect(() => {
     fetchAttendanceData(date);
   }, [date]);
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Manager Attendance</h1>
-        <div style={styles.dateInputContainer}>
-          <input
-            type="date"
-            value={format(date, 'yyyy-MM-dd')}
-            onChange={(e) => setDate(new Date(e.target.value))}
-            style={styles.dateInput}
-          />
-        </div>
+    <div className="max-w-4xl mx-auto my-5 p-5 border border-gray-200 rounded bg-white">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold text-gray-800">Manager Attendance</h1>
+        <input
+          type="date"
+          value={format(date, 'yyyy-MM-dd')}
+          onChange={(e) => setDate(new Date(e.target.value))}
+          className="p-2 border border-gray-300 rounded text-sm"
+        />
       </div>
 
-      <div style={styles.dateRow}>
-        <div style={styles.dateDisplay}>Date: {formattedDate}</div>
-      </div>
-
-      <div style={styles.timeRange}>
-        Showing shifts between {startTimeStr} and {endTimeStr}
+      <div className="mb-3 text-sm text-gray-700">
+        Date: {format(date, 'dd-MMM-yyyy')}
       </div>
 
       {loading ? (
-        <div style={styles.loading}>Loading attendance data...</div>
+        <div className="text-center py-4 text-gray-500">Loading attendance data...</div>
       ) : (
-        <table style={styles.attendanceTable}>
+        <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th style={styles.tableHeader}>Employee</th>
-              <th style={styles.tableHeader}>Check-In</th>
-              <th style={styles.tableHeader}>Check-Out</th>
-              <th style={styles.tableHeader}>Hours Worked</th>
-              <th style={styles.tableHeader}>Actions</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Employee</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Check-In</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Check-Out</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Hours Worked</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredData.length > 0 ? (
-              filteredData.map((record, index) => (
-                <tr key={index} style={styles.tableRow}>
-                  <td style={styles.tableCell}>{record.empName}</td>
-                  <td style={styles.tableCell}>
+            {attendanceData.length > 0 ? (
+              attendanceData.map((record, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="p-2 text-sm border-b">{record.empName}</td>
+                  <td className="p-2 text-sm border-b">
                     {editing === index ? (
                       <input
                         type="time"
                         value={editData.checkInStr}
-                        onChange={(e) => setEditData({...editData, checkInStr: e.target.value})}
-                        style={styles.timeInput}
+                        onChange={(e) => setEditData({ ...editData, checkInStr: e.target.value })}
+                        className="p-1 border border-gray-300 rounded"
                       />
                     ) : (
-                      <div style={styles.timeCell}>
-                        <div>{record.checkInStr || "-"}</div>
-                        {record.checkInEdited && <div style={styles.editedLabel}>Edited</div>}
+                      <div className="flex flex-col gap-1">
+                        <span>{record.checkInStr || "--:--"}</span>
+                        {record.checkInEdited && <span className="text-xs text-gray-600 italic">Edited</span>}
                       </div>
                     )}
                   </td>
-                  <td style={styles.tableCell}>
+                  <td className="p-2 text-sm border-b">
                     {editing === index ? (
                       <input
                         type="time"
                         value={editData.checkOutStr}
-                        onChange={(e) => setEditData({...editData, checkOutStr: e.target.value})}
-                        style={styles.timeInput}
+                        onChange={(e) => setEditData({ ...editData, checkOutStr: e.target.value })}
+                        className="p-1 border border-gray-300 rounded"
                       />
                     ) : (
-                      <div style={styles.timeCell}>
-                        <div>{record.checkOutStr || "-"}</div>
-                        {record.checkOutEdited && <div style={styles.editedLabel}>Edited</div>}
+                      <div className="flex flex-col gap-1">
+                        <span>{record.checkOutStr || "--:--"}</span>
+                        {record.checkOutEdited && <span className="text-xs text-gray-600 italic">Edited</span>}
                       </div>
                     )}
                   </td>
-                  <td style={styles.tableCell}>{record.worked}</td>
-                  <td style={styles.tableCell}>
-                    {editing === index ? (
-                      <>
-                        <button onClick={() => saveEdit(record)} style={styles.saveButton}>Save</button>
-                        <button onClick={() => setEditing(null)} style={styles.cancelButton}>Cancel</button>
-                      </>
-                    ) : (
-                      record.isToday && (
-                        <button 
+                  <td className="p-2 text-sm border-b">{record.worked}</td>
+                  <td className="p-2 text-sm border-b">
+                    {record.isToday ? (
+                      editing === index ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveEdit(record)}
+                            className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditing(null)}
+                            className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
                           onClick={() => {
-                            setEditing(index); 
+                            setEditing(index);
                             setEditData({
                               checkInStr: record.checkInStr || '',
                               checkOutStr: record.checkOutStr || ''
                             });
-                          }} 
-                          style={styles.editButton}
+                          }}
+                          className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
                         >
                           Edit
                         </button>
                       )
+                    ) : (
+                      <span className="text-gray-500 text-xs">Read-only</span>
                     )}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5" style={styles.noRecords}>
+                <td colSpan="5" className="py-4 text-center text-gray-500 text-sm">
                   No attendance records found for this date
                 </td>
               </tr>
@@ -661,126 +285,6 @@ const ManagerAttendance = () => {
       )}
     </div>
   );
-};
-
-const styles = {
-  container: {
-    fontFamily: 'Arial, sans-serif',
-    maxWidth: '900px',
-    margin: '20px auto',
-    padding: '20px',
-    border: '1px solid #e0e0e0',
-    borderRadius: '4px',
-    backgroundColor: '#fff',
-    position: 'relative',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '15px',
-  },
-  title: {
-    fontSize: '22px',
-    fontWeight: 'bold',
-    margin: 0,
-    color: '#333',
-  },
-  dateInputContainer: {
-    position: 'relative',
-  },
-  dateInput: {
-    padding: '8px 12px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '14px',
-  },
-  dateRow: {
-    marginBottom: '10px',
-  },
-  dateDisplay: {
-    fontSize: '14px',
-    color: '#333',
-  },
-  timeRange: {
-    fontSize: '13px',
-    color: '#666',
-    marginBottom: '20px',
-  },
-  attendanceTable: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '15px',
-  },
-  tableHeader: {
-    backgroundColor: '#1a73e8',
-    textAlign: 'left',
-    padding: '10px',
-    borderBottom: '1px solid #ddd',
-    fontSize: '14px',
-  },
-  tableCell: {
-    padding: '10px',
-    borderBottom: '1px solid #eee',
-    fontSize: '13px',
-    verticalAlign: 'top',
-  },
-  timeCell: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  editedLabel: {
-    fontSize: '10px',
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  timeInput: {
-    padding: '5px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-  },
-  tableRow: {},
-  editButton: {
-    backgroundColor: '#1a73e8',
-    color: '#fff',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    marginRight: '5px',
-  },
-  saveButton: {
-    backgroundColor: '#34a853',
-    color: '#fff',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    marginRight: '5px',
-  },
-  cancelButton: {
-    backgroundColor: '#ea4335',
-    color: '#fff',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-  },
-  noRecords: {
-    padding: '20px',
-    textAlign: 'center',
-    color: '#999',
-    fontSize: '14px',
-  },
-  loading: {
-    padding: '20px',
-    textAlign: 'center',
-    color: '#666',
-  },
 };
 
 export default ManagerAttendance;

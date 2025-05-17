@@ -28,7 +28,7 @@ const Sidebar = () => {
         roleConfig.links = [
           { name: "Dashboard", path: "/admin/dashboard" },
           { name: "User Management", path: "/admin/users" },
-          { name: "Attendance Records", path: "/admin/AdminAttendance" },
+          { name: "Attendance Records", path: "/admin/AdminAttendance" }
         ];
         roleConfig.panelTitle = "Administration Panel";
         roleConfig.inventoryBasePath = "/admin";
@@ -107,7 +107,7 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="scrollable-section">
         {/* Navigation Section */}
         <nav className="main-navigation">
@@ -177,7 +177,7 @@ const Sidebar = () => {
         {/* Cash Management Section */}
         {(isAdmin || isManager || isTeamLeader) && (
           <div className="management-section">
-            <button 
+            <button
               className={`management-toggle ${cashManagementExpanded ? 'expanded' : ''}`}
               onClick={() => setCashManagementExpanded(!cashManagementExpanded)}
             >
@@ -186,7 +186,7 @@ const Sidebar = () => {
                 {cashManagementExpanded ? '▼' : '▶'}
               </span>
             </button>
-            
+
             <div className={`management-submenu ${cashManagementExpanded ? 'expanded' : ''}`}>
               <NavLink
                 to={`${inventoryBasePath}/cashmanagement/opencashier`}
@@ -227,7 +227,7 @@ const Sidebar = () => {
         {/* Items Management Section */}
         {isAdmin && (
           <div className="management-section">
-            <button 
+            <button
               className={`management-toggle ${tableManagementExpanded ? 'expanded' : ''}`}
               onClick={() => setTableManagementExpanded(!tableManagementExpanded)}
             >
@@ -236,7 +236,7 @@ const Sidebar = () => {
                 {tableManagementExpanded ? '▼' : '▶'}
               </span>
             </button>
-            
+
             <div className={`management-submenu ${tableManagementExpanded ? 'expanded' : ''}`}>
               <NavLink
                 to={`${inventoryBasePath}/itemsmanagement/Categories`}
@@ -269,7 +269,7 @@ const Sidebar = () => {
         {/* Customer Tracking Section */}
         {isAdmin && (
           <div className="management-section">
-            <button 
+            <button
               className={`management-toggle ${customerTrackingExpanded ? 'expanded' : ''}`}
               onClick={() => setCustomerTrackingExpanded(!customerTrackingExpanded)}
             >
@@ -278,7 +278,7 @@ const Sidebar = () => {
                 {customerTrackingExpanded ? '▼' : '▶'}
               </span>
             </button>
-            
+
             <div className={`management-submenu ${customerTrackingExpanded ? 'expanded' : ''}`}>
               <NavLink
                 to={`${inventoryBasePath}/customertracking/customerreport`}
