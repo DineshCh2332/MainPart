@@ -23,6 +23,8 @@ const AdminAttendance = () => {
   const [shiftStartDate, setShiftStartDate] = useState(new Date());
   const [shiftEndDate, setShiftEndDate] = useState(new Date());
 
+  
+
   // Calculate editable date range (past Monday to next Monday)
   const currentDate = new Date();
   const lastMonday = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -34,7 +36,10 @@ const AdminAttendance = () => {
     });
   };
 
-  const isEditableDate = isDateEditable(date);
+  const isEditableDate = isWithinInterval(date,{
+    start:lastMonday,
+    end:nextMonday,
+  });
 
   // Fetch employees
   const fetchEmployees = async () => {
@@ -323,8 +328,7 @@ const AdminAttendance = () => {
               value={format(date, 'yyyy-MM-dd')}
               onChange={(e) => setDate(new Date(e.target.value))}
               className="p-2 border rounded-md text-sm bg-white shadow-sm"
-              max={format(nextMonday, 'yyyy-MM-dd')}
-              min={format(lastMonday, 'yyyy-MM-dd')}
+              
             />
             {isEditableDate && (
               <button
