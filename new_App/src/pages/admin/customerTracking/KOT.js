@@ -92,7 +92,7 @@ const KOT = () => {
                     </div>
                   ))}
                 </td>
-                <td>₹{
+                <td>£{
                   (typeof kot.amount === 'number' ? kot.amount : 
                   typeof kot.amount === 'string' ? parseFloat(kot.amount) : 0
                   ).toFixed(2)
