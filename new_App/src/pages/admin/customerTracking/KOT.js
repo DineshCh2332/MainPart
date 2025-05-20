@@ -5,27 +5,27 @@ import {
   onSnapshot, 
   query, 
   orderBy,
-  serverTimestamp,
-  addDoc
 } from "firebase/firestore";
 
 import "../../../css/KOT.css";
 
 const KOT = () => {
   const [kotData, setKotData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
 
-  // Real-time data fetch
   useEffect(() => {
     const q = query(collection(db, "KOT"), orderBy("date", "desc"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const kots = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        const dateObj = data.date?.toDate();
         kots.push({
           id: doc.id,
           ...data,
-          // Convert Firestore timestamp to readable date
-          date: data.date?.toDate().toLocaleString() || "No date"
+          dateObj,
+          date: dateObj?.toLocaleString() || "No date"
         });
       });
       setKotData(kots);
@@ -34,11 +34,41 @@ const KOT = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (selectedDate) {
+      const filtered = kotData.filter(kot => {
+        const kotDate = kot.dateObj?.toISOString().split("T")[0];
+        return kotDate === selectedDate;
+      });
+      setFilteredData(filtered);
+    } else {
+      setFilteredData(kotData);
+    }
+  }, [kotData, selectedDate]);
 
   return (
     <div className="kot-container">
       <h2>Kitchen Order Tickets</h2>
-      
+
+      <div style={{ marginBottom: "1rem" }}>
+        <label>
+          Filter by Date:{" "}
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+          {selectedDate && (
+            <button onClick={() => setSelectedDate("")}
+            className="ml-4 px-3 py-1.5 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors duration-200 font-medium"
+            >
+              Clear Filter
+              
+            </button>
+          )}
+        </label>
+      </div>
+
       <table className="kot-table">
         <thead>
           <tr>
@@ -50,8 +80,8 @@ const KOT = () => {
           </tr>
         </thead>
         <tbody>
-          {kotData.length > 0 ? (
-            kotData.map((kot) => (
+          {filteredData.length > 0 ? (
+            filteredData.map((kot) => (
               <tr key={kot.id}>
                 <td>{kot.id}</td>
                 <td>{kot.customerID}</td>
@@ -63,17 +93,17 @@ const KOT = () => {
                   ))}
                 </td>
                 <td>₹{
-  (typeof kot.amount === 'number' ? kot.amount : 
-   typeof kot.amount === 'string' ? parseFloat(kot.amount) : 0
-  ).toFixed(2)
-}</td>
+                  (typeof kot.amount === 'number' ? kot.amount : 
+                  typeof kot.amount === 'string' ? parseFloat(kot.amount) : 0
+                  ).toFixed(2)
+                }</td>
                 <td>{kot.date}</td>
               </tr>
             ))
           ) : (
             <tr>
               <td colSpan="5" style={{ textAlign: 'center' }}>
-                No KOTs found. Click "Add Test KOT" to create sample data.
+                No KOTs found for selected date.
               </td>
             </tr>
           )}
