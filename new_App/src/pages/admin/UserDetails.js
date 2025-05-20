@@ -27,8 +27,8 @@ const UserDetails = () => {
     bank_details: {
       account_number: '',
       bank_name: '',
-      branch_name: '',
-      ifsc_code: ''
+      branch_name: ''
+      
     },
     customerID: '',
     employeeID: ''
@@ -115,7 +115,7 @@ const UserDetails = () => {
       }
     });
 
-    const bankFields = ['account_number', 'bank_name', 'branch_name', 'ifsc_code'];
+    const bankFields = ['account_number', 'bank_name', 'branch_name'];
     bankFields.forEach(field => {
       const originalValue = originalData.bank_details?.[field] || '';
       const newValue = newData.bank_details?.[field] || '';
@@ -185,6 +185,47 @@ const UserDetails = () => {
         setError('Employee ID is required');
         return;
       }
+      // New Validation Logic Starts Here
+
+  // 1) Document number validation (5 digits)
+  if (formData.document_number && !/^\d{5}$/.test(formData.document_number)) {
+    setError('Document Number must be exactly 5 digits.');
+    return;
+  }
+
+  // 2) Bank Name validation (alphabets and spaces only)
+  if (formData.bank_details.bank_name && !/^[a-zA-Z\s]+$/.test(formData.bank_details.bank_name)) {
+    setError('Bank Name can only contain alphabets and spaces.');
+    return;
+  }
+
+  // 3) Branch Name validation (alphabets and spaces only)
+  if (formData.bank_details.branch_name && !/^[a-zA-Z\s]+$/.test(formData.bank_details.branch_name)) {
+    setError('Branch Name can only contain alphabets and spaces.');
+    return;
+  }
+
+  // 4) DOB validation (year must be 2001 or earlier)
+  if (formData.dob) {
+    const dobYear = new Date(formData.dob).getFullYear();
+    if (dobYear > 2001) {
+      setError('Date of Birth year must be 2001 or earlier.');
+      return;
+    }
+  }
+
+  // 5) Share Code format validation (__/__/__)
+  if (formData.shareCode && !/^\d{2}\/\d{2}\/\d{2}$/.test(formData.shareCode)) {
+    setError('Share Code must be in the format __/__/__ (e.g., 12/34/56).');
+    return;
+  }
+   
+    if (formData.bank_details.account_number && !/^\d{8}$/.test(formData.bank_details.account_number)) {
+    setError('Account Number must be exactly 8 digits.');
+    return;
+  }
+
+  // New Validation Logic Ends Here
 
       // Check if phone number has changed
       if (formData.phone !== user.phone) {
@@ -535,16 +576,7 @@ const UserDetails = () => {
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">IFSC Code</label>
-            <div className="mt-1">
-              <ChangeAwareDisplay
-                field="bank_details.ifsc_code"
-                value={user.bank_details?.ifsc_code}
-                changes={user?.changeField || []}
-              />
-            </div>
-          </div>
+          
         </div>
       </div>
 
@@ -682,17 +714,7 @@ const UserDetails = () => {
                         className="w-full p-2 border rounded"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">IFSC Code</label>
-                      <input
-                        value={formData.bank_details.ifsc_code}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          bank_details: { ...formData.bank_details, ifsc_code: e.target.value }
-                        })}
-                        className="w-full p-2 border rounded"
-                      />
-                    </div>
+                    
                   </div>
                   {error && <p className="text-red-500 text-sm">{error}</p>}
                   {successMessage && <p className="text-green-500 text-sm">{successMessage}</p>}
