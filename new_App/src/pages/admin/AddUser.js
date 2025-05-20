@@ -146,13 +146,14 @@ const AddUser = () => {
     try {
       const userId = await generateUniqueUserId();
       const userData = {
-        ...formData,
-        userId: userId,
-        phone: docId,
-        member_since: new Date().toISOString(),
-        created_at: Timestamp.now(),
-        active: formData.role !== "customer" ? true : undefined
-      };
+  ...formData,
+  userId: userId,
+  phone: docId,
+  member_since: new Date().toISOString(),
+  created_at: Timestamp.now(),
+  ...(formData.role !== "customer" && { active: true })
+};
+
 
       if (formData.role === "customer") {
         await setDoc(doc(db, "customers", docId), userData);
