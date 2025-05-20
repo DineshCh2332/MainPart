@@ -60,8 +60,17 @@ const AddUser = () => {
   const validateForm = () => {
     if (!formData.name) return showError("Full Name is required."), false;
     if (!formData.phone || !/^\d{10}$/.test(formData.phone)) return showError("Phone number must be exactly 10 digits."), false;
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return showError("Please enter a valid email."), false;
+    if (formData.email && !/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(formData.email)) return showError("Please enter a valid email."), false;
     if (!formData.dob) return showError("Date of Birth is required."), false;
+    const birthYear = new Date(formData.dob).getFullYear();
+    if (birthYear > 2001) return showError("Date of Birth should be 2001 or earlier."), false;
+    if (!/^[A-Za-z\s]+$/.test(formData.bank_details.bank_name)) return showError("Bank name should only contain alphabets."), false;
+    if (!/^\d{8}$/.test(formData.bank_details.account_number)) return showError("Bank account number must be exactly 8 digits."), false;
+    if (!/^\d{5}$/.test(formData.document_number)) return showError("Document number must be exactly 5 digits."), false;
+    if (formData.shareCode && !/^\d{2}\/\d{2}\/\d{2}$/.test(formData.shareCode)) return showError("Share code format must be __/__/__ (e.g., 12/45/67)."), false;
+
+
+ 
 
     if (formData.role === "customer") {
       if (!formData.customerID || !/^[0-9]{9}$/.test(formData.customerID)) 
@@ -163,13 +172,23 @@ const AddUser = () => {
   return (
     <div className="form-container">
       <button
-        style={{ width: "150px" }}
-        className="BackButton"
-        onClick={() => navigate("/admin/users")}
-      >
-        Back to Users
-      </button>
-      <h2>Add User</h2>
+  style={{
+    width: "150px",
+    backgroundColor: "green",
+    color: "white",
+    border: "2px solid green",
+    borderRadius: "5px",
+    padding: "10px",
+    cursor: "pointer"
+  }}
+  className="BackButton"
+  onClick={() => navigate("/admin/users")}
+>
+  Back to Users
+</button>
+
+
+      <h2 style={{ fontSize: "32px" }}>Add User</h2>
       {error && <p className="error">{error}</p>}
       <form onSubmit={handleSubmit}>
         <div className="input-group">
@@ -336,16 +355,7 @@ const AddUser = () => {
           />
         </div>
 
-        <div className="input-group">
-          <label>IFSC Code</label>
-          <input
-            name="bank_ifsc_code"
-            value={formData.bank_details.ifsc_code}
-            onChange={handleChange}
-            placeholder="IFSC Code"
-            required
-          />
-        </div>
+        
 
         <div className="input-group">
           <label>Document Number</label>
