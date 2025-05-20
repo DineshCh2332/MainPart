@@ -271,6 +271,11 @@ const AdminAttendance = () => {
         return;
       }
 
+       if (checkInDate > new Date() || checkOutDate > new Date()) {
+  alert("Cannot add attendance!");
+  return;
+}
+
       const userAttendanceRef = doc(db, "users_01", userId, "attendance", yearMonth);
       const userAttendanceSnap = await getDoc(userAttendanceRef);
 
@@ -333,14 +338,18 @@ const AdminAttendance = () => {
             {isEditableDate && (
               <button
                 onClick={() => setAddingNew(!addingNew)}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
-                  addingNew
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                }`}
-              >
-                {addingNew ? 'Cancel' : 'Add Attendance'}
-              </button>
+                disabled={date > new Date()}
+                 className={`px-4 py-2 rounded-md text-sm font-medium transition
+    ${
+      date > new Date()
+        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+        : addingNew
+        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+    }`}
+>
+  {addingNew ? 'Cancel' : 'Add Attendance'}
+</button>
             )}
           </div>
         </div>
