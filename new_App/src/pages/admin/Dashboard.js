@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
@@ -13,6 +13,7 @@ const Dashboard = () => {
     Customer: 0,
   });
   const location = useLocation();
+  const navigate = useNavigate();
 
   const fetchUsers = async () => {
     try {
@@ -63,34 +64,57 @@ const Dashboard = () => {
     fetchUsers();
   }, []);
 
+  // Helper to navigate with filter
+  const handleNavigateWithRole = (role) => {
+    navigate("/admin/users", { state: { filterRole: role } });
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">Admin Dashboard</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        <button
+          className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
+          onClick={() => navigate("/admin/users")}
+        >
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Total Users</h2>
           <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        </button>
+        <button
+          className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
+          onClick={() => handleNavigateWithRole("admin")}
+        >
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Admins</h2>
           <p className="text-2xl font-bold text-gray-900">{roleCounts.Admin}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        </button>
+        <button
+          className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
+          onClick={() => handleNavigateWithRole("manager")}
+        >
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Managers</h2>
           <p className="text-2xl font-bold text-gray-900">{roleCounts.Manager}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        </button>
+        <button
+          className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
+          onClick={() => handleNavigateWithRole("teamleader")}
+        >
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Team Leaders</h2>
           <p className="text-2xl font-bold text-gray-900">{roleCounts.Teamleader}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        </button>
+        <button
+          className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
+          onClick={() => handleNavigateWithRole("employee")}
+        >
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Employees</h2>
           <p className="text-2xl font-bold text-gray-900">{roleCounts.Employee}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        </button>
+        <button
+          className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
+          onClick={() => handleNavigateWithRole("customer")}
+        >
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Customers</h2>
           <p className="text-2xl font-bold text-gray-900">{roleCounts.Customer}</p>
-        </div>
+        </button>
       </div>
       <div className="text-center">
         <Link
