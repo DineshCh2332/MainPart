@@ -396,9 +396,17 @@ const UserDetails = () => {
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">User Details</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">User Details</h1>
+        </div>
+         <button
+            onClick={() => navigate(-1)}
+            className="ml-auto mr-2 bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
+          >
+            Go Back
+          </button>
         <button
-          onClick={handleEdit} // Correct
+          onClick={handleEdit}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           Edit User

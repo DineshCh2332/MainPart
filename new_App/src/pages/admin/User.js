@@ -17,6 +17,15 @@ const Users = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Set roleFilter from navigation state on mount
+  React.useEffect(() => {
+    if (location.state?.filterRole) {
+      setRoleFilter(location.state.filterRole);
+      // Clear the filterRole from state to avoid reapplying on re-renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   // Role counts state
   const [roleCounts, setRoleCounts] = useState({
     Admin: 0,
