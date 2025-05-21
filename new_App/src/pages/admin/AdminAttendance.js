@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addWeeks, startOfWeek, isWithinInterval, isBefore } from 'date-fns';
 import { 
@@ -12,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import debounce from 'lodash/debounce';
+import Select from 'react-select';
 
 const AdminAttendance = () => {
   const [date, setDate] = useState(new Date());
@@ -20,11 +20,11 @@ const AdminAttendance = () => {
   const [editing, setEditing] = useState(null);
   const [editData, setEditData] = useState({});
   const [addingNew, setAddingNew] = useState(false);
-  const [newData, setNewData] = useState({ empId: "", checkInStr: "", checkOutStr: "" });
-  const [employees, setEmployees] = useState([]);
+  const [newData, setNewData] = useState({ userId: "", checkInStr: "", checkOutStr: "" });
+  const [users, setUsers] = useState([]);
   const [shiftStartDate, setShiftStartDate] = useState(new Date());
   const [shiftEndDate, setShiftEndDate] = useState(new Date());
-  const [errors, setErrors] = useState({ empId: "", checkInStr: "", checkOutStr: "" });
+  const [errors, setErrors] = useState({ userId: "", checkInStr: "", checkOutStr: "" });
 
   // Calculate editable date range
   const currentDate = new Date();
@@ -35,19 +35,27 @@ const AdminAttendance = () => {
   };
   const isEditableDate = isDateEditable(date);
 
-  // Fetch employees
-  const fetchEmployees = useCallback(async () => {
+  // Fetch all users from users_01
+  const fetchUsers = useCallback(async () => {
     try {
-      const empCollection = collection(db, "users_01");
-      const empSnapshot = await getDocs(empCollection);
-      const empList = empSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(emp => emp.active && ['employee', 'manager', 'teamleader'].includes(emp.role));
-      setEmployees(empList);
+      const userCollection = collection(db, "users_01");
+      const userSnapshot = await getDocs(userCollection);
+      const userList = userSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      console.log("Fetched users:", userList);
+      setUsers(userList);
     } catch (error) {
-      console.error("Error fetching employees:", error);
+      console.error("Error fetching users:", error);
     }
   }, []);
+
+  // User options for searchable select (only names)
+  const userOptions = users.map(user => ({
+    value: user.id,
+    label: user.name
+  }));
 
   // Calculate worked hours
   const calculateWorkedHours = useMemo(() => {
@@ -69,20 +77,14 @@ const AdminAttendance = () => {
       const allUsers = await getDocs(collection(db, "users_01"));
       const logs = [];
 
-      // Batch fetch attendance documents
-      const attendancePromises = allUsers.docs
-        .filter(userDoc => {
-          const userData = userDoc.data();
-          return userData.active && ['employee', 'manager', 'teamleader'].includes(userData.role);
-        })
-        .map(userDoc => {
-          const userId = userDoc.id;
-          return getDoc(doc(db, "users_01", userId, "attendance", yearMonth)).then(attendanceSnap => ({
-            userId,
-            userData: userDoc.data(),
-            attendanceSnap
-          }));
-        });
+      const attendancePromises = allUsers.docs.map(userDoc => {
+        const userId = userDoc.id;
+        return getDoc(doc(db, "users_01", userId, "attendance", yearMonth)).then(attendanceSnap => ({
+          userId,
+          userData: userDoc.data(),
+          attendanceSnap
+        }));
+      });
 
       const results = await Promise.all(attendancePromises);
 
@@ -99,11 +101,11 @@ const AdminAttendance = () => {
           const checkOut = session.checkOut?.toDate();
 
           logs.push({
-            empName: userData.name,
+            userName: userData.name,
             checkInStr: checkIn ? format(checkIn, 'HH:mm') : '',
             checkOutStr: checkOut ? format(checkOut, 'HH:mm') : '',
             worked: calculateWorkedHours(checkIn, checkOut),
-            empId: userId,
+            userId: userId,
             sessionId: `${yearMonth}-${day}-${index}`,
             checkInTime: checkIn?.getTime() || 0,
             originalCheckIn: checkIn,
@@ -122,7 +124,6 @@ const AdminAttendance = () => {
     }
   }, [calculateWorkedHours]);
 
-  // Debounced date change handler
   const debouncedFetchAttendance = useMemo(() => 
     debounce((newDate) => fetchAttendanceData(newDate), 300), 
     [fetchAttendanceData]
@@ -139,7 +140,7 @@ const AdminAttendance = () => {
       const yearMonth = `${parts[0]}-${parts[1]}`;
       const day = parts[2];
       const index = parseInt(parts[3]);
-      const userId = record.empId;
+      const userId = record.userId;
 
       const userAttendanceRef = doc(db, "users_01", userId, "attendance", yearMonth);
       const userAttendanceSnap = await getDoc(userAttendanceRef);
@@ -201,7 +202,7 @@ const AdminAttendance = () => {
 
   // Delete shift
   const deleteShift = async (record) => {
-    if (!window.confirm(`Delete shift for ${record.empName}?`)) return;
+    if (!window.confirm(`Delete shift for ${record.userName}?`)) return;
 
     try {
       const parts = record.sessionId.split('-');
@@ -212,7 +213,7 @@ const AdminAttendance = () => {
       const yearMonth = `${parts[0]}-${parts[1]}`;
       const day = parts[2];
       const index = parseInt(parts[3]);
-      const userId = record.empId;
+      const userId = record.userId;
 
       const userAttendanceRef = doc(db, "users_01", userId, "attendance", yearMonth);
       const userAttendanceSnap = await getDoc(userAttendanceRef);
@@ -247,11 +248,11 @@ const AdminAttendance = () => {
 
   // Validate and add new attendance
   const validateNewAttendance = () => {
-    const newErrors = { empId: "", checkInStr: "", checkOutStr: "" };
+    const newErrors = { userId: "", checkInStr: "", checkOutStr: "" };
     let isValid = true;
 
-    if (!newData.empId) {
-      newErrors.empId = "Employee selection is required";
+    if (!newData.userId) {
+      newErrors.userId = "User selection is required";
       isValid = false;
     }
     if (!newData.checkInStr) {
@@ -271,7 +272,7 @@ const AdminAttendance = () => {
     if (!validateNewAttendance()) return;
 
     try {
-      const userId = newData.empId;
+      const userId = newData.userId;
       const yearMonth = format(shiftStartDate, 'yyyy-MM');
       const day = format(shiftStartDate, 'd');
 
@@ -323,8 +324,8 @@ const AdminAttendance = () => {
 
       await setDoc(userAttendanceRef, { days: daysData }, { merge: true });
       setAddingNew(false);
-      setNewData({ empId: "", checkInStr: "", checkOutStr: "" });
-      setErrors({ empId: "", checkInStr: "", checkOutStr: "" });
+      setNewData({ userId: "", checkInStr: "", checkOutStr: "" });
+      setErrors({ userId: "", checkInStr: "", checkOutStr: "" });
       fetchAttendanceData(date);
     } catch (error) {
       console.error("Error adding attendance:", error);
@@ -333,10 +334,10 @@ const AdminAttendance = () => {
 
   // Fetch data on mount and date change
   useEffect(() => {
-    fetchEmployees();
+    fetchUsers();
     debouncedFetchAttendance(date);
     return () => debouncedFetchAttendance.cancel();
-  }, [date, fetchEmployees, debouncedFetchAttendance]);
+  }, [date, fetchUsers, debouncedFetchAttendance]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -386,7 +387,7 @@ const AdminAttendance = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee
+                    User
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Check In
@@ -408,7 +409,7 @@ const AdminAttendance = () => {
                 {attendanceData.map((record, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {record.empName}
+                      {record.userName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {editing === index ? (
@@ -513,24 +514,30 @@ const AdminAttendance = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Employee
+                  User
                 </label>
-                <select
-                  value={newData.empId}
-                  onChange={(e) => setNewData({ ...newData, empId: e.target.value })}
-                  className={`block w-full rounded-md border shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 ${
-                    errors.empId ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Select Employee</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.empId && (
-                  <p className="text-red-500 text-xs mt-1">{errors.empId}</p>
+                <Select
+                  options={userOptions}
+                  value={userOptions.find(option => option.value === newData.userId) || null}
+                  onChange={(selectedOption) => 
+                    setNewData({ ...newData, userId: selectedOption ? selectedOption.value : '' })
+                  }
+                  placeholder="Select User"
+                  isSearchable
+                  className="text-sm"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      borderColor: errors.userId ? 'red' : base.borderColor,
+                      boxShadow: errors.userId ? '0 0 0 1px red' : base.boxShadow,
+                      '&:hover': {
+                        borderColor: errors.userId ? 'red' : base.borderColor
+                      }
+                    })
+                  }}
+                />
+                {errors.userId && (
+                  <p className="text-red-500 text-xs mt-1">{errors.userId}</p>
                 )}
               </div>
 
@@ -599,7 +606,7 @@ const AdminAttendance = () => {
               <button
                 onClick={() => {
                   setAddingNew(false);
-                  setErrors({ empId: "", checkInStr: "", checkOutStr: "" });
+                  setErrors({ userId: "", checkInStr: "", checkOutStr: "" });
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300"
               >
