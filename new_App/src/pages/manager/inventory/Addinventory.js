@@ -97,12 +97,12 @@ const Addinventory = () => {
         return;
       }
 
-      // Calculate totalStockOnHand
-      const boxesNum = Number(boxes);
-      const innersNum = Number(inners);
-      const unitsNum = Number(units);
-      const innerPerBoxNum = Number(innerPerBox);
-      const unitsPerInnerNum = Number(unitsPerInner);
+      // Calculate totalStockOnHand and convert fields to numbers
+      const boxesNum = Number(boxes) || 0;
+      const innersNum = Number(inners) || 0;
+      const unitsNum = Number(units) || 0;
+      const innerPerBoxNum = Number(innerPerBox) || 0;
+      const unitsPerInnerNum = Number(unitsPerInner) || 0;
 
       const totalStockOnHand =
         boxesNum * innerPerBoxNum * unitsPerInnerNum +
@@ -114,9 +114,9 @@ const Addinventory = () => {
       await setDoc(itemDocRef, {
         itemId: normalizedInputId, // e.g., item7
         itemName: normalizedItemName,
-        unitsPerInner: unitsPerInnerNum,
-        innerPerBox: innerPerBoxNum,
-        totalStockOnHand,
+        unitsPerInner: unitsPerInnerNum, // Store as number
+        innerPerBox: innerPerBoxNum,     // Store as number
+        totalStockOnHand: totalStockOnHand, // Store as number
         lastUpdated: serverTimestamp(),
       });
 
@@ -130,6 +130,7 @@ const Addinventory = () => {
         inners: '',
         units: '',
       });
+      setStockOnHand(0);
 
       setTimeout(() => {
         navigate('/admin/inventory/inventoryrecords');

@@ -9,19 +9,19 @@ const InventoryRecords = () => {
   const [editingRowId, setEditingRowId] = useState(null);
   const [editedItem, setEditedItem] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: 'itemId', direction: 'asc' });
+  const [stockPrompt, setStockPrompt] = useState({ boxes: '', inner: '', units: '' });
+  const [showStockPrompt, setShowStockPrompt] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchInventory = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'inventory'));
-        const items = [];
-        querySnapshot.forEach(doc => {
-          const data = doc.data();
-          const itemId = data.itemId || '';
-          items.push({ id: doc.id, itemId, ...data });
-        });
-        // Initial sort by itemId in ascending order
+        const items = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          itemId: doc.data().itemId || '',
+        }));
         items.sort((a, b) => {
           const idA = parseInt(a.itemId.match(/^item0*(\d+)$/)[1]) || 0;
           const idB = parseInt(b.itemId.match(/^item0*(\d+)$/)[1]) || 0;
@@ -32,41 +32,28 @@ const InventoryRecords = () => {
         console.error('Error fetching inventory:', error);
       }
     };
-
     fetchInventory();
   }, []);
 
-  // Handle sorting when a column header is clicked
   const handleSort = (key) => {
     setSortConfig((prevConfig) => {
       const isAsc = prevConfig.key === key && prevConfig.direction === 'asc';
       const direction = isAsc ? 'desc' : 'asc';
-
       const sortedInventory = [...inventory].sort((a, b) => {
         let aValue = a[key] || '';
         let bValue = b[key] || '';
-
-        // Handle itemId specifically (extract numeric part)
         if (key === 'itemId') {
           aValue = parseInt(aValue.match(/^item0*(\d+)$/)[1]) || 0;
           bValue = parseInt(bValue.match(/^item0*(\d+)$/)[1]) || 0;
-        }
-        // Handle numeric fields
-        else if (['unitsPerInner', 'innerPerBox', 'totalStockOnHand'].includes(key)) {
+        } else if (['unitsPerInner', 'innerPerBox', 'totalStockOnHand'].includes(key)) {
           aValue = Number(aValue) || 0;
           bValue = Number(bValue) || 0;
-        }
-        // Handle string fields (itemName)
-        else {
+        } else {
           aValue = String(aValue).toLowerCase();
           bValue = String(bValue).toLowerCase();
         }
-
-        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-        return 0;
+        return direction === 'asc' ? aValue - bValue : bValue - aValue;
       });
-
       setInventory(sortedInventory);
       return { key, direction };
     });
@@ -80,11 +67,38 @@ const InventoryRecords = () => {
 
   const isNumeric = (val) => /^[0-9\b]+$/.test(val) || val === '';
 
+  const handleInputChange = (e, field) => {
+    const value = e.target.value;
+    if (['unitsPerInner', 'innerPerBox', 'totalStockOnHand'].includes(field) && !isNumeric(value)) return;
+    setEditedItem({ ...editedItem, [field]: value });
+  };
+
+  const handleStockPromptChange = (e, field) => {
+    const value = e.target.value;
+    if (!isNumeric(value)) return;
+    setStockPrompt({ ...stockPrompt, [field]: value });
+  };
+
+  const calculateTotalStock = () => {
+    const { boxes, inner, units } = stockPrompt;
+    const unitsPerInner = Number(editedItem.unitsPerInner) || 0;
+    const innerPerBox = Number(editedItem.innerPerBox) || 0;
+    const total = (Number(boxes) || 0) * innerPerBox * unitsPerInner +
+                  (Number(inner) || 0) * unitsPerInner +
+                  (Number(units) || 0);
+    return total;
+  };
+
+  const handleStockPromptSubmit = () => {
+    const totalStock = calculateTotalStock();
+    setEditedItem({ ...editedItem, totalStockOnHand: totalStock.toString() });
+    setShowStockPrompt(false);
+    setStockPrompt({ boxes: '', inner: '', units: '' });
+  };
+
   const handleSave = async (itemId) => {
     try {
       const oldItem = inventory.find(item => item.id === itemId);
-
-      // Validate for duplicate itemId or itemName
       const duplicateItem = inventory.find(item =>
         item.id !== itemId && (
           (editedItem.itemId && item.itemId === editedItem.itemId) ||
@@ -92,15 +106,12 @@ const InventoryRecords = () => {
         )
       );
       if (duplicateItem) {
-        if (duplicateItem.itemId === editedItem.itemId) {
-          alert('An item with this Item ID already exists.');
-        } else {
-          alert('An item with this Item Name already exists.');
-        }
+        alert(duplicateItem.itemId === editedItem.itemId
+          ? 'An item with this Item ID already exists.'
+          : 'An item with this Item Name already exists.');
         return;
       }
 
-      // Build changedFields list
       const changedFields = [];
       Object.entries(editedItem).forEach(([key, newValue]) => {
         const oldValue = oldItem[key] || '';
@@ -109,36 +120,33 @@ const InventoryRecords = () => {
         }
       });
 
-      // Whitelist ONLY these fields for update (exclude 'id')
       const allowedFields = ['itemId', 'itemName', 'unitsPerInner', 'innerPerBox', 'totalStockOnHand'];
-
-      // Build updatedData manually
       const updatedData = {};
-
-      // Copy old values for allowed fields if not edited
       allowedFields.forEach(field => {
         if (editedItem.hasOwnProperty(field)) {
-          updatedData[field] = editedItem[field];
+          updatedData[field] = ['unitsPerInner', 'innerPerBox', 'totalStockOnHand'].includes(field)
+            ? Number(editedItem[field]) || 0
+            : editedItem[field];
         } else if (oldItem.hasOwnProperty(field)) {
-          updatedData[field] = oldItem[field];
+          updatedData[field] = ['unitsPerInner', 'innerPerBox', 'totalStockOnHand'].includes(field)
+            ? Number(oldItem[field]) || 0
+            : oldItem[field];
         }
       });
 
-      // Set lastUpdated as Firestore Timestamp
       updatedData.lastUpdated = Timestamp.fromDate(new Date());
       updatedData.changedFields = changedFields.length > 0 ? changedFields : (oldItem.changedFields || []);
 
-      // Firestore update
       const itemDocRef = doc(db, 'inventory', itemId);
       await updateDoc(itemDocRef, updatedData);
 
-      // Update state (merge manually)
       setInventory(prev =>
         prev.map(item => item.id === itemId ? { ...item, ...updatedData } : item)
       );
 
       setEditingRowId(null);
       setEditedItem({});
+      setShowStockPrompt(false);
       alert('Changes saved successfully!');
     } catch (error) {
       console.error('Error saving item:', error);
@@ -149,7 +157,6 @@ const InventoryRecords = () => {
   const handleDelete = async (itemId) => {
     const confirmDelete = window.confirm('Are you sure you want to delete this record?');
     if (!confirmDelete) return;
-
     try {
       await deleteDoc(doc(db, 'inventory', itemId));
       setInventory(prev => prev.filter(item => item.id !== itemId));
@@ -160,16 +167,6 @@ const InventoryRecords = () => {
     }
   };
 
-  const handleInputChange = (e, field) => {
-    const value = e.target.value;
-    const numericFields = ['unitsPerInner', 'innerPerBox', 'totalStockOnHand'];
-
-    if (numericFields.includes(field) && !isNumeric(value)) return;
-
-    setEditedItem({ ...editedItem, [field]: value });
-  };
-
-  // Helper to render sort arrow
   const renderSortArrow = (key) => {
     if (sortConfig.key === key) {
       return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
@@ -189,22 +186,67 @@ const InventoryRecords = () => {
             Add Inventory
           </button>
         </div>
-
         <h1 className="text-2xl font-semibold text-center flex-1">Inventory Records</h1>
-
         <div className="flex-1 flex justify-end pr-10">
-          <div className="mr-auto">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="border rounded text-sm px-6 py-2 ml-[50px]"
-              style={{ height: '42px', width: '250px' }}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Search..."
+            className="border rounded text-sm px-6 py-2 ml-[50px]"
+            style={{ height: '42px', width: '250px' }}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
+
+      {showStockPrompt && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow-lg">
+            <h2 className="text-lg font-semibold mb-4">Enter Stock Details</h2>
+            <div className="mb-4">
+              <label className="block mb-1">Boxes</label>
+              <input
+                type="text"
+                value={stockPrompt.boxes}
+                onChange={(e) => handleStockPromptChange(e, 'boxes')}
+                className="border rounded px-2 py-1 w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1">Inner</label>
+              <input
+                type="text"
+                value={stockPrompt.inner}
+                onChange={(e) => handleStockPromptChange(e, 'inner')}
+                className="border rounded px-2 py-1 w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1">Units</label>
+              <input
+                type="text"
+                value={stockPrompt.units}
+                onChange={(e) => handleStockPromptChange(e, 'units')}
+                className="border rounded px-2 py-1 w-full"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleStockPromptSubmit}
+                className="bg-blue-600 text-white font-bold px-4 py-2 rounded hover:bg-blue-700 mr-2"
+              >
+                Submit
+              </button>
+              <button
+                onClick={() => setShowStockPrompt(false)}
+                className="bg-red-600 text-white font-bold px-4 py-2 rounded hover:bg-red-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="table-auto border-collapse w-full max-w-5xl mx-auto text-sm shadow rounded">
@@ -283,12 +325,21 @@ const InventoryRecords = () => {
                   </td>
                   <td className="border px-2 py-1">
                     {editingRowId === item.id ? (
-                      <input
-                        type="text"
-                        value={editedItem.totalStockOnHand || ''}
-                        onChange={(e) => handleInputChange(e, 'totalStockOnHand')}
-                        className="border rounded px-2 py-1 w-full"
-                      />
+                      <div className="flex items-center">
+                        <input
+                          type="text"
+                          value={editedItem.totalStockOnHand || ''}
+                          onChange={(e) => handleInputChange(e, 'totalStockOnHand')}
+                          className="border rounded px-2 py-1 w-full"
+                          readOnly
+                        />
+                        <button
+                          onClick={() => setShowStockPrompt(true)}
+                          className="ml-2 bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700"
+                        >
+                          Edit Stock
+                        </button>
+                      </div>
                     ) : (
                       <span>{item.totalStockOnHand || 'N/A'}</span>
                     )}
@@ -312,6 +363,7 @@ const InventoryRecords = () => {
                           onClick={() => {
                             setEditingRowId(null);
                             setEditedItem({});
+                            setShowStockPrompt(false);
                           }}
                           className="bg-red-600 text-white font-bold px-3 py-2 rounded hover:bg-red-700"
                           style={{ height: '42px', width: '100px' }}
