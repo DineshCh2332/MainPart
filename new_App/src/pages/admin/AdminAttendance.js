@@ -36,20 +36,24 @@ const AdminAttendance = () => {
   const isEditableDate = isDateEditable(date);
 
   // Fetch all users from users_01
-  const fetchUsers = useCallback(async () => {
-    try {
-      const userCollection = collection(db, "users_01");
-      const userSnapshot = await getDocs(userCollection);
-      const userList = userSnapshot.docs.map(doc => ({
+const fetchUsers = useCallback(async () => {
+  try {
+    const userCollection = collection(db, "users_01");
+    const userSnapshot = await getDocs(userCollection);
+    const userList = userSnapshot.docs
+      .map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
-      console.log("Fetched users:", userList);
-      setUsers(userList);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    }
-  }, []);
+      }))
+      .filter(user => user.role !== "admin"); // Remove users with role 'admin'
+    
+    console.log("Filtered users (non-admin):", userList);
+    setUsers(userList);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  }
+}, []);
+
 
   // User options for searchable select (only names)
   const userOptions = users.map(user => ({
