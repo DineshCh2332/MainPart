@@ -7,8 +7,7 @@ const WasteLogHistory = () => {
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [expandedLogId, setExpandedLogId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [filterDate, setFilterDate] = useState('');
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -39,6 +38,21 @@ const WasteLogHistory = () => {
 
     fetchLogs();
   }, []);
+
+  // Automatic filtering when filterDate changes
+  useEffect(() => {
+    if (!filterDate) {
+      setFilteredLogs(logs);
+      return;
+    }
+
+    const filtered = logs.filter(log => {
+      const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+      return logDate === filterDate;
+    });
+
+    setFilteredLogs(filtered);
+  }, [filterDate, logs]);
 
   const handleLogExpand = async (logId) => {
     if (expandedLogId === logId) {
@@ -90,34 +104,9 @@ const WasteLogHistory = () => {
     }
   };
 
-  const handleFilter = () => {
-    if (!startDate && !endDate) {
-      setFilteredLogs(logs);
-      return;
-    }
-
-    const filtered = logs.filter(log => {
-      const logDate = new Date(log.timestamp);
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate) : null;
-
-      if (start && end) {
-        return logDate >= start && logDate <= end;
-      } else if (start) {
-        return logDate >= start;
-      } else if (end) {
-        return logDate <= end;
-      }
-      return true;
-    });
-
-    setFilteredLogs(filtered);
-  };
-
   const clearFilters = () => {
-    setStartDate('');
-    setEndDate('');
-    setFilteredLogs(logs);
+    setFilterDate('');
+    // setFilteredLogs(logs); // No need, handled by useEffect
   };
 
   if (loading) {
@@ -132,34 +121,19 @@ const WasteLogHistory = () => {
       <div className="bg-white p-4 rounded-lg shadow mb-6">
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Date</label>
             <input
               type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
               className="p-2 border rounded"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="p-2 border rounded"
-            />
-          </div>
-          <button
-            onClick={handleFilter}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Apply Filter
-          </button>
           <button
             onClick={clearFilters}
             className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
           >
-            Clear Filters
+            Clear Filter
           </button>
         </div>
       </div>
@@ -167,7 +141,7 @@ const WasteLogHistory = () => {
       <div className="space-y-4">
         {filteredLogs.length === 0 ? (
           <div className="text-gray-500 text-center p-4 bg-white rounded-lg shadow">
-            {logs.length === 0 ? 'No waste logs found.' : 'No logs match the selected filters.'}
+            {logs.length === 0 ? 'No waste logs found.' : 'No logs found for the selected date.'}
           </div>
         ) : (
           filteredLogs.map((log) => (
@@ -178,7 +152,7 @@ const WasteLogHistory = () => {
               >
                 <div>
                   <h3 className="font-semibold">
-                    {new Date(log.timestamp).toLocaleString()}
+                    {new Date(log.timestamp).toLocaleDateString()}
                   </h3>
                   <div className="flex gap-4 mt-1 text-sm text-gray-600">
                     <span>Total Waste: {log.totalWaste}</span>
