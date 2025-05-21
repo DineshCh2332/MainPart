@@ -168,24 +168,6 @@ const UserDetails = () => {
     setError('');
   };
 
-  // Function to check email uniqueness across both collections
-  const checkEmailUnique = async (email) => {
-    const usersQuery = query(collection(db, 'users_01'), where('email', '==', email));
-    const customersQuery = query(collection(db, 'customers'), where('email', '==', email));
-    const [usersSnapshot, customersSnapshot] = await Promise.all([
-      getDocs(usersQuery),
-      getDocs(customersQuery),
-    ]);
-
-    const existingUsers = usersSnapshot.docs.filter(doc => doc.id !== formData.phone);
-    const existingCustomers = customersSnapshot.docs.filter(doc => doc.id !== formData.phone);
-
-    if (existingUsers.length > 0 || existingCustomers.length > 0) {
-      return 'Email already exists in another profile';
-    }
-    return null;
-  };
-
   const handleSave = async () => {
     try {
       // Required field validations
@@ -261,35 +243,6 @@ const UserDetails = () => {
       if (formData.address && formData.address.toLowerCase() === 'none') {
         setError('Address cannot be "none"');
         return;
-      }
-
-      // Check email uniqueness
-      const emailError = await checkEmailUnique(formData.email);
-      if (emailError) {
-        setError(emailError);
-        return;
-      }
-
-      // Customer ID uniqueness check
-      if (formData.role === 'customer') {
-        const custQuery = query(collection(db, 'customers'), where('customerID', '==', formData.customerID));
-        const custSnapshot = await getDocs(custQuery);
-        const otherCustDocs = custSnapshot.docs.filter(doc => doc.id !== formData.phone);
-        if (otherCustDocs.length > 0) {
-          setError('Customer ID already exists');
-          return;
-        }
-      }
-
-      // Employee ID uniqueness check
-      if (formData.role !== 'customer') {
-        const empQuery = query(collection(db, 'users_01'), where('employeeID', '==', formData.employeeID));
-        const empSnapshot = await getDocs(empQuery);
-        const otherEmpDocs = empSnapshot.docs.filter(doc => doc.id !== formData.phone);
-        if (otherEmpDocs.length > 0) {
-          setError('Employee ID already exists');
-          return;
-        }
       }
 
       // Phone number change detection
