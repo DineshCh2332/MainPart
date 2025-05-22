@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, addDoc, doc, getDoc, setDoc, query, where, getDocs } from "firebase/firestore";
 import "../../css/Form.css";
 import { Timestamp } from "firebase/firestore";
+import {getAuth,createUserWithEmailAndPassword,sendEmailVerification} from "firebase/auth";
 
 const initialState = {
   name: "",
@@ -198,8 +199,16 @@ const AddUser = () => {
 
     if (await checkForDuplicates(docId)) return;
 
-    try {
-      const userId = await generateUniqueUserId();
+    try{
+      const auth = getAuth();
+    
+      //step 1:Create user in firebase Auth
+      const userCredentials = await createUserWithEmailAndPassword(auth,formData.email,formData.phone); // using phone as password for simplicity
+
+     // step 2:send verfication email
+     await sendEmailVerification(userCredentials.user);
+
+     const userId = await generateUniqueUserId();
       
       const userData = {
         name: formData.name,
@@ -219,7 +228,8 @@ const AddUser = () => {
           ? { customerID: formData.customerID }
           : { employeeID: formData.employeeID }
         ),
-        ...(formData.role !== "customer" && { active: true })
+        ...(formData.role !== "customer" && { active: true }),
+        emailVerified: false, // Track verification status
       };
 
       if (formData.role === "customer") {
@@ -228,12 +238,18 @@ const AddUser = () => {
         await setDoc(doc(db, "users_01", docId), userData);
       }
 
-      alert("User added successfully!");
+      alert("User added successfully!.Verification email sent!");
       setFormData(initialState);
+      
       navigate("/admin/users");
     } catch (err) {
       console.error("Error adding user:", err);
-      showError("Error adding user. Please try again.");
+  
+  if (err.code === "auth/email-already-in-use") {
+    showError("This email is already in use. Please use a different email");
+  } else {
+    showError("Error adding user. Please try again.");
+  }
     }
   };
 

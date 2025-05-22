@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../firebase/config';
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, arrayUnion } from 'firebase/firestore';
 import { Dialog, Transition } from '@headlessui/react';
+import {getAuth,updateEmail,onAuthStateChanged,sendEmailVerification} from 'firebase/auth';
 
 const displayValue = (value) => value || 'N/A';
 
@@ -32,6 +33,46 @@ const UserDetails = () => {
     customerID: '',
     employeeID: ''
   });
+
+
+useEffect(() => {
+  const auth = getAuth();
+
+  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    if (!currentUser) return;
+
+    try {
+      await currentUser.reload(); // refresh user data
+      const refreshedUser = auth.currentUser;
+
+      if (refreshedUser.emailVerified && !user?.emailVerified) {
+        const collectionName = user?.originalCollection || "users_01";
+        const docId = user?.phone;
+
+        if (collectionName && docId) {
+          const docRef = doc(db, collectionName, docId);
+
+          await updateDoc(docRef, {
+            emailVerified: true,
+          });
+
+          setUser((prev) => ({
+            ...prev,
+            emailVerified: true,
+          }));
+
+          console.log("Email verified status updated in Firestore.");
+        }
+      }
+    } catch (err) {
+      console.error("Error checking or updating emailVerified:", err);
+    }
+  });
+
+  return () => unsubscribe();
+}, [user?.emailVerified, user?.originalCollection, user?.phone]);
+
+
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -169,6 +210,7 @@ const UserDetails = () => {
   };
 
   const handleSave = async () => {
+    
     try {
       // Required field validations
       const requiredFields = {
@@ -190,6 +232,7 @@ const UserDetails = () => {
         setError('Invalid email format');
         return;
       }
+
 
       if (formData.role === 'customer' && !formData.customerID) {
         setError('Customer ID is required');
@@ -251,6 +294,8 @@ const UserDetails = () => {
         setIsPhoneChangeAlertOpen(true);
         return;
       }
+     // checking is email id changed
+       const isEmailChanged = formData.email !== user.email;
 
       const [customerDoc, employeeDoc] = await Promise.all([
         getDoc(doc(db, 'customers', formData.phone)),
@@ -272,7 +317,9 @@ const UserDetails = () => {
         member_since: formData.member_since || new Date().toISOString(),
         shareCode: formData.shareCode,
         updatedAt: new Date(),
-        userId: formData.userId
+        userId: formData.userId,
+        emailVerified:false,//Reset on change
+
       };
 
       if (customerDoc.exists()) {
@@ -348,6 +395,18 @@ const UserDetails = () => {
       }
 
       await Promise.all(updates);
+      //If email was changed,send verfication email
+      // if(isEmailChanged){
+      //   const auth = getAuth();
+      //   const currentUser = auth.currentUser;
+      //  if (currentUser) {
+      //   await updateEmail(currentUser,formData.email); // Update email in Firebase Auth
+      //   await sendEmailVerification(currentUser);     // Send verification email
+      //   setSuccessMessage('Email updated. Verification email sent.');
+      // } else {
+      //   console.warn('No authenticated user to update email.');
+      // } 
+       //}
 
       setUser(prev => ({
         ...prev,
@@ -460,11 +519,17 @@ const UserDetails = () => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <div className="mt-1">
-              <ChangeAwareDisplay field="email" value={user.email} changes={user?.changeField || []} />
-            </div>
-          </div>
+  <label className="block text-sm font-medium text-gray-700">Email</label>
+  <div className="mt-1 flex items-center gap-2">
+    <ChangeAwareDisplay field="email" value={user.email} changes={user?.changeField || []} />
+    {user?.emailVerified && (
+      <span className="text-green-600 text-sm font-semibold border border-green-600 px-2 py-0.5 rounded-full">
+        Verified
+      </span>
+    )}
+  </div>
+</div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700">Phone</label>
             <p className="mt-1">{displayValue(user.phone)}</p>
