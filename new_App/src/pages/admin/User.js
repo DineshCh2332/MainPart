@@ -221,6 +221,7 @@ const Users = () => {
         {Object.entries(roleCounts).map(([role, count]) => (
           <div key={role} className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role + "s"}</h3>
+            
             <p className={`text-2xl font-bold ${
               role === "Admin" ? "text-purple-600" :
               role === "Manager" ? "text-blue-600" :
@@ -267,7 +268,7 @@ const Users = () => {
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
                 <option value="teamleader">Team Leader</option>
-                <option value="employee">Employee</option>
+                <option value="employee">Team Member</option>
               </select>
             </div>
           )}
