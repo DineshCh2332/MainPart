@@ -65,7 +65,12 @@ const fetchUsers = useCallback(async () => {
   const calculateWorkedHours = useMemo(() => {
     return (checkIn, checkOut) => {
       if (!checkIn || !checkOut) return "Incomplete";
-      const duration = checkOut - checkIn;
+      let duration = checkOut - checkIn ;
+
+      // Deduct 30 minutes (in milliseconds)
+    const breakDuration = 30 * 60 * 1000;
+    duration = duration - breakDuration;
+     
       const hrs = Math.floor(duration / (1000 * 60 * 60));
       const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
       return `${hrs}h ${mins}m`;
