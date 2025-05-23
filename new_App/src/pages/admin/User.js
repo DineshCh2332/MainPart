@@ -5,12 +5,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 const Users = () => {
   // State management
-  const [employees, setEmployees] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [filteredTeamMembers, setFilteredTeamMembers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [roleFilter, setRoleFilter] = useState("all");
-  const [userTypeFilter, setUserTypeFilter] = useState("all"); // New user type filter
+  const [userTypeFilter, setUserTypeFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,6 @@ const Users = () => {
   React.useEffect(() => {
     if (location.state?.filterRole) {
       setRoleFilter(location.state.filterRole);
-      // Clear the filterRole from state to avoid reapplying on re-renders
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, navigate]);
@@ -31,7 +30,7 @@ const Users = () => {
     Admin: 0,
     Manager: 0,
     TeamLeader: 0,
-    Employee: 0,
+    TeamMember: 0,
     Customer: 0
   });
 
@@ -42,21 +41,21 @@ const Users = () => {
   });
 
   // Calculate role counts
-  const calculateRoleCounts = (employeesList, customersList) => {
+  const calculateRoleCounts = (teamMembersList, customersList) => {
     const counts = {
       Admin: 0,
       Manager: 0,
       TeamLeader: 0,
-      Employee: 0,
+      TeamMember: 0,
       Customer: customersList.length
     };
 
-    employeesList.forEach((user) => {
+    teamMembersList.forEach((user) => {
       const role = user.role?.toLowerCase();
       if (role === "admin") counts.Admin++;
       if (role === "manager") counts.Manager++;
       if (role === "teamleader") counts.TeamLeader++;
-      if (role === "employee") counts.Employee++;
+      if (role === "teammember") counts.TeamMember++;
     });
 
     setRoleCounts(counts);
@@ -67,16 +66,16 @@ const Users = () => {
     try {
       setLoading(true);
      
-      // Fetch employees
+      // Fetch team members
       const userSnapshot = await getDocs(query(collection(db, "users_01")));
-      const employeesData = userSnapshot.docs.map((doc) => ({
+      const teamMembersData = userSnapshot.docs.map((doc) => ({
         docId: doc.id,
         userId: doc.data().userId || "N/A",
         name: doc.data().name || "N/A",
         phone: doc.data().phone || "N/A",
         countryCode: doc.data().countryCode || "+91",
         role: doc.data().role || "N/A",
-        source: "employee",
+        source: "teammember",
         member_since: doc.data().member_since || null
       }));
 
@@ -93,9 +92,9 @@ const Users = () => {
         member_since: doc.data().member_since || null
       }));
 
-      setEmployees(employeesData);
+      setTeamMembers(teamMembersData);
       setCustomers(customersData);
-      calculateRoleCounts(employeesData, customersData);
+      calculateRoleCounts(teamMembersData, customersData);
     } catch (error) {
       console.error("Error loading users:", error);
     } finally {
@@ -108,8 +107,8 @@ const Users = () => {
     const search = debouncedSearch.toLowerCase();
     const normalizedRoleFilter = roleFilter.toLowerCase();
 
-    // Filter employees
-    const filteredEmps = employees.filter((user) => {
+    // Filter team members
+    const filteredTeamMems = teamMembers.filter((user) => {
       if (userTypeFilter === 'customers') return false;
      
       const matchesSearch = [
@@ -127,7 +126,7 @@ const Users = () => {
 
     // Filter customers
     const filteredCusts = customers.filter((customer) => {
-      if (userTypeFilter === 'employees') return false;
+      if (userTypeFilter === 'teammembers') return false;
      
       return [
         customer.name.toLowerCase(),
@@ -136,25 +135,35 @@ const Users = () => {
       ].some(field => field.includes(search));
     });
 
-    // Sort employees
-    const sortedEmps = [...filteredEmps].sort((a, b) => {
+    // Sort team members
+    const sortedTeamMems = [...filteredTeamMems].sort((a, b) => {
       const direction = sortConfig.direction === "asc" ? 1 : -1;
-      const aValue = a[sortConfig.key]?.toLowerCase?.() || a[sortConfig.key];
-      const bValue = b[sortConfig.key]?.toLowerCase?.() || b[sortConfig.key];
+      if (sortConfig.key === "member_since") {
+        const aDate = a.member_since ? new Date(a.member_since) : new Date(0);
+        const bDate = b.member_since ? new Date(b.member_since) : new Date(0);
+        return (aDate - bDate) * direction;
+      }
+      const aValue = a[sortConfig.key]?.toLowerCase?.() || a[sortConfig.key] || "";
+      const bValue = b[sortConfig.key]?.toLowerCase?.() || b[sortConfig.key] || "";
       return aValue.localeCompare(bValue) * direction;
     });
 
     // Sort customers
     const sortedCusts = [...filteredCusts].sort((a, b) => {
       const direction = sortConfig.direction === "asc" ? 1 : -1;
-      const aValue = a[sortConfig.key]?.toLowerCase?.() || a[sortConfig.key];
-      const bValue = b[sortConfig.key]?.toLowerCase?.() || b[sortConfig.key];
+      if (sortConfig.key === "member_since") {
+        const aDate = a.member_since ? new Date(a.member_since) : new Date(0);
+        const bDate = b.member_since ? new Date(b.member_since) : new Date(0);
+        return (aDate - bDate) * direction;
+      }
+      const aValue = a[sortConfig.key]?.toLowerCase?.() || a[sortConfig.key] || "";
+      const bValue = b[sortConfig.key]?.toLowerCase?.() || b[sortConfig.key] || "";
       return aValue.localeCompare(bValue) * direction;
     });
 
-    setFilteredEmployees(sortedEmps);
+    setFilteredTeamMembers(sortedTeamMems);
     setFilteredCustomers(sortedCusts);
-  }, [employees, customers, debouncedSearch, roleFilter, sortConfig, userTypeFilter]);
+  }, [teamMembers, customers, debouncedSearch, roleFilter, sortConfig, userTypeFilter]);
 
   // Sorting handlers
   const sortUsers = (key) => {
@@ -217,17 +226,17 @@ const Users = () => {
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">Total Users</h3>
           <p className="text-2xl font-bold">
-            {employees.length + customers.length}
+            {teamMembers.length + customers.length}
           </p>
         </div>
         {Object.entries(roleCounts).map(([role, count]) => (
           <div key={role} className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role + "s"}</h3>
+            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role === "TeamMember" ? "Team Members" : role + "s"}</h3>
             <p className={`text-2xl font-bold ${
               role === "Admin" ? "text-purple-600" :
               role === "Manager" ? "text-blue-600" :
               role === "TeamLeader" ? "text-green-600" :
-              role === "Employee" ? "text-yellow-600" : "text-red-600"
+              role === "TeamMember" ? "text-yellow-600" : "text-red-600"
             }`}>
               {count}
             </p>
@@ -249,7 +258,7 @@ const Users = () => {
               onChange={(e) => setUserTypeFilter(e.target.value)}
             >
               <option value="all">All Users</option>
-              <option value="employees">Employees Only</option>
+              <option value="teammembers">Team Members Only</option>
               <option value="customers">Customers Only</option>
             </select>
           </div>
@@ -265,11 +274,11 @@ const Users = () => {
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
-                <option value="all">All Employees</option>
+                <option value="all">All Team Members</option>
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
                 <option value="teamleader">Team Leader</option>
-                <option value="employee">Employee</option>
+                <option value="teammember">Team Member</option>
               </select>
             </div>
           )}
@@ -290,11 +299,11 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Employees Table */}
+      {/* Team Members Table */}
       {userTypeFilter !== 'customers' && (
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">
-            Employees ({filteredEmployees.length})
+            Team Members ({filteredTeamMembers.length})
           </h2>
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
@@ -315,7 +324,7 @@ const Users = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEmployees.map((user) => (
+                {filteredTeamMembers.map((user) => (
                   <tr
                     key={user.userId}
                     className="hover:bg-gray-50 cursor-pointer"
@@ -343,7 +352,6 @@ const Users = () => {
                         {user.role}
                       </span>
                     </td>
-                   
                   </tr>
                 ))}
               </tbody>
@@ -353,7 +361,7 @@ const Users = () => {
       )}
 
       {/* Customers Table */}
-      {userTypeFilter !== 'employees' && (
+      {userTypeFilter !== 'teammembers' && (
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">
             Customers ({filteredCustomers.length})
@@ -392,7 +400,6 @@ const Users = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {customer.countryCode} {customer.phone}
                     </td>
-                    
                   </tr>
                 ))}
               </tbody>
