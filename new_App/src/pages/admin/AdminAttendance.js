@@ -1,13 +1,15 @@
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addWeeks, startOfWeek, isWithinInterval, isBefore } from 'date-fns';
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  setDoc, 
-  getDoc, 
-  serverTimestamp 
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  setDoc,
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import debounce from 'lodash/debounce';
@@ -36,24 +38,23 @@ const AdminAttendance = () => {
   const isEditableDate = isDateEditable(date);
 
   // Fetch all users from users_01
-const fetchUsers = useCallback(async () => {
-  try {
-    const userCollection = collection(db, "users_01");
-    const userSnapshot = await getDocs(userCollection);
-    const userList = userSnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      .filter(user => user.role !== "admin"); // Remove users with role 'admin'
-    
-    console.log("Filtered users (non-admin):", userList);
-    setUsers(userList);
-  } catch (error) {
-    console.error("Error fetching users:", error);
-  }
-}, []);
+  const fetchUsers = useCallback(async () => {
+    try {
+      const userCollection = collection(db, "users_01");
+      const userSnapshot = await getDocs(userCollection);
+      const userList = userSnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(user => ["teammember", "manager", "teamleader"].includes(user.role)); // Only include employee roles
 
+      console.log("Filtered users (employees):", userList);
+      setUsers(userList);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  }, []);
 
   // User options for searchable select (only names)
   const userOptions = users.map(user => ({
@@ -65,12 +66,9 @@ const fetchUsers = useCallback(async () => {
   const calculateWorkedHours = useMemo(() => {
     return (checkIn, checkOut) => {
       if (!checkIn || !checkOut) return "Incomplete";
-      let duration = checkOut - checkIn ;
-
-      // Deduct 30 minutes (in milliseconds)
-    const breakDuration = 30 * 60 * 1000;
-    duration = duration - breakDuration;
-     
+      const duration = checkOut - checkIn;
+      const breakDuration = 30 * 60 * 1000;
+      duration = duration - breakDuration;
       const hrs = Math.floor(duration / (1000 * 60 * 60));
       const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
       return `${hrs}h ${mins}m`;
@@ -133,8 +131,8 @@ const fetchUsers = useCallback(async () => {
     }
   }, [calculateWorkedHours]);
 
-  const debouncedFetchAttendance = useMemo(() => 
-    debounce((newDate) => fetchAttendanceData(newDate), 300), 
+  const debouncedFetchAttendance = useMemo(() =>
+    debounce((newDate) => fetchAttendanceData(newDate), 300),
     [fetchAttendanceData]
   );
 
@@ -367,13 +365,12 @@ const fetchUsers = useCallback(async () => {
               <button
                 onClick={() => setAddingNew(!addingNew)}
                 disabled={date > new Date()}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                  date > new Date()
+                className={`px-4 py-2 rounded-md text-sm font-medium transition ${date > new Date()
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : addingNew
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                }`}
+                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                      : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  }`}
               >
                 {addingNew ? 'Cancel' : 'Add Attendance'}
               </button>
@@ -528,7 +525,7 @@ const fetchUsers = useCallback(async () => {
                 <Select
                   options={userOptions}
                   value={userOptions.find(option => option.value === newData.userId) || null}
-                  onChange={(selectedOption) => 
+                  onChange={(selectedOption) =>
                     setNewData({ ...newData, userId: selectedOption ? selectedOption.value : '' })
                   }
                   placeholder="Select User"
@@ -571,9 +568,8 @@ const fetchUsers = useCallback(async () => {
                   onChange={(e) =>
                     setNewData({ ...newData, checkInStr: e.target.value })
                   }
-                  className={`block w-full rounded-md border shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 ${
-                    errors.checkInStr ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`block w-full rounded-md border shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 ${errors.checkInStr ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 {errors.checkInStr && (
                   <p className="text-red-500 text-xs mt-1">{errors.checkInStr}</p>
@@ -601,9 +597,8 @@ const fetchUsers = useCallback(async () => {
                   onChange={(e) =>
                     setNewData({ ...newData, checkOutStr: e.target.value })
                   }
-                  className={`block w-full rounded-md border shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 ${
-                    errors.checkOutStr ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`block w-full rounded-md border shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm p-2 ${errors.checkOutStr ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 {errors.checkOutStr && (
                   <p className="text-red-500 text-xs mt-1">{errors.checkOutStr}</p>
