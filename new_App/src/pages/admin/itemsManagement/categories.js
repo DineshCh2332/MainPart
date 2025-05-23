@@ -44,8 +44,7 @@ const Categories = () => {
       
         const docRef = await addDoc(collection(db, "category"), {
           id: newId,  // save generated id in Firestore too
-          name: newCategory,
-          active: true, // set active true by default
+          name: newCategory
         });
       
         setCategories([...categories, { id: newId, name: newCategory, active: true }]);
