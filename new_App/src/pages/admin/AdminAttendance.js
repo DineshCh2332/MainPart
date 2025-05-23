@@ -66,7 +66,7 @@ const AdminAttendance = () => {
   const calculateWorkedHours = useMemo(() => {
     return (checkIn, checkOut) => {
       if (!checkIn || !checkOut) return "Incomplete";
-      const duration = checkOut - checkIn;
+      let duration = checkOut - checkIn;
       const breakDuration = 30 * 60 * 1000;
       duration = duration - breakDuration;
       const hrs = Math.floor(duration / (1000 * 60 * 60));

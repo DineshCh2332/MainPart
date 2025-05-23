@@ -11,6 +11,8 @@ import ManagerAttendance from "../pages/manager/ManagerAttendance";
 import WasteManagement from "../pages/admin/inventory/WasteManagement";
 import StockCount from "../pages/admin/inventory/StockCount";
 import InventoryAndWasteHistory from "../pages/admin/inventory/StockMovement";
+import InventoryRecords from "../pages/manager/inventory/inventoryrecords";
+import Addinventory from '../pages/manager/inventory/Addinventory';
 
 //Cash Management pages
 import OpenCashier from "../pages/manager/cashManagement/OpenCashier";
@@ -39,6 +41,8 @@ const ManagerLayout = () => {
           <Route path="inventory/wastemanagement" element={<WasteManagement />} />
           <Route path="inventory/stockcount" element={<StockCount />} />
           <Route path="inventory/stockmovement" element={<InventoryAndWasteHistory />} />
+          <Route path="inventory/inventoryrecords" element={<InventoryRecords/>} />
+            <Route path="inventory/addinventory" element={<Addinventory />} />
 
           {/*Cash Management */}
           <Route path="cashManagement/opencashier" element={<OpenCashier />} />

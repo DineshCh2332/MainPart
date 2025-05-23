@@ -21,7 +21,8 @@ const ManagerAttendance = () => {
   // Calculate worked hours
   const calculateWorkedHours = (checkIn, checkOut) => {
     if (!checkIn || !checkOut) return "Incomplete";
-    const duration = checkOut - checkIn;
+    let duration = checkOut - checkIn;
+    duration = duration - 30 * 60 * 1000;
     const hrs = Math.floor(duration / (1000 * 60 * 60));
     const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
     return `${hrs}h ${mins}m`;
