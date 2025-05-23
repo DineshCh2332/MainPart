@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebase/config";
 import { useNavigate } from "react-router-dom";
@@ -255,6 +254,7 @@ const AddUser = () => {
         showError("Error adding user. Please try again.");
       }
     }
+  }
   
 
   return (
@@ -472,6 +472,6 @@ const AddUser = () => {
     </div>
   );
 }
-}
+
 
 export default AddUser;

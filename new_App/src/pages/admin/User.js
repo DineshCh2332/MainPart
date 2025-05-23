@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState, useCallback } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs, query } from "firebase/firestore";
@@ -33,7 +31,7 @@ const Users = () => {
     Admin: 0,
     Manager: 0,
     TeamLeader: 0,
-    Teammember: 0, // Changed from Employee to Teammember
+    Employee: 0,
     Customer: 0
   });
 
@@ -49,7 +47,7 @@ const Users = () => {
       Admin: 0,
       Manager: 0,
       TeamLeader: 0,
-      Teammember: 0, // Changed from Employee to Teammember
+      Employee: 0,
       Customer: customersList.length
     };
 
@@ -58,7 +56,7 @@ const Users = () => {
       if (role === "admin") counts.Admin++;
       if (role === "manager") counts.Manager++;
       if (role === "teamleader") counts.TeamLeader++;
-      if (role === "teammember") counts.Teammember++; // Changed from employee to teammember
+      if (role === "employee") counts.Employee++;
     });
 
     setRoleCounts(counts);
@@ -68,7 +66,7 @@ const Users = () => {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      
+     
       // Fetch employees
       const userSnapshot = await getDocs(query(collection(db, "users_01")));
       const employeesData = userSnapshot.docs.map((doc) => ({
@@ -113,7 +111,7 @@ const Users = () => {
     // Filter employees
     const filteredEmps = employees.filter((user) => {
       if (userTypeFilter === 'customers') return false;
-      
+     
       const matchesSearch = [
         user.name.toLowerCase(),
         user.phone.toLowerCase(),
@@ -121,7 +119,7 @@ const Users = () => {
         user.role.toLowerCase()
       ].some(field => field.includes(search));
 
-      const matchesRole = normalizedRoleFilter === "all" || 
+      const matchesRole = normalizedRoleFilter === "all" ||
         user.role.toLowerCase() === normalizedRoleFilter;
 
       return matchesSearch && matchesRole;
@@ -130,7 +128,7 @@ const Users = () => {
     // Filter customers
     const filteredCusts = customers.filter((customer) => {
       if (userTypeFilter === 'employees') return false;
-      
+     
       return [
         customer.name.toLowerCase(),
         customer.phone.toLowerCase(),
@@ -224,12 +222,12 @@ const Users = () => {
         </div>
         {Object.entries(roleCounts).map(([role, count]) => (
           <div key={role} className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role === "Teammember" ? "Team Members" : role + "s"}</h3>
+            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role + "s"}</h3>
             <p className={`text-2xl font-bold ${
               role === "Admin" ? "text-purple-600" :
               role === "Manager" ? "text-blue-600" :
               role === "TeamLeader" ? "text-green-600" :
-              role === "Teammember" ? "text-yellow-600" : "text-red-600"
+              role === "Employee" ? "text-yellow-600" : "text-red-600"
             }`}>
               {count}
             </p>
@@ -255,7 +253,7 @@ const Users = () => {
               <option value="customers">Customers Only</option>
             </select>
           </div>
-          
+         
           {userTypeFilter !== 'customers' && (
             <div className="w-full md:w-1/3">
               <label htmlFor="roleFilter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -271,11 +269,11 @@ const Users = () => {
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
                 <option value="teamleader">Team Leader</option>
-                <option value="teammember">Team Member</option> {/* Changed from employee to teammember */}
+                <option value="employee">Employee</option>
               </select>
             </div>
           )}
-          
+         
           <div className="w-full md:w-1/3">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
               Search
@@ -340,12 +338,12 @@ const Users = () => {
                         user.role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-800' :
                         user.role.toLowerCase() === 'manager' ? 'bg-blue-100 text-blue-800' :
                         user.role.toLowerCase() === 'teamleader' ? 'bg-green-100 text-green-800' :
-                        user.role.toLowerCase() === 'teammember' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
+                        'bg-yellow-100 text-yellow-800'
                       }`}>
                         {user.role}
                       </span>
                     </td>
-                    
+                   
                   </tr>
                 ))}
               </tbody>
