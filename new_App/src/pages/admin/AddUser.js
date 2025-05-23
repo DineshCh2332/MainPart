@@ -220,7 +220,7 @@ const AddUser = () => {
         member_since: new Date().toISOString(),
         created_at: Timestamp.now(),
         role: formData.role,
-        type: formData.role !== "customer" ? "employee" : undefined,
+        type: formData.role !== "customer" && {type:"employee"},
         bank_details: formData.bank_details,
         document_number: formData.document_number,
         shareCode: formData.shareCode,
