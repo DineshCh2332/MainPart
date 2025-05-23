@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useMemo } from 'react';
 import { format, isBefore } from 'date-fns';
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -14,14 +14,28 @@ const MemberAttendance = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   // Calculate worked hours
-  const calculateWorkedHours = (checkIn, checkOut) => {
+  const calculateWorkedHours = useMemo(() => {
+  return (checkIn, checkOut) => {
     if (!checkIn || !checkOut) return "Incomplete";
+
     let duration = checkOut - checkIn;
-    duration = duration - 30 * 60 * 1000;
+
+    // Break deduction logic:
+    if (duration >= 12.5 * 60 * 60 * 1000) {
+      // 12h 30m and above → 1 hour break
+      duration -= 60 * 60 * 1000;
+    } else if (duration >= 4.5 * 60 * 60 * 1000) {
+      // 4h 30m to 12h 29m → 30 minute break
+      duration -= 30 * 60 * 1000;
+    }
+    // Else → no deduction
+
     const hrs = Math.floor(duration / (1000 * 60 * 60));
     const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+
     return `${hrs}h ${mins}m`;
   };
+}, []);
 
   // Fetch attendance data for the employee
   const fetchAttendanceData = async (empId) => {
