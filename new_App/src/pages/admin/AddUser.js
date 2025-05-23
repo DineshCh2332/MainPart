@@ -71,21 +71,40 @@ const AddUser = () => {
   };
 
   const validateForm = () => {
-    if (!formData.name) return showError("Full Name is required."), false;
+    if (!formData.name) 
+      return showError("Full Name is required."), false;
+
     if (!formData.phone || !/^\d{10}$/.test(formData.phone))
       return showError("Phone number must be exactly 10 digits."), false;
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      return showError("Please enter a valid email."), false;
-    if (!formData.dob) return showError("Date of Birth is required."), false;
+
+if (
+  formData.email &&
+  !/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)
+) {
+  showError("Please enter a valid email.");
+  return false;
+}
+
+
+
+    if (!formData.dob) 
+      return showError("Date of Birth is required."), false;
+
     const birthYear = new Date(formData.dob).getFullYear();
-    if (birthYear > 2001) return showError("Date of Birth should be 2001 or earlier."), false;
+    if (birthYear > 2001)
+       return showError("Date of Birth should be 2001 or earlier."), false;
+
     if (!/^[A-Za-z\s]+$/.test(formData.bank_details.bank_name))
       return showError("Bank name should only contain alphabets."), false;
+
     if (!/^\d{8}$/.test(formData.bank_details.account_number))
       return showError("Bank account number must be exactly 8 digits."), false;
+
     if (!/^\d{5}$/.test(formData.document_number))
       return showError("Document number must be exactly 5 digits."), false;
+
     // Updated validation: shareCode must be exactly 6 digits (ignoring slashes)
+
     const shareCodeDigits = formData.shareCode.replace(/[^\d]/g, "");
     if (formData.shareCode && !/^\d{6}$/.test(shareCodeDigits))
       return showError("Share code must be exactly 6 digits."), false;

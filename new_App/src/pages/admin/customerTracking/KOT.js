@@ -10,7 +10,10 @@ import {
 const KOT = () => {
   const [kotData, setKotData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [selectedDate, setSelectedDate] = useState("");
+  const today = new Date().toISOString().split("T")[0];
+const [selectedDate, setSelectedDate] = useState(today);
+
+
 
   useEffect(() => {
     const q = query(collection(db, "KOT"), orderBy("date", "desc"));

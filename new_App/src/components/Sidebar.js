@@ -94,7 +94,7 @@ const Sidebar = () => {
   }, [user?.loginTime]);
 
   return (
-    <div className="sidebar-container">
+    <div className="sidebar-container sticky top-0 h-screen">
       {/* User Info Section */}
       <div className="user-info-section">
         <div className="user-details">

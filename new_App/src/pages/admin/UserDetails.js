@@ -227,11 +227,13 @@ useEffect(() => {
         }
       }
 
-      // Additional validations
-      if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
-        setError('Invalid email format');
-        return;
-      }
+     if (
+  formData.email &&
+  !/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)
+) {
+  setError("Please enter a valid email.");
+  return false;
+}
 
 
       if (formData.role === 'customer' && !formData.customerID) {
