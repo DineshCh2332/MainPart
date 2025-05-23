@@ -6,6 +6,15 @@ const Unauthorized = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const handleLogout = async () => {
+    try {
+      await logout(); // Perform logout
+      navigate('/'); // Redirect to login page
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
@@ -23,7 +32,7 @@ const Unauthorized = () => {
             </button>
           )}
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="bg-gray-500 text-white px-4 py-2 rounded"
           >
             Logout
