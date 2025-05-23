@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebase/config";
 import { useNavigate } from "react-router-dom";
@@ -75,10 +74,10 @@ const AddUser = () => {
     if (!formData.name) return showError("Full Name is required."), false;
     if (!formData.phone || !/^\d{10}$/.test(formData.phone))
       return showError("Phone number must be exactly 10 digits."), false;
-    
+
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       return showError("Please enter a valid email."), false;
-}
+  
 
     if (!formData.dob) return showError("Date of Birth is required."), false;
     const birthYear = new Date(formData.dob).getFullYear();
@@ -256,7 +255,7 @@ const AddUser = () => {
         showError("Error adding user. Please try again.");
       }
     }
-  };
+  
 
   return (
     <div className="form-container">
@@ -472,6 +471,7 @@ const AddUser = () => {
       </form>
     </div>
   );
+}
 }
 
 export default AddUser;
