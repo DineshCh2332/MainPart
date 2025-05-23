@@ -364,7 +364,7 @@ const Users = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['userId', 'name', 'phone', 'member_since'].map((column) => (
+                  {['userId', 'name', 'phone'].map((column) => (
                     <th
                       key={column}
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -394,9 +394,7 @@ const Users = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {customer.countryCode} {customer.phone}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.member_since ? new Date(customer.member_since).toLocaleDateString() : 'N/A'} {/* ADD THIS CELL */}
-                    </td>
+                    
                   </tr>
                 ))}
               </tbody>
