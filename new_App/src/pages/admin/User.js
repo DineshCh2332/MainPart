@@ -76,7 +76,8 @@ const Users = () => {
         phone: doc.data().phone || "N/A",
         countryCode: doc.data().countryCode || "+91",
         role: doc.data().role || "N/A",
-        source: "employee"
+        source: "employee",
+        member_since: doc.data().member_since || null
       }));
 
       // Fetch customers
@@ -88,7 +89,8 @@ const Users = () => {
         phone: doc.data().phone || "N/A",
         countryCode: doc.data().countryCode || "+91",
         role: "Customer",
-        source: "customer"
+        source: "customer",
+        member_since: doc.data().member_since || null
       }));
 
       setEmployees(employeesData);
@@ -298,14 +300,14 @@ const Users = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['userId', 'name', 'phone', 'role'].map((column) => (
+                  {['userId', 'name', 'phone', 'member_since', 'role'].map((column) => (
                     <th
                       key={column}
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       onClick={() => sortUsers(column)}
                     >
                       <div className="flex items-center">
-                        {column === 'userId' ? 'User ID' : column.charAt(0).toUpperCase() + column.slice(1)}
+                        {column === 'userId' ? 'User ID' : column === 'member_since' ? 'Date of Joining' : column.charAt(0).toUpperCase() + column.slice(1)}
                         {renderSortArrow(column)}
                       </div>
                     </th>
@@ -329,6 +331,9 @@ const Users = () => {
                       {user.countryCode} {user.phone}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.member_since ? new Date(user.member_since).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         user.role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-800' :
                         user.role.toLowerCase() === 'manager' ? 'bg-blue-100 text-blue-800' :
@@ -338,6 +343,7 @@ const Users = () => {
                         {user.role}
                       </span>
                     </td>
+                    
                   </tr>
                 ))}
               </tbody>
@@ -356,14 +362,14 @@ const Users = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['userId', 'name', 'phone'].map((column) => (
+                  {['userId', 'name', 'phone', 'member_since'].map((column) => (
                     <th
                       key={column}
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       onClick={() => sortUsers(column)}
                     >
                       <div className="flex items-center">
-                        {column === 'userId' ? 'User ID' : column.charAt(0).toUpperCase() + column.slice(1)}
+                        {column === 'userId' ? 'User ID' : column === 'member_since' ? 'Date of Joining' : column.charAt(0).toUpperCase() + column.slice(1)}
                         {renderSortArrow(column)}
                       </div>
                     </th>
@@ -385,6 +391,9 @@ const Users = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {customer.countryCode} {customer.phone}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {customer.member_since ? new Date(customer.member_since).toLocaleDateString() : 'N/A'} {/* ADD THIS CELL */}
                     </td>
                   </tr>
                 ))}
