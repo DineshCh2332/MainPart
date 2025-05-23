@@ -225,8 +225,8 @@ const UserDetails = () => {
         }
       }
 
-      // Additional validations
-      if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      if (!/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)
+      ) {
         setError('Invalid email format');
         return;
       }
@@ -799,7 +799,7 @@ const UserDetails = () => {
                   <Dialog.Title className="text-lg font-bold mb-4">Phone Number Change Detected</Dialog.Title>
                   <div className="space-y-4">
                     <p className="text-gray-600">
-                      You have changed the phone number from {user?.phone} to {newPhoneNumber}. 
+                      You have changed the phone number from {user?.phone} to {newPhoneNumber}.
                       Do you want to proceed with the phone number change?
                     </p>
                     {error && <p className="text-red-500 text-sm">{error}</p>}
