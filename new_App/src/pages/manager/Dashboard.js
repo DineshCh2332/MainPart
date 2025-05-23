@@ -20,16 +20,16 @@ const Dashboard = () => {
       // Filter only team leaders and employees
       const filteredUsers = usersData.filter(user => {
         const role = user.role?.toLowerCase();
-        return role === "teamleader" || role === "employee";
+        return role === "teamleader" || role === "teammember";
       });
 
       const teamLeaderCount = filteredUsers.filter(user => user.role?.toLowerCase() === "teamleader").length;
-      const employeeCount = filteredUsers.filter(user => user.role?.toLowerCase() === "employee").length;
+      const employeeCount = filteredUsers.filter(user => user.role?.toLowerCase() === "teammember").length;
       const total = teamLeaderCount + employeeCount;
 
       setCounts({
         teamleader: teamLeaderCount,
-        employee: employeeCount,
+        teammember: employeeCount,
         total,
       });
     } catch (error) {
@@ -78,7 +78,7 @@ const Dashboard = () => {
             className="bg-white p-6 rounded-lg shadow-md text-center hover:bg-gray-100 transition cursor-pointer"
           >
             <h2 className="text-xl font-semibold text-gray-700 mb-2">Team Members</h2>
-            <p className="text-2xl font-bold text-gray-900">{counts.employee}</p>
+            <p className="text-2xl font-bold text-gray-900">{counts.teammember}</p>
           </div>
         </div>
       </div>

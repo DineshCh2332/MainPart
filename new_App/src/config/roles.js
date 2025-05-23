@@ -3,8 +3,7 @@ export const ROLES = {
   ADMIN: 'admin',
   MANAGER: 'manager',
   TEAM_LEADER: 'teamleader',
-  TEAM_MEMBER: 'teammember',
-  EMPLOYEE: 'employee'
+  EMPLOYEE: 'teammember'
 };
 
 export const ROLE_PATHS = {

@@ -25,7 +25,7 @@ const Employees = () => {
 
       const employeesAndTeamLeaders = rawUsers.filter(
         (user) =>
-          user.role?.toLowerCase() === "employee" ||
+          user.role?.toLowerCase() === "teammember" ||
           user.role?.toLowerCase() === "teamleader"
       );
 
@@ -34,7 +34,7 @@ const Employees = () => {
           employeesAndTeamLeaders
             .map((user) => {
               const role = user.role?.toLowerCase();
-              if (role === "employee") return "Team Member";
+              if (role === "teammember") return "Team Member";
               if (role === "teamleader") return "Team Leader";
               return user.role;
             })
@@ -53,7 +53,7 @@ const Employees = () => {
   const filterUsers = useCallback(() => {
     const search = searchTerm.toLowerCase();
     let role = roleFilter.toLowerCase();
-    if (role === "team member") role = "employee";
+    if (role === "team member") role = "teammember";
     if (role === "team leader") role = "teamleader";
 
     const results = users.filter((user) => {
@@ -215,7 +215,7 @@ const Employees = () => {
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
-                        {user.role?.toLowerCase() === "employee"
+                        {user.role?.toLowerCase() === "teammember"
                           ? "Team Member"
                           : user.role?.toLowerCase() === "teamleader"
                           ? "Team Leader"
