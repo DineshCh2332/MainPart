@@ -45,9 +45,10 @@ const Categories = () => {
         const docRef = await addDoc(collection(db, "category"), {
           id: newId,  // save generated id in Firestore too
           name: newCategory,
+          active: true, // set active true by default
         });
       
-        setCategories([...categories, { id: newId, name: newCategory }]);
+        setCategories([...categories, { id: newId, name: newCategory, active: true }]);
         setNewCategory("");
       };
       
@@ -57,7 +58,6 @@ const Categories = () => {
     setCategories(categories.filter((cat) => cat.id !== id));
   };
 
-  
   
 
 const handleUpdateCategory = async (catId) => {
@@ -85,6 +85,25 @@ const handleUpdateCategory = async (catId) => {
     console.error(`Category with id ${catId} not found!`);
   }
 };
+
+  // Only keep this toggleActive inside the component!
+  const toggleActive = async (catId, currentActive) => {
+    const catRef = collection(db, "category");
+    const q = query(catRef, where("id", "==", catId));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const docToUpdate = snapshot.docs[0];
+      const docRef = doc(db, "category", docToUpdate.id);
+
+      await updateDoc(docRef, { active: !currentActive });
+
+      // Always fetch from Firestore after update
+      fetchCategories();
+    } else {
+      console.error(`Category with id ${catId} not found!`);
+    }
+  };
 
 
   return (
@@ -165,6 +184,14 @@ const handleUpdateCategory = async (catId) => {
                         onClick={() => handleDeleteCategory(cat.id)}
                       >
                         Delete
+                      </button>
+                      <button
+                        className={`${
+                          cat.active ? "bg-red-700 hover:bg-red-800" : "bg-green-600 hover:bg-green-700"
+                        } text-white px-2 py-1 text-base rounded`}
+                        onClick={() => toggleActive(cat.id, cat.active)}
+                      >
+                        {cat.active ? "Deactivate" : "Activate"}
                       </button>
                     </div>
                   )}
