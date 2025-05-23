@@ -43,12 +43,13 @@ export default function OpenCashier() {
   useEffect(() => {
     const fetchCashiers = async () => {
       const q = query(
-        collection(db, "users_01"),
-        where("role", "==", "employee") // Query by role field directly
-      );
+        collection(db, "users_01"));
+
       const snapshot = await getDocs(q);
+
       setCashiers(snapshot.docs.map(doc => {
         const data = doc.data();
+        
         return {
           id: data.employeeID, // Use employeeId instead of document ID
           name: data.name,

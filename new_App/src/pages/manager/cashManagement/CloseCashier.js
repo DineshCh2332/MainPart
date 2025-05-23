@@ -46,8 +46,8 @@ const [confirmWitnessChecked, setConfirmWitnessChecked] = useState(false);
   useEffect(() => {
     const fetchCashiers = async () => {
       const q = query(
-        collection(db, "users_01"),
-        where("role", "==", "employee") // Use direct role field instead of role reference
+        collection(db, "users_01")
+        
       );
       const snapshot = await getDocs(q);
       setCashiers(snapshot.docs.map(doc => {

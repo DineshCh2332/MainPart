@@ -1,8 +1,10 @@
+
 import React, { Fragment, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../firebase/config';
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, arrayUnion } from 'firebase/firestore';
 import { Dialog, Transition } from '@headlessui/react';
+import { getAuth, updateEmail, onAuthStateChanged, sendEmailVerification } from 'firebase/auth';
 
 const displayValue = (value) => value || 'N/A';
 
@@ -21,22 +23,58 @@ const UserDetails = () => {
     address: '',
     dob: '',
     document_number: '',
-    role: 'customer',
+    role: '',
     member_since: '',
     shareCode: '',
     bank_details: {
       account_number: '',
       bank_name: '',
       branch_name: ''
-      
     },
     customerID: '',
     employeeID: ''
   });
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) return;
+
+      try {
+        await currentUser.reload(); // refresh user data
+        const refreshedUser = auth.currentUser;
+
+        if (refreshedUser.emailVerified && !user?.emailVerified) {
+          const collectionName = user?.originalCollection || "users_01";
+          const docId = user?.phone;
+
+          if (collectionName && docId) {
+            const docRef = doc(db, collectionName, docId);
+
+            await updateDoc(docRef, {
+              emailVerified: true,
+            });
+
+            setUser((prev) => ({
+              ...prev,
+              emailVerified: true,
+            }));
+
+            console.log("Email verified status updated in Firestore.");
+          }
+        }
+      } catch (err) {
+        console.error("Error checking or updating emailVerified:", err);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.emailVerified, user?.originalCollection, user?.phone]);
+
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch user data
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -92,7 +130,6 @@ const UserDetails = () => {
     fetchUser();
   }, [userId]);
 
-  // Track employee changes
   const trackEmployeeChanges = (originalData, newData) => {
     const changes = [];
     const fieldsToTrack = [
@@ -134,7 +171,6 @@ const UserDetails = () => {
     return changes;
   };
 
-  // Handle profile selection for duplicates
   const handleProfileSelection = (selectedProfile) => {
     setUser(selectedProfile);
     setDuplicateProfiles([]);
@@ -148,20 +184,33 @@ const UserDetails = () => {
     }));
   };
 
-  // Open edit dialog
   const handleEdit = () => setIsEditOpen(true);
 
-  // Handle phone change confirmation
   const handlePhoneChangeAlertConfirm = () => {
     setIsPhoneChangeAlertOpen(false);
     setIsEditOpen(false);
-    // Pass only the old phone number to ChangePhoneNumber
     navigate('/admin/user/changephoneNumber', { state: { oldPhone: user.phone } });
   };
 
-  // Save user data
+  const formatShareCode = (value) => {
+    const digits = value.replace(/\D/g, '').slice(0, 6);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i === 2 || i === 4) formatted += '/';
+      formatted += digits[i];
+    }
+    return formatted;
+  };
+
+  const handleShareCodeChange = (e) => {
+    const formatted = formatShareCode(e.target.value);
+    setFormData({ ...formData, shareCode: formatted });
+    setError('');
+  };
+
   const handleSave = async () => {
     try {
+      // Required field validations
       const requiredFields = {
         name: 'Name is required',
         email: 'Email is required',
@@ -176,6 +225,12 @@ const UserDetails = () => {
         }
       }
 
+      if (!/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)
+      ) {
+        setError('Invalid email format');
+        return;
+      }
+
       if (formData.role === 'customer' && !formData.customerID) {
         setError('Customer ID is required');
         return;
@@ -185,54 +240,59 @@ const UserDetails = () => {
         setError('Employee ID is required');
         return;
       }
-      // New Validation Logic Starts Here
 
-  // 1) Document number validation (5 digits)
-  if (formData.document_number && !/^\d{5}$/.test(formData.document_number)) {
-    setError('Document Number must be exactly 5 digits.');
-    return;
-  }
+      if (formData.document_number && !/^\d{5}$/.test(formData.document_number)) {
+        setError('Document Number must be exactly 5 digits.');
+        return;
+      }
 
-  // 2) Bank Name validation (alphabets and spaces only)
-  if (formData.bank_details.bank_name && !/^[a-zA-Z\s]+$/.test(formData.bank_details.bank_name)) {
-    setError('Bank Name can only contain alphabets and spaces.');
-    return;
-  }
+      if (formData.bank_details.bank_name && !/^[a-zA-Z\s]+$/.test(formData.bank_details.bank_name)) {
+        setError('Bank Name can only contain alphabets and spaces.');
+        return;
+      }
 
-  // 3) Branch Name validation (alphabets and spaces only)
-  if (formData.bank_details.branch_name && !/^[a-zA-Z\s]+$/.test(formData.bank_details.branch_name)) {
-    setError('Branch Name can only contain alphabets and spaces.');
-    return;
-  }
+      if (formData.bank_details.branch_name && !/^[a-zA-Z\s]+$/.test(formData.bank_details.branch_name)) {
+        setError('Branch Name can only contain alphabets and spaces.');
+        return;
+      }
 
-  // 4) DOB validation (year must be 2001 or earlier)
-  if (formData.dob) {
-    const dobYear = new Date(formData.dob).getFullYear();
-    if (dobYear > 2001) {
-      setError('Date of Birth year must be 2001 or earlier.');
-      return;
-    }
-  }
+      if (formData.dob) {
+        const dobDate = new Date(formData.dob);
+        const today = new Date();
+        if (dobDate > today) {
+          setError('Date of Birth cannot be in the future');
+          return;
+        }
+        const dobYear = dobDate.getFullYear();
+        if (dobYear > 2001) {
+          setError('Date of Birth year must be 2001 or earlier.');
+          return;
+        }
+      }
 
-  // 5) Share Code format validation (__/__/__)
-  if (formData.shareCode && !/^\d{2}\/\d{2}\/\d{2}$/.test(formData.shareCode)) {
-    setError('Share Code must be in the format __/__/__ (e.g., 12/34/56).');
-    return;
-  }
-   
-    if (formData.bank_details.account_number && !/^\d{8}$/.test(formData.bank_details.account_number)) {
-    setError('Account Number must be exactly 8 digits.');
-    return;
-  }
+      if (formData.shareCode && !/^\d{2}\/\d{2}\/\d{2}$/.test(formData.shareCode)) {
+        setError('Share Code must be in the format __/__/__ (e.g., 12/34/56).');
+        return;
+      }
 
-  // New Validation Logic Ends Here
+      if (formData.bank_details.account_number && !/^\d{8}$/.test(formData.bank_details.account_number)) {
+        setError('Account Number must be exactly 8 digits.');
+        return;
+      }
 
-      // Check if phone number has changed
+      if (formData.address && formData.address.toLowerCase() === 'none') {
+        setError('Address cannot be "none"');
+        return;
+      }
+
+      // Phone number change detection
       if (formData.phone !== user.phone) {
         setNewPhoneNumber(formData.phone);
         setIsPhoneChangeAlertOpen(true);
         return;
       }
+
+      const isEmailChanged = formData.email !== user.email;
 
       const [customerDoc, employeeDoc] = await Promise.all([
         getDoc(doc(db, 'customers', formData.phone)),
@@ -254,50 +314,39 @@ const UserDetails = () => {
         member_since: formData.member_since || new Date().toISOString(),
         shareCode: formData.shareCode,
         updatedAt: new Date(),
-        userId: formData.userId
+        userId: formData.userId,
+        emailVerified: false, // Reset on change
       };
 
-      // Handle Customer Updates/Creation
       if (customerDoc.exists()) {
         const existingCustomerData = customerDoc.data();
         const customerUpdate = {
           ...commonData,
           role: 'customer',
-          customerID: formData.role === 'customer'
-            ? formData.customerID
-            : existingCustomerData.customerID
+          customerID: formData.role === 'customer' ? formData.customerID : existingCustomerData.customerID
         };
         delete customerUpdate.employeeID;
         delete customerUpdate.changeField;
 
-        updates.push(
-          updateDoc(doc(db, 'customers', formData.phone), customerUpdate)
-        );
+        updates.push(updateDoc(doc(db, 'customers', formData.phone), customerUpdate));
       }
 
-      // Handle Employee Updates/Creation
       if (employeeDoc.exists()) {
         const existingEmployeeData = employeeDoc.data();
         const employeeUpdate = {
           ...commonData,
           role: formData.role !== 'customer' ? formData.role : existingEmployeeData.role,
-          employeeID: formData.role !== 'customer'
-            ? formData.employeeID
-            : existingEmployeeData.employeeID
+          employeeID: formData.role !== 'customer' ? formData.employeeID : existingEmployeeData.employeeID
         };
 
-        // Always track changes for employee documents
         employeeChanges = trackEmployeeChanges(existingEmployeeData, employeeUpdate);
         if (employeeChanges.length > 0) {
           employeeUpdate.changeField = arrayUnion(...employeeChanges);
         }
 
-        updates.push(
-          updateDoc(doc(db, 'users_01', formData.phone), employeeUpdate)
-        );
+        updates.push(updateDoc(doc(db, 'users_01', formData.phone), employeeUpdate));
       }
 
-      // Handle new document creation
       if (!customerDoc.exists() && formData.role === 'customer') {
         const customerData = {
           ...commonData,
@@ -307,21 +356,10 @@ const UserDetails = () => {
         delete customerData.employeeID;
         delete customerData.changeField;
 
-        updates.push(
-          setDoc(doc(db, 'customers', formData.phone), customerData)
-        );
+        updates.push(setDoc(doc(db, 'customers', formData.phone), customerData));
       }
 
       if (!employeeDoc.exists() && formData.role !== 'customer') {
-        const empQuery = query(collection(db, 'users_01'),
-          where('employeeID', '==', formData.employeeID));
-        const empSnapshot = await getDocs(empQuery);
-
-        if (!empSnapshot.empty) {
-          setError('Employee ID already exists');
-          return;
-        }
-
         const employeeData = {
           ...commonData,
           role: formData.role,
@@ -329,12 +367,9 @@ const UserDetails = () => {
           changeField: arrayUnion(...trackEmployeeChanges({}, formData))
         };
 
-        updates.push(
-          setDoc(doc(db, 'users_01', formData.phone), employeeData)
-        );
+        updates.push(setDoc(doc(db, 'users_01', formData.phone), employeeData));
       }
 
-      // Handle role conversions
       if (formData.role === 'customer' && employeeDoc?.exists()) {
         updates.push(
           updateDoc(doc(db, 'users_01', formData.phone), {
@@ -357,13 +392,10 @@ const UserDetails = () => {
 
       await Promise.all(updates);
 
-      // Update local state with the latest changes
       setUser(prev => ({
         ...prev,
         ...formData,
-        changeField: employeeDoc.exists()
-          ? [...(prev.changeField || []), ...employeeChanges]
-          : prev.changeField || [],
+        changeField: employeeDoc.exists() ? [...(prev.changeField || []), ...employeeChanges] : prev.changeField || [],
         originalRole: isConvertingToCustomer ? employeeDoc.data().role : prev.originalRole
       }));
 
@@ -375,7 +407,6 @@ const UserDetails = () => {
     }
   };
 
-  // Display changes with awareness
   const ChangeAwareDisplay = ({ field, value, changes }) => {
     if (!changes || changes.length === 0) return <span>{displayValue(value)}</span>;
 
@@ -393,7 +424,6 @@ const UserDetails = () => {
     );
   };
 
-  // Render duplicate profiles
   if (duplicateProfiles.length > 0) {
     return (
       <div className="max-w-4xl mx-auto p-4">
@@ -430,22 +460,20 @@ const UserDetails = () => {
     );
   }
 
-  // Loading state
   if (!user) return <div className="p-4 text-center">Loading...</div>;
 
-  // Main render
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">User Details</h1>
         </div>
-         <button
-            onClick={() => navigate(-1)}
-            className="ml-auto mr-2 bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
-          >
-            Go Back
-          </button>
+        <button
+          onClick={() => navigate(-1)}
+          className="ml-auto mr-2 bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
+        >
+          Go Back
+        </button>
         <button
           onClick={handleEdit}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -471,21 +499,18 @@ const UserDetails = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Name</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="name"
-                value={user.name}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="name" value={user.name} changes={user?.changeField || []} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Email</label>
-            <div className="mt-1">
-              <ChangeAwareDisplay
-                field="email"
-                value={user.email}
-                changes={user?.changeField || []}
-              />
+            <div className="mt-1 flex items-center gap-2">
+              <ChangeAwareDisplay field="email" value={user.email} changes={user?.changeField || []} />
+              {user?.emailVerified && (
+                <span className="text-green-600 text-sm font-semibold border border-green-600 px-2 py-0.5 rounded-full">
+                  Verified
+                </span>
+              )}
             </div>
           </div>
           <div>
@@ -502,31 +527,19 @@ const UserDetails = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Address</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="address"
-                value={user.address}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="address" value={user.address} changes={user?.changeField || []} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="dob"
-                value={user.dob}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="dob" value={user.dob} changes={user?.changeField || []} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Document Number</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="document_number"
-                value={user.document_number}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="document_number" value={user.document_number} changes={user?.changeField || []} />
             </div>
           </div>
           <div>
@@ -536,11 +549,7 @@ const UserDetails = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Share Code</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="shareCode"
-                value={user.shareCode}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="shareCode" value={user.shareCode} changes={user?.changeField || []} />
             </div>
           </div>
         </div>
@@ -549,38 +558,24 @@ const UserDetails = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Bank Name</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="bank_details.bank_name"
-                value={user.bank_details?.bank_name}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="bank_details.bank_name" value={user.bank_details?.bank_name} changes={user?.changeField || []} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Account Number</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="bank_details.account_number"
-                value={user.bank_details?.account_number}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="bank_details.account_number" value={user.bank_details?.account_number} changes={user?.changeField || []} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Branch Name</label>
             <div className="mt-1">
-              <ChangeAwareDisplay
-                field="bank_details.branch_name"
-                value={user.bank_details?.branch_name}
-                changes={user?.changeField || []}
-              />
+              <ChangeAwareDisplay field="bank_details.branch_name" value={user.bank_details?.branch_name} changes={user?.changeField || []} />
             </div>
           </div>
-          
         </div>
       </div>
 
-      {/* Edit Dialog */}
       <Transition appear show={isEditOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={() => setIsEditOpen(false)}>
           <div className="fixed inset-0 bg-black/30" />
@@ -594,7 +589,10 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Name*</label>
                       <input
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -603,7 +601,10 @@ const UserDetails = () => {
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, email: e.target.value });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -611,7 +612,10 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Phone*</label>
                       <input
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, phone: e.target.value });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -619,11 +623,14 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Role*</label>
                       <select
                         value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, role: e.target.value });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       >
                         <option value="customer">Customer</option>
-                        <option value="employee">Employee</option>
+                        <option value="teammember">Team Member</option> {/* Changed from employee to teammember */}
                         <option value="manager">Manager</option>
                         <option value="teamleader">Team Leader</option>
                         <option value="admin">Admin</option>
@@ -634,7 +641,10 @@ const UserDetails = () => {
                         <label className="block text-sm font-medium mb-1">Customer ID*</label>
                         <input
                           value={formData.customerID}
-                          onChange={(e) => setFormData({ ...formData, customerID: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, customerID: e.target.value });
+                            setError('');
+                          }}
                           className="w-full p-2 border rounded"
                         />
                       </div>
@@ -643,7 +653,10 @@ const UserDetails = () => {
                         <label className="block text-sm font-medium mb-1">Employee ID*</label>
                         <input
                           value={formData.employeeID}
-                          onChange={(e) => setFormData({ ...formData, employeeID: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, employeeID: e.target.value });
+                            setError('');
+                          }}
                           className="w-full p-2 border rounded"
                         />
                       </div>
@@ -652,7 +665,10 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Address</label>
                       <input
                         value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, address: e.target.value });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -661,7 +677,10 @@ const UserDetails = () => {
                       <input
                         type="date"
                         value={formData.dob}
-                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, dob: e.target.value });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -669,7 +688,10 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Document Number</label>
                       <input
                         value={formData.document_number}
-                        onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, document_number: e.target.value });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -677,7 +699,9 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Share Code</label>
                       <input
                         value={formData.shareCode}
-                        onChange={(e) => setFormData({ ...formData, shareCode: e.target.value })}
+                        onChange={handleShareCodeChange}
+                        placeholder="e.g., 12/34/56"
+                        maxLength={8}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -685,10 +709,13 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Bank Name</label>
                       <input
                         value={formData.bank_details.bank_name}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          bank_details: { ...formData.bank_details, bank_name: e.target.value }
-                        })}
+                        onChange={(e) => {
+                          setFormData({
+                            ...formData,
+                            bank_details: { ...formData.bank_details, bank_name: e.target.value }
+                          });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -696,10 +723,13 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Account Number</label>
                       <input
                         value={formData.bank_details.account_number}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          bank_details: { ...formData.bank_details, account_number: e.target.value }
-                        })}
+                        onChange={(e) => {
+                          setFormData({
+                            ...formData,
+                            bank_details: { ...formData.bank_details, account_number: e.target.value }
+                          });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
@@ -707,14 +737,16 @@ const UserDetails = () => {
                       <label className="block text-sm font-medium mb-1">Branch Name</label>
                       <input
                         value={formData.bank_details.branch_name}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          bank_details: { ...formData.bank_details, branch_name: e.target.value }
-                        })}
+                        onChange={(e) => {
+                          setFormData({
+                            ...formData,
+                            bank_details: { ...formData.bank_details, branch_name: e.target.value }
+                          });
+                          setError('');
+                        }}
                         className="w-full p-2 border rounded"
                       />
                     </div>
-                    
                   </div>
                   {error && <p className="text-red-500 text-sm">{error}</p>}
                   {successMessage && <p className="text-green-500 text-sm">{successMessage}</p>}
@@ -739,7 +771,6 @@ const UserDetails = () => {
         </Dialog>
       </Transition>
 
-      {/* Phone Change Alert Dialog */}
       <Transition appear show={isPhoneChangeAlertOpen} as={Fragment}>
         <Dialog as="div" className="relative z-20" onClose={() => setIsPhoneChangeAlertOpen(false)}>
           <Transition.Child
@@ -768,7 +799,7 @@ const UserDetails = () => {
                   <Dialog.Title className="text-lg font-bold mb-4">Phone Number Change Detected</Dialog.Title>
                   <div className="space-y-4">
                     <p className="text-gray-600">
-                      You have changed the phone number from {user?.phone} to {newPhoneNumber}. 
+                      You have changed the phone number from {user?.phone} to {newPhoneNumber}.
                       Do you want to proceed with the phone number change?
                     </p>
                     {error && <p className="text-red-500 text-sm">{error}</p>}

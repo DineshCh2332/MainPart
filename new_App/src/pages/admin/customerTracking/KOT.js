@@ -7,12 +7,13 @@ import {
   orderBy,
 } from "firebase/firestore";
 
-import "../../../css/KOT.css";
-
 const KOT = () => {
   const [kotData, setKotData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [selectedDate, setSelectedDate] = useState("");
+  const today = new Date().toISOString().split("T")[0];
+const [selectedDate, setSelectedDate] = useState(today);
+
+
 
   useEffect(() => {
     const q = query(collection(db, "KOT"), orderBy("date", "desc"));
@@ -47,62 +48,66 @@ const KOT = () => {
   }, [kotData, selectedDate]);
 
   return (
-    <div className="kot-container">
-      <h2>Kitchen Order Tickets</h2>
+   
+  <div className="kot-container px-8 py-6 bg-gray-100 min-h-screen font-sans">
+    <h2 className="text-3xl font-bold text-gray-800 mb-6">🍽️ Kitchen Order Tickets</h2>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label>
-          Filter by Date:{" "}
-          <input 
-            type="date" 
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
-          {selectedDate && (
-            <button onClick={() => setSelectedDate("")}
-            className="ml-4 px-3 py-1.5 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors duration-200 font-medium"
-            >
-              Clear Filter
-              
-            </button>
-          )}
-        </label>
-      </div>
+    <div className="flex flex-wrap items-center gap-4 mb-6">
+      <label className="text-gray-700 font-medium flex items-center">
+        Filter by Date:
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="ml-3 px-4 py-2 rounded-md border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+        />
+      </label>
 
-      <table className="kot-table">
-        <thead>
+      {selectedDate && (
+        <button
+          onClick={() => setSelectedDate("")}
+          className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition duration-200"
+        >
+          Clear Filter
+        </button>
+      )}
+    </div>
+
+    <div className="overflow-x-auto bg-white shadow-md rounded-xl">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-100 sticky top-0 z-10">
           <tr>
-            <th>KOT ID</th>
-            <th>Customer</th>
-            <th>Items</th>
-            <th>Total</th>
-            <th>Date</th>
+            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">KOT ID</th>
+            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Customer</th>
+            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Items</th>
+            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Total</th>
+            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="bg-white divide-y divide-gray-200">
           {filteredData.length > 0 ? (
             filteredData.map((kot) => (
-              <tr key={kot.id}>
-                <td>{kot.id}</td>
-                <td>{kot.customerID}</td>
-                <td>
+              <tr key={kot.id} className="hover:bg-gray-50 transition">
+                <td className="px-6 py-4 text-sm text-gray-800">{kot.id}</td>
+                <td className="px-6 py-4 text-sm text-gray-800">{kot.customerID || 'Walk-in'}</td>
+                <td className="px-6 py-4 text-sm text-gray-700 space-y-1">
                   {kot.items?.map(item => (
-                    <div key={item.id}>
-                      {item.name} (x{item.quantity})
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <span>{item.name}</span>
+                      <span className="ml-2 font-medium text-gray-600">x{item.quantity}</span>
                     </div>
                   ))}
                 </td>
-                <td>£{
-                  (typeof kot.amount === 'number' ? kot.amount : 
-                  typeof kot.amount === 'string' ? parseFloat(kot.amount) : 0
-                  ).toFixed(2)
+                <td className="px-6 py-4 text-sm font-semibold text-green-700">£{
+                  (typeof kot.amount === 'number' ? kot.amount :
+                  typeof kot.amount === 'string' ? parseFloat(kot.amount) : 0).toFixed(2)
                 }</td>
-                <td>{kot.date}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{kot.date}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="5" style={{ textAlign: 'center' }}>
+              <td colSpan="5" className="text-center px-6 py-6 text-gray-500">
                 No KOTs found for selected date.
               </td>
             </tr>
@@ -110,7 +115,11 @@ const KOT = () => {
         </tbody>
       </table>
     </div>
-  );
+  </div>
+);
+
+
+  
 };
 
 export default KOT;

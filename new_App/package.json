@@ -1,5 +1,5 @@
 {
-  "name": "inventory-management",
+  "name": "BHX",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -16,6 +16,7 @@
     "firebase-admin": "^13.3.0",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-apexcharts": "^1.7.0",
     "react-calendar": "^5.1.0",
@@ -26,6 +27,7 @@
     "react-phone-input-2": "^2.15.1",
     "react-router-dom": "^6.30.0",
     "react-scripts": "5.0.1",
+    "react-select": "^5.10.1",
     "react-toastify": "^11.0.5",
     "sonner": "^2.0.3",
     "tailwind": "^4.0.0",

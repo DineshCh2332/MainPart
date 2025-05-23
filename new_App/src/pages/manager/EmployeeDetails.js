@@ -12,25 +12,24 @@ const Employees = () => {
   const [error, setError] = useState("");
   const editRef = useRef(null);
 
- 
   useEffect(() => {
     const loadUser = async () => {
       try {
         const userRef = doc(db, "users_01", id);
         const userSnap = await getDoc(userRef);
-  
+
         if (!userSnap.exists()) {
           console.error("User not found");
           return;
         }
-  
+
         const userData = userSnap.data();
-        
+
         // Directly use the string value and split at 'T'
-        const formattedMemberSince = userData.member_since 
+        const formattedMemberSince = userData.member_since
           ? userData.member_since.split('T')[0]
           : "N/A";
-  
+
         setUser({
           id: userSnap.id,
           name: userData.name,
@@ -46,13 +45,40 @@ const Employees = () => {
         console.error("Error loading user:", error);
       }
     };
-  
+
     loadUser();
   }, [id]);
 
   const validateField = (field, value) => {
-    if (field === "dob" && !value) return "Date of Birth cannot be empty";
-    if (value.trim() === "") return "Field cannot be empty";
+    if (field === "name" && value.trim() === "") return "Name cannot be empty";
+    if (field === "email") {
+      if (value.trim() === "") return "Email cannot be empty";
+      if (!/\S+@\S+\.\S+/.test(value)) return "Invalid email format";
+    }
+    if (field === "dob") {
+      if (!value) return "Date of Birth cannot be empty";
+      const dobDate = new Date(value);
+      const today = new Date();
+      if (dobDate > today) return "Date of Birth cannot be in the future";
+    }
+    if (field === "address" && value.trim() === "") return "Address cannot be empty";
+    return null;
+  };
+
+  const checkEmailUnique = async (email) => {
+    const usersQuery = query(collection(db, "users_01"), where("email", "==", email));
+    const customersQuery = query(collection(db, "customers"), where("email", "==", email));
+    const [usersSnapshot, customersSnapshot] = await Promise.all([
+      getDocs(usersQuery),
+      getDocs(customersQuery),
+    ]);
+
+    const existingUsers = usersSnapshot.docs.filter(doc => doc.id !== id);
+    const existingCustomers = customersSnapshot.docs;
+
+    if (existingUsers.length > 0 || existingCustomers.length > 0) {
+      return "Email already exists";
+    }
     return null;
   };
 
@@ -69,17 +95,25 @@ const Employees = () => {
       return;
     }
 
+    if (editableField === "email") {
+      const emailError = await checkEmailUnique(updatedValue);
+      if (emailError) {
+        setError(emailError);
+        return;
+      }
+    }
+
     try {
       // Update users_01 collection
       const userRef = doc(db, "users_01", id);
       const updatedData = { [editableField]: updatedValue };
-      
+
       // Check if user exists in customers collection
       const customerRef = doc(db, "customers", id);
       const customerSnap = await getDoc(customerRef);
 
       const updates = [updateDoc(userRef, updatedData)];
-      
+
       if (customerSnap.exists()) {
         updates.push(updateDoc(customerRef, updatedData));
       }

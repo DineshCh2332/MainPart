@@ -16,7 +16,8 @@ const MemberAttendance = () => {
   // Calculate worked hours
   const calculateWorkedHours = (checkIn, checkOut) => {
     if (!checkIn || !checkOut) return "Incomplete";
-    const duration = checkOut - checkIn;
+    let duration = checkOut - checkIn;
+    duration = duration - 30 * 60 * 1000;
     const hrs = Math.floor(duration / (1000 * 60 * 60));
     const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
     return `${hrs}h ${mins}m`;
@@ -38,14 +39,12 @@ const MemberAttendance = () => {
       // Query users_01 to find the document with matching employeeID
       const usersQuery = query(
         collection(db, "users_01"),
-        where("employeeID", "==", empId.trim()),
-        where("role", "==", "employee"),
-        where("active", "==", true)
+        where("employeeID", "==", empId.trim())
       );
       const usersSnapshot = await getDocs(usersQuery);
 
       if (usersSnapshot.empty) {
-        setError('Employee ID not found or user is not an active employee.');
+        setError('Employee ID not found.');
         setLoading(false);
         return;
       }

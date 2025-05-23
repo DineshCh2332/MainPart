@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState, useCallback } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs, query } from "firebase/firestore";
@@ -31,7 +33,7 @@ const Users = () => {
     Admin: 0,
     Manager: 0,
     TeamLeader: 0,
-    Employee: 0,
+    Teammember: 0, // Changed from Employee to Teammember
     Customer: 0
   });
 
@@ -47,7 +49,7 @@ const Users = () => {
       Admin: 0,
       Manager: 0,
       TeamLeader: 0,
-      Employee: 0,
+      Teammember: 0, // Changed from Employee to Teammember
       Customer: customersList.length
     };
 
@@ -56,7 +58,7 @@ const Users = () => {
       if (role === "admin") counts.Admin++;
       if (role === "manager") counts.Manager++;
       if (role === "teamleader") counts.TeamLeader++;
-      if (role === "employee") counts.Employee++;
+      if (role === "teammember") counts.Teammember++; // Changed from employee to teammember
     });
 
     setRoleCounts(counts);
@@ -222,12 +224,12 @@ const Users = () => {
         </div>
         {Object.entries(roleCounts).map(([role, count]) => (
           <div key={role} className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role + "s"}</h3>
+            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role === "Teammember" ? "Team Members" : role + "s"}</h3>
             <p className={`text-2xl font-bold ${
               role === "Admin" ? "text-purple-600" :
               role === "Manager" ? "text-blue-600" :
               role === "TeamLeader" ? "text-green-600" :
-              role === "Employee" ? "text-yellow-600" : "text-red-600"
+              role === "Teammember" ? "text-yellow-600" : "text-red-600"
             }`}>
               {count}
             </p>
@@ -269,7 +271,7 @@ const Users = () => {
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
                 <option value="teamleader">Team Leader</option>
-                <option value="employee">Employee</option>
+                <option value="teammember">Team Member</option> {/* Changed from employee to teammember */}
               </select>
             </div>
           )}
@@ -338,7 +340,7 @@ const Users = () => {
                         user.role.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-800' :
                         user.role.toLowerCase() === 'manager' ? 'bg-blue-100 text-blue-800' :
                         user.role.toLowerCase() === 'teamleader' ? 'bg-green-100 text-green-800' :
-                        'bg-yellow-100 text-yellow-800'
+                        user.role.toLowerCase() === 'teammember' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
                       }`}>
                         {user.role}
                       </span>

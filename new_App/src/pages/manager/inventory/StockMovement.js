@@ -12,6 +12,7 @@ const InventoryAndWasteHistory = () => {
   const [expandedDates, setExpandedDates] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
 
   useEffect(() => {
     const fetchAllLogs = async () => {
@@ -54,6 +55,10 @@ const InventoryAndWasteHistory = () => {
         // Group logs by date
         const grouped = {};
         [...inventoryLogs, ...wasteLogs].forEach(log => {
+          // Apply single date filter
+          const logDate = new Date(log.timestamp).toDateString();
+          if (selectedDate && logDate !== new Date(selectedDate).toDateString()) return;
+
           if (!grouped[log.date]) {
             grouped[log.date] = {
               date: log.date,
@@ -87,7 +92,7 @@ const InventoryAndWasteHistory = () => {
     };
 
     fetchAllLogs();
-  }, []);
+  }, [selectedDate]);
 
   const handleDateExpand = async (date) => {
     const newSet = new Set(expandedDates);
@@ -211,165 +216,196 @@ const InventoryAndWasteHistory = () => {
     };
   };
 
+  const handleClearFilters = () => {
+    setSelectedDate('');
+  };
+
   if (loading) return <div className="p-6 text-gray-600">Loading logs...</div>;
   if (error) return <div className="p-6 text-red-600">{error}</div>;
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Inventory & Waste History</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Inventory & Waste History</h1>
+        {/* Date Filter */}
+        <div className="flex gap-4 items-center">
+          <div>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1"> </label>
+            <button
+              onClick={handleClearFilters}
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        {Object.values(groupedLogs).map((dateGroup) => {
-          const { totalWaste, totalVariance, hasWaste, hasVariance } = calculateDailyTotals(dateGroup);
-          
-          return (
-            <div key={dateGroup.date} className="bg-white rounded-lg shadow">
-              <div
-                className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50"
-                onClick={() => handleDateExpand(dateGroup.date)}
-              >
-                <div>
-                  <h3 className="font-semibold">
-                    {formatDate(dateGroup.timestamp)}
-                  </h3>
-                  <div className="text-sm text-gray-600 mt-1 flex gap-4">
-                    {hasWaste && (
-                      <span className={`font-medium ${totalWaste !== 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        Total Waste: {totalWaste}
-                      </span>
+        {Object.values(groupedLogs).length > 0 ? (
+          Object.values(groupedLogs).map((dateGroup) => {
+            const { totalWaste, totalVariance, hasWaste, hasVariance } = calculateDailyTotals(dateGroup);
+            
+            return (
+              <div key={dateGroup.date} className="bg-white rounded-lg shadow">
+                <div
+                  className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleDateExpand(dateGroup.date)}
+                >
+                  <div>
+                    <h3 className="font-semibold">
+                      {formatDate(dateGroup.timestamp)}
+                    </h3>
+                    <div className="text-sm text-gray-600 mt-1 flex gap-4">
+                      {hasWaste && (
+                        <span className={`font-medium ${totalWaste !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          Total Waste: {totalWaste}
+                        </span>
+                      )}
+                      {hasVariance && (
+                        <span className={`font-medium ${totalVariance !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          Total Variance: {totalVariance}
+                        </span>
+                      )}
+                      {!hasWaste && !hasVariance && (
+                        <span className="text-gray-500">No activity recorded</span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xl">
+                    {expandedDates.has(dateGroup.date) ? '▼' : '▶'}
+                  </span>
+                </div>
+
+                {expandedDates.has(dateGroup.date) && (
+                  <div className="border-t p-4 bg-gray-50 space-y-6">
+                    {/* Waste Logs Section */}
+                    {dateGroup.wasteLogs.length > 0 && (
+                      <div>
+                        <h4 className="font-medium mb-4">Waste Logs</h4>
+                        {dateGroup.wasteLogs.map(log => (
+                          <div key={log.id} className="mb-6">
+                            <div className="text-sm text-gray-600 mb-2">
+                              Waste logged at: {formatDate(log.timestamp)}
+                              <span className="ml-4 font-medium">Total Waste: {log.totalWaste}</span>
+                            </div>
+                            {log.wasteItems?.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full bg-white rounded shadow">
+                                  <thead className="bg-gray-100">
+                                    <tr>
+                                      <th className="p-3 text-left">Item Name</th>
+                                      <th className="p-3 text-left">Boxes</th>
+                                      <th className="p-3 text-left">Inner</th>
+                                      <th className="p-3 text-left">Units</th>
+                                      <th className="p-3 text-left">Total Waste</th>
+                                      <th className="p-3 text-left">Reason</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {log.wasteItems.map(item => (
+                                      <tr key={item.id} className="border-t">
+                                        <td className="p-3">
+                                          <div className="font-medium">{item.itemName}</div>
+                                          <div className="text-xs text-gray-500">ID: {item.itemId}</div>
+                                        </td>
+                                        <td className="p-3">{item.boxesCount}</td>
+                                        <td className="p-3">{item.innerCount}</td>
+                                        <td className="p-3">{item.unitsCount}</td>
+                                        <td className="p-3">{item.totalWaste}</td>
+                                        <td className="p-3">{item.reason}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-center">No waste items found.</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    {hasVariance && (
-                      <span className={`font-medium ${totalVariance !== 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        Total Variance: {totalVariance}
-                      </span>
-                    )}
-                    {!hasWaste && !hasVariance && (
-                      <span className="text-gray-500">No activity recorded</span>
+
+                    {/* Inventory Logs Section */}
+                    {dateGroup.inventoryLogs.length > 0 && (
+                      <div>
+                        <h4 className="font-medium mb-4">Inventory Counts</h4>
+                        {dateGroup.inventoryLogs.map(log => (
+                          <div key={log.id} className="mb-6">
+                            <div className="text-sm text-gray-600 mb-2 flex gap-4">
+                              <span>Counted at: {formatDate(log.timestamp)}</span>
+                              <span>Type: {log.countType}</span>
+                              <span>Status: {log.status}</span>
+                              <span className={`font-medium ${log.totalVariance !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                Total Variance: {log.totalVariance}
+                              </span>
+                            </div>
+                            {log.items?.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full bg-white rounded shadow">
+                                  <thead className="bg-gray-100">
+                                    <tr>
+                                      <th className="p-3 text-left">Item</th>
+                                      <th className="p-3 text-left">Boxes</th>
+                                      <th className="p-3 text-left">Inners</th>
+                                      <th className="p-3 text-left">Units</th>
+                                      <th className="p-3 text-left">Counted</th>
+                                      <th className="p-3 text-left">Variance</th>
+                                      <th className="p-3 text-left">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {log.items.map(item => (
+                                      <tr key={item.id} className="border-t">
+                                        <td className="p-3">
+                                          <div className="font-medium">{item.itemName}</div>
+                                          <div className="text-xs text-gray-500">ID: {item.itemId}</div>
+                                        </td>
+                                        <td className="p-3">{item.boxes}</td>
+                                        <td className="p-3">{item.inners}</td>
+                                        <td className="p-3">{item.units}</td>
+                                        <td className="p-3">{item.totalCounted}</td>
+                                        <td className={`p-3 font-medium ${item.variance !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                          {item.variance > 0 ? '+' : ''}{item.variance}
+                                        </td>
+                                        <td className="p-3">
+                                          <span className={`px-2 py-1 rounded text-sm ${
+                                            item.status === 'completed'
+                                              ? 'bg-green-100 text-green-800'
+                                              : 'bg-yellow-100 text-yellow-800'
+                                          }`}>
+                                            {item.status}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-center">No items found.</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                </div>
-                <span className="text-xl">
-                  {expandedDates.has(dateGroup.date) ? '▼' : '▶'}
-                </span>
+                )}
               </div>
-
-              {expandedDates.has(dateGroup.date) && (
-                <div className="border-t p-4 bg-gray-50 space-y-6">
-                  {/* Waste Logs Section */}
-                  {dateGroup.wasteLogs.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-4">Waste Logs</h4>
-                      {dateGroup.wasteLogs.map(log => (
-                        <div key={log.id} className="mb-6">
-                          <div className="text-sm text-gray-600 mb-2">
-                            Waste logged at: {formatDate(log.timestamp)}
-                            <span className="ml-4 font-medium">Total Waste: {log.totalWaste}</span>
-                          </div>
-                          {log.wasteItems?.length > 0 ? (
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full bg-white rounded shadow">
-                                <thead className="bg-gray-100">
-                                  <tr>
-                                    <th className="p-3 text-left">Item Name</th>
-                                    <th className="p-3 text-left">Boxes</th>
-                                    <th className="p-3 text-left">Inner</th>
-                                    <th className="p-3 text-left">Units</th>
-                                    <th className="p-3 text-left">Total Waste</th>
-                                    <th className="p-3 text-left">Reason</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {log.wasteItems.map(item => (
-                                    <tr key={item.id} className="border-t">
-                                      <td className="p-3">
-                                        <div className="font-medium">{item.itemName}</div>
-                                        <div className="text-xs text-gray-500">ID: {item.itemId}</div>
-                                      </td>
-                                      <td className="p-3">{item.boxesCount}</td>
-                                      <td className="p-3">{item.innerCount}</td>
-                                      <td className="p-3">{item.unitsCount}</td>
-                                      <td className="p-3">{item.totalWaste}</td>
-                                      <td className="p-3">{item.reason}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          ) : (
-                            <div className="text-gray-500 text-center">No waste items found.</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Inventory Logs Section */}
-                  {dateGroup.inventoryLogs.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-4">Inventory Counts</h4>
-                      {dateGroup.inventoryLogs.map(log => (
-                        <div key={log.id} className="mb-6">
-                          <div className="text-sm text-gray-600 mb-2 flex gap-4">
-                            <span>Counted at: {formatDate(log.timestamp)}</span>
-                            <span>Type: {log.countType}</span>
-                            <span>Status: {log.status}</span>
-                            <span className={`font-medium ${log.totalVariance !== 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              Total Variance: {log.totalVariance}
-                            </span>
-                          </div>
-                          {log.items?.length > 0 ? (
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full bg-white rounded shadow">
-                                <thead className="bg-gray-100">
-                                  <tr>
-                                    <th className="p-3 text-left">Item</th>
-                                    <th className="p-3 text-left">Boxes</th>
-                                    <th className="p-3 text-left">Inners</th>
-                                    <th className="p-3 text-left">Units</th>
-                                    <th className="p-3 text-left">Counted</th>
-                                    <th className="p-3 text-left">Variance</th>
-                                    <th className="p-3 text-left">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {log.items.map(item => (
-                                    <tr key={item.id} className="border-t">
-                                      <td className="p-3">
-                                        <div className="font-medium">{item.itemName}</div>
-                                        <div className="text-xs text-gray-500">ID: {item.itemId}</div>
-                                      </td>
-                                      <td className="p-3">{item.boxes}</td>
-                                      <td className="p-3">{item.inners}</td>
-                                      <td className="p-3">{item.units}</td>
-                                      <td className="p-3">{item.totalCounted}</td>
-                                      <td className={`p-3 font-medium ${item.variance !== 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                        {item.variance > 0 ? '+' : ''}{item.variance}
-                                      </td>
-                                      <td className="p-3">
-                                        <span className={`px-2 py-1 rounded text-sm ${
-                                          item.status === 'completed'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                          {item.status}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          ) : (
-                            <div className="text-gray-500 text-center">No items found.</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <div className="text-gray-500 text-center">No logs found for the selected date.</div>
+        )}
       </div>
     </div>
   );

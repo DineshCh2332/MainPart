@@ -1,34 +1,35 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { format, isToday, isBefore } from 'date-fns';
 import { 
   collection, 
   getDocs, 
   doc, 
-  setDoc, // Changed to setDoc to match AdminAttendance
+  setDoc,
   getDoc,
-  serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 
 const ManagerAttendance = () => {
   const [date, setDate] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]);
+  const [filteredAttendanceData, setFilteredAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(null);
   const [editData, setEditData] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Calculate worked hours
   const calculateWorkedHours = (checkIn, checkOut) => {
     if (!checkIn || !checkOut) return "Incomplete";
-    const duration = checkOut - checkIn;
+    let duration = checkOut - checkIn;
+    duration = duration - 30 * 60 * 1000;
     const hrs = Math.floor(duration / (1000 * 60 * 60));
     const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
     return `${hrs}h ${mins}m`;
   };
 
   // Fetch attendance data
-  const fetchAttendanceData = async (selectedDate) => {
+  const fetchAttendanceData = useCallback(async (selectedDate) => {
     setLoading(true);
     try {
       const yearMonth = format(selectedDate, 'yyyy-MM');
@@ -38,8 +39,8 @@ const ManagerAttendance = () => {
 
       for (const userDoc of allUsers.docs) {
         const userData = userDoc.data();
-        // Only include active employees
-        if (!userData.active || userData.role !== 'employee') {
+        // Exclude admins, include employees and team leaders
+        if (userData.role === 'admin') {
           continue;
         }
 
@@ -70,19 +71,45 @@ const ManagerAttendance = () => {
             originalCheckOut: checkOut,
             checkInEdited: session.checkInEdited || false,
             checkOutEdited: session.checkOutEdited || false,
-            isToday: checkIn ? isToday(checkIn) : false
+            isToday: checkIn ? isToday(checkIn) : false,
+            role: userData.role?.toLowerCase() === 'employee' ? 'Team Member' : userData.role
           });
         });
       }
 
       setAttendanceData(logs.sort((a, b) => b.checkInTime - a.checkInTime));
+      setFilteredAttendanceData(logs.sort((a, b) => b.checkInTime - a.checkInTime));
     } catch (error) {
       console.error("Error fetching attendance data:", error);
       alert("Failed to fetch attendance data. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Filter attendance data based on search term
+  const filterAttendanceData = useCallback(() => {
+    const search = searchTerm.toLowerCase();
+
+    const results = attendanceData.filter((record) => {
+      const empName = (record.empName || "").toLowerCase();
+      const role = (record.role?.toLowerCase() === 'team member' ? 'employee' : record.role || "").toLowerCase();
+      const checkInStr = (record.checkInStr || "").toLowerCase();
+      const checkOutStr = (record.checkOutStr || "").toLowerCase();
+      const worked = (record.worked || "").toLowerCase();
+
+      return (
+        !search ||
+        empName.includes(search) ||
+        role.includes(search) ||
+        checkInStr.includes(search) ||
+        checkOutStr.includes(search) ||
+        worked.includes(search)
+      );
+    });
+
+    setFilteredAttendanceData(results.sort((a, b) => b.checkInTime - a.checkInTime));
+  }, [searchTerm, attendanceData]);
 
   // Save edited attendance
   const saveEdit = async (record) => {
@@ -98,9 +125,9 @@ const ManagerAttendance = () => {
         alert("Invalid session data. Please try again.");
         return;
       }
-      const yearMonth = `${parts[0]}-${parts[1]}`; // e.g., "2025-05"
-      const day = parts[2]; // e.g., "17"
-      const index = parseInt(parts[3]); // e.g., 0
+      const yearMonth = `${parts[0]}-${parts[1]}`;
+      const day = parts[2];
+      const index = parseInt(parts[3]);
       const userId = record.empId;
 
       const userAttendanceRef = doc(db, "users_01", userId, "attendance", yearMonth);
@@ -141,7 +168,7 @@ const ManagerAttendance = () => {
         checkIn: newCheckIn,
         checkOut: newCheckOut,
         editedBy: "Manager",
-        editedAt: new Date(), // Use Date instead of serverTimestamp() to avoid array issues
+        editedAt: new Date(),
         checkInEdited: record.checkInStr !== editData.checkInStr,
         checkOutEdited: record.checkOutStr !== editData.checkOutStr
       };
@@ -151,12 +178,11 @@ const ManagerAttendance = () => {
       days[day] = {
         ...dayData,
         metadata: {
-          created: days[day]?.metadata?.created || new Date(), // Avoid serverTimestamp() in arrays
-          lastUpdated: new Date() // Use Date to ensure consistency
+          created: days[day]?.metadata?.created || new Date(),
+          lastUpdated: new Date()
         }
       };
 
-      // Use setDoc with merge to match AdminAttendance and avoid array issues
       await setDoc(userAttendanceRef, { days }, { merge: true });
       setEditing(null);
       setEditData({});
@@ -169,18 +195,31 @@ const ManagerAttendance = () => {
 
   useEffect(() => {
     fetchAttendanceData(date);
-  }, [date]);
+  }, [date, fetchAttendanceData]);
+
+  useEffect(() => {
+    filterAttendanceData();
+  }, [searchTerm, filterAttendanceData]);
 
   return (
     <div className="max-w-4xl mx-auto my-5 p-5 border border-gray-200 rounded bg-white">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-bold text-gray-800">Manager Attendance</h1>
-        <input
-          type="date"
-          value={format(date, 'yyyy-MM-dd')}
-          onChange={(e) => setDate(new Date(e.target.value))}
-          className="p-2 border border-gray-300 rounded text-sm"
-        />
+        <div className="flex gap-4 items-center">
+          <input
+            type="date"
+            value={format(date, 'yyyy-MM-dd')}
+            onChange={(e) => setDate(new Date(e.target.value))}
+            className="p-2 border border-gray-300 rounded text-sm"
+          />
+          <input
+            type="text"
+            placeholder="Search attendance..."
+            className="p-2 border border-gray-300 rounded text-sm w-64"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="mb-3 text-sm text-gray-700">
@@ -193,7 +232,7 @@ const ManagerAttendance = () => {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Employee</th>
+              <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Team Member</th>
               <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Check-In</th>
               <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Check-Out</th>
               <th className="text-left p-2 bg-blue-600 text-white text-sm border-b">Hours Worked</th>
@@ -201,8 +240,8 @@ const ManagerAttendance = () => {
             </tr>
           </thead>
           <tbody>
-            {attendanceData.length > 0 ? (
-              attendanceData.map((record, index) => (
+            {filteredAttendanceData.length > 0 ? (
+              filteredAttendanceData.map((record, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="p-2 text-sm border-b">{record.empName}</td>
                   <td className="p-2 text-sm border-b">
@@ -275,7 +314,7 @@ const ManagerAttendance = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="py-4 text-center text-gray-500 text-sm">
+                <td colSpan="6" className="py-4 text-center text-gray-500 text-sm">
                   No attendance records found for this date
                 </td>
               </tr>

@@ -134,8 +134,7 @@ const StockCount = () => {
   
       await Promise.all(batchWrites);
   
-      // ... rest of the code remains the same ...
-
+    
       const updatedItems = inventoryItems.map(invItem => {
         const item = items.find(i => i.id === invItem.id);
         return item ? { 

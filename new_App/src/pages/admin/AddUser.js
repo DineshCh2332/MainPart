@@ -1,9 +1,12 @@
+
+
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebase/config";
 import { useNavigate } from "react-router-dom";
 import { collection, addDoc, doc, getDoc, setDoc, query, where, getDocs } from "firebase/firestore";
 import "../../css/Form.css";
 import { Timestamp } from "firebase/firestore";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 
 const initialState = {
   name: "",
@@ -19,7 +22,6 @@ const initialState = {
     account_number: "",
     bank_name: "",
     branch_name: "",
-    ifsc_code: "",
   },
   document_number: "",
   shareCode: "",
@@ -38,45 +40,65 @@ const AddUser = () => {
 
   useEffect(() => {
     if (formData.role === "customer") {
-      setFormData(prev => ({ ...prev, employeeID: "" }));
+      setFormData((prev) => ({ ...prev, employeeID: "" }));
     } else {
-      setFormData(prev => ({ ...prev, customerID: "" }));
+      setFormData((prev) => ({ ...prev, customerID: "" }));
     }
   }, [formData.role]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.startsWith("bank_")) {
-      const field = name.replace("bank_", "");
-      setFormData(prev => ({
+    if (name === "shareCode") {
+      // Remove non-digits and limit to 6 digits
+      let digits = value.replace(/[^\d]/g, "").slice(0, 6);
+      // Format as __/__/__ (e.g., 123456 -> 12/34/56)
+      let formatted = "";
+      if (digits.length > 0) formatted = digits.slice(0, 2);
+      if (digits.length > 2) formatted += "/" + digits.slice(2, 4);
+      if (digits.length > 4) formatted += "/" + digits.slice(4, 6);
+      setFormData((prev) => ({
         ...prev,
-        bank_details: { ...prev.bank_details, [field]: value }
+        shareCode: formatted,
+      }));
+    } else if (name.startsWith("bank_")) {
+      const field = name.replace("bank_", "");
+      setFormData((prev) => ({
+        ...prev,
+        bank_details: { ...prev.bank_details, [field]: value },
       }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const validateForm = () => {
     if (!formData.name) return showError("Full Name is required."), false;
-    if (!formData.phone || !/^\d{10}$/.test(formData.phone)) return showError("Phone number must be exactly 10 digits."), false;
-    if (formData.email && !/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(formData.email)) return showError("Please enter a valid email."), false;
+    if (!formData.phone || !/^\d{10}$/.test(formData.phone))
+      return showError("Phone number must be exactly 10 digits."), false;
+    
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+      return showError("Please enter a valid email."), false;
+}
+
     if (!formData.dob) return showError("Date of Birth is required."), false;
     const birthYear = new Date(formData.dob).getFullYear();
     if (birthYear > 2001) return showError("Date of Birth should be 2001 or earlier."), false;
-    if (!/^[A-Za-z\s]+$/.test(formData.bank_details.bank_name)) return showError("Bank name should only contain alphabets."), false;
-    if (!/^\d{8}$/.test(formData.bank_details.account_number)) return showError("Bank account number must be exactly 8 digits."), false;
-    if (!/^\d{5}$/.test(formData.document_number)) return showError("Document number must be exactly 5 digits."), false;
-    if (formData.shareCode && !/^\d{2}\/\d{2}\/\d{2}$/.test(formData.shareCode)) return showError("Share code format must be __/__/__ (e.g., 12/45/67)."), false;
-
-
- 
+    if (!/^[A-Za-z\s]+$/.test(formData.bank_details.bank_name))
+      return showError("Bank name should only contain alphabets."), false;
+    if (!/^\d{8}$/.test(formData.bank_details.account_number))
+      return showError("Bank account number must be exactly 8 digits."), false;
+    if (!/^\d{5}$/.test(formData.document_number))
+      return showError("Document number must be exactly 5 digits."), false;
+    // Updated validation: shareCode must be exactly 6 digits (ignoring slashes)
+    const shareCodeDigits = formData.shareCode.replace(/[^\d]/g, "");
+    if (formData.shareCode && !/^\d{6}$/.test(shareCodeDigits))
+      return showError("Share code must be exactly 6 digits."), false;
 
     if (formData.role === "customer") {
-      if (!formData.customerID || !/^[0-9]{9}$/.test(formData.customerID)) 
+      if (!formData.customerID || !/^[0-9]{9}$/.test(formData.customerID))
         return showError("Customer ID must be 9 digits."), false;
     } else {
-      if (!formData.employeeID || !/^[0-9]{5}$/.test(formData.employeeID)) 
+      if (!formData.employeeID || !/^[0-9]{5}$/.test(formData.employeeID))
         return showError("Employee ID must be 5 digits."), false;
     }
 
@@ -93,45 +115,83 @@ const AddUser = () => {
       userId = Math.floor(100000000 + Math.random() * 900000000).toString();
       const usersQuery = query(collection(db, "users_01"), where("userId", "==", userId));
       const customersQuery = query(collection(db, "customers"), where("userId", "==", userId));
-      const [usersSnapshot, customersSnapshot] = await Promise.all([getDocs(usersQuery), getDocs(customersQuery)]);
-      if (usersSnapshot.empty && customersSnapshot.empty) isUnique = true;
+
+      try {
+        const [usersSnapshot, customersSnapshot] = await Promise.all([
+          getDocs(usersQuery),
+          getDocs(customersQuery),
+        ]);
+        if (usersSnapshot.empty && customersSnapshot.empty) {
+          isUnique = true;
+        }
+      } catch (err) {
+        console.error("Error checking unique user ID:", err);
+        throw new Error("Failed to verify unique user ID. Please try again.");
+      }
     }
     return userId;
   };
 
   const checkForDuplicates = async (docId) => {
-    const usersDoc = await getDoc(doc(db, "users_01", docId));
-    const customersDoc = await getDoc(doc(db, "customers", docId));
-    if (usersDoc.exists() || customersDoc.exists()) {
-      showError("A user with this phone number already exists.");
+    try {
+      const usersDoc = await getDoc(doc(db, "users_01", docId));
+      const customersDoc = await getDoc(doc(db, "customers", docId));
+      if (usersDoc.exists() || customersDoc.exists()) {
+        showError("A user with this phone number already exists.");
+        return true;
+      }
+
+      if (formData.email) {
+        const emailQuery = query(collection(db, "users_01"), where("email", "==", formData.email));
+        const emailSnapshot = await getDocs(emailQuery);
+        if (!emailSnapshot.empty) {
+          showError("A user with this email already exists.");
+          return true;
+        }
+      }
+
+      if (formData.role === "customer") {
+        const customerIDQuery = query(
+          collection(db, "customers"),
+          where("customerID", "==", formData.customerID)
+        );
+        const customerIDInUsersQuery = query(
+          collection(db, "users_01"),
+          where("customerID", "==", formData.customerID)
+        );
+        const [customerIDSnapshot, customerIDUsersSnapshot] = await Promise.all([
+          getDocs(customerIDQuery),
+          getDocs(customerIDInUsersQuery),
+        ]);
+        if (!customerIDSnapshot.empty || !customerIDUsersSnapshot.empty) {
+          showError("Customer ID already exists.");
+          return true;
+        }
+      } else {
+        const employeeIDQuery = query(
+          collection(db, "users_01"),
+          where("employeeID", "==", formData.employeeID)
+        );
+        const employeeIDInCustomersQuery = query(
+          collection(db, "customers"),
+          where("employeeID", "==", formData.employeeID)
+        );
+        const [employeeIDSnapshot, employeeIDCustomersSnapshot] = await Promise.all([
+          getDocs(employeeIDQuery),
+          getDocs(employeeIDInCustomersQuery),
+        ]);
+        if (!employeeIDSnapshot.empty || !employeeIDCustomersSnapshot.empty) {
+          showError("Employee ID already exists.");
+          return true;
+        }
+      }
+
+      return false;
+    } catch (err) {
+      console.error("Error checking for duplicates:", err);
+      showError("Error checking for existing users. Please try again.");
       return true;
     }
-
-    if (formData.email) {
-      const emailQuery = query(
-        collection(db, "users_01"),
-        where("email", "==", formData.email)
-      );
-      const emailSnapshot = await getDocs(emailQuery);
-      if (!emailSnapshot.empty) {
-        showError("A user with this email already exists.");
-        return true;
-      }
-    }
-
-    if (formData.role !== "customer") {
-      const empQuery = query(
-        collection(db, "users_01"),
-        where("employeeID", "==", formData.employeeID)
-      );
-      const empSnapshot = await getDocs(empQuery);
-      if (!empSnapshot.empty) {
-        showError("A user with this Employee ID already exists.");
-        return true;
-      }
-    }
-
-    return false;
   };
 
   const handleSubmit = async (e) => {
@@ -144,16 +204,38 @@ const AddUser = () => {
     if (await checkForDuplicates(docId)) return;
 
     try {
-      const userId = await generateUniqueUserId();
-      const userData = {
-  ...formData,
-  userId: userId,
-  phone: docId,
-  member_since: new Date().toISOString(),
-  created_at: Timestamp.now(),
-  ...(formData.role !== "customer" && { active: true })
-};
+      const auth = getAuth();
 
+      //step 1:Create user in firebase Auth
+      const userCredentials = await createUserWithEmailAndPassword(auth, formData.email, formData.phone); // using phone as password for simplicity
+
+      // step 2:send verfication email
+      await sendEmailVerification(userCredentials.user);
+
+      const userId = await generateUniqueUserId();
+
+      const userData = {
+        name: formData.name,
+        phone: docId,
+        email: formData.email,
+        dob: formData.dob,
+        address: formData.address,
+        member_since: new Date().toISOString(),
+        created_at: Timestamp.now(),
+        role: formData.role,
+        type: formData.role !== "customer" && {type:"employee"},
+        bank_details: formData.bank_details,
+        document_number: formData.document_number,
+        shareCode: formData.shareCode,
+        countryCode: formData.countryCode,
+        userId: userId,
+        ...(formData.role === "customer"
+          ? { customerID: formData.customerID }
+          : { employeeID: formData.employeeID }
+        ),
+        ...(formData.role !== "customer" && { active: true }),
+        emailVerified: false, // Track verification status
+      };
 
       if (formData.role === "customer") {
         await setDoc(doc(db, "customers", docId), userData);
@@ -161,33 +243,38 @@ const AddUser = () => {
         await setDoc(doc(db, "users_01", docId), userData);
       }
 
-      alert("User added successfully!");
+      alert("User added successfully!.Verification email sent!");
       setFormData(initialState);
+
       navigate("/admin/users");
     } catch (err) {
       console.error("Error adding user:", err);
-      showError("Error adding user. Please try again.");
+
+      if (err.code === "auth/email-already-in-use") {
+        showError("This email is already in use. Please use a different email");
+      } else {
+        showError("Error adding user. Please try again.");
+      }
     }
   };
 
   return (
     <div className="form-container">
       <button
-  style={{
-    width: "150px",
-    backgroundColor: "green",
-    color: "white",
-    border: "2px solid green",
-    borderRadius: "5px",
-    padding: "10px",
-    cursor: "pointer"
-  }}
-  className="BackButton"
-  onClick={() => navigate("/admin/users")}
->
-  Back to Users
-</button>
-
+        style={{
+          width: "150px",
+          backgroundColor: "green",
+          color: "white",
+          border: "2px solid green",
+          borderRadius: "5px",
+          padding: "10px",
+          cursor: "pointer"
+        }}
+        className="BackButton"
+        onClick={() => navigate("/admin/users")}
+      >
+        Back to Users
+      </button>
 
       <h2 style={{ fontSize: "32px" }}>Add User</h2>
       {error && <p className="error">{error}</p>}
@@ -316,10 +403,10 @@ const AddUser = () => {
           <label>Role</label>
           <select name="role" value={formData.role} onChange={handleChange}>
             <option value="admin">Admin</option>
-            <option value="customer">Customer</option>
-            <option value="employee">Employee</option>
             <option value="manager">Manager</option>
-            <option value="teamleader">Teamleader</option>
+            <option value="teamleader">Team Leader</option>
+            <option value="teammember">Team Member</option>
+            <option value="customer">Customer</option>
           </select>
         </div>
 
@@ -356,8 +443,6 @@ const AddUser = () => {
           />
         </div>
 
-        
-
         <div className="input-group">
           <label>Document Number</label>
           <input
@@ -375,7 +460,9 @@ const AddUser = () => {
             name="shareCode"
             value={formData.shareCode}
             onChange={handleChange}
-            placeholder="Share Code"
+            placeholder="12/34/56"
+            pattern="\d{2}/\d{2}/\d{2}"
+            title="Share code must be 6 digits in the format 12/34/56"
           />
         </div>
 

@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
@@ -9,7 +11,7 @@ const Dashboard = () => {
     Admin: 0,
     Manager: 0,
     Teamleader: 0,
-    Employee: 0,
+    Teammember: 0, // Changed from Employee to Teammember
     Customer: 0,
   });
   const location = useLocation();
@@ -36,13 +38,13 @@ const Dashboard = () => {
       setTotalUsers(combinedData.length);
 
       // Count roles
-      const counts = { Admin: 0, Manager: 0, Teamleader: 0, Employee: 0, Customer: 0 };
+      const counts = { Admin: 0, Manager: 0, Teamleader: 0, Teammember: 0, Customer: 0 }; // Changed Employee to Teammember
       combinedData.forEach(user => {
         const role = user.role ? user.role.toLowerCase() : "";
         if (role === "admin") counts.Admin++;
         else if (role === "manager") counts.Manager++;
         else if (role === "teamleader") counts.Teamleader++;
-        else if (role === "employee") counts.Employee++;
+        else if (role === "teammember") counts.Teammember++; // Changed from employee to teammember
         else if (role === "customer") counts.Customer++;
       });
 
@@ -103,10 +105,10 @@ const Dashboard = () => {
         </button>
         <button
           className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
-          onClick={() => handleNavigateWithRole("employee")}
+          onClick={() => handleNavigateWithRole("teammember")} // Changed from employee to teammember
         >
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Employees</h2>
-          <p className="text-2xl font-bold text-gray-900">{roleCounts.Employee}</p>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Team Members</h2>
+          <p className="text-2xl font-bold text-gray-900">{roleCounts.Teammember}</p> 
         </button>
         <button
           className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
