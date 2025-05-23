@@ -220,7 +220,11 @@ const Users = () => {
         </div>
         {Object.entries(roleCounts).map(([role, count]) => (
           <div key={role} className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-gray-500 text-sm">{role === "TeamLeader" ? "Team Leaders" : role + "s"}</h3>
+            <h3 className="text-gray-500 text-sm">
+              {role === "TeamLeader" ? "Team Leaders"
+              :role === "Employee"
+              ? "Team Member":
+              role + "s"}</h3>
             
             <p className={`text-2xl font-bold ${
               role === "Admin" ? "text-purple-600" :

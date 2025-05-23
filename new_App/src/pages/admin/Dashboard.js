@@ -105,7 +105,7 @@ const Dashboard = () => {
           className="bg-white p-6 rounded-lg shadow-md text-center w-full focus:outline-none"
           onClick={() => handleNavigateWithRole("employee")}
         >
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Employees</h2>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Team Members</h2>
           <p className="text-2xl font-bold text-gray-900">{roleCounts.Employee}</p>
         </button>
         <button
