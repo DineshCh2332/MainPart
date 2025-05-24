@@ -123,7 +123,7 @@ const AdminAttendance = () => {
             userName: userData.name,
             checkInStr: checkIn ? format(checkIn, 'HH:mm') : '',
             checkOutStr: checkOut ? format(checkOut, 'HH:mm') : '',
-            worked: calculateWorkedHours(checkIn, checkOut),
+            worked: session.worked_hours || calculateWorkedHours(checkIn, checkOut), 
             userId: userId,
             sessionId: `${yearMonth}-${day}-${index}`,
             checkInTime: checkIn?.getTime() || 0,
@@ -190,11 +190,15 @@ const AdminAttendance = () => {
         alert("Check-out time must be after check-in time!");
         return;
       }
+      
+      
+      const newWorkedHours = calculateWorkedHours(newCheckIn, newCheckOut);
 
       sessions[index] = {
         ...sessions[index],
         checkIn: newCheckIn,
         checkOut: newCheckOut,
+        worked_hours: newWorkedHours,
         editedBy: "Admin",
         editedAt: new Date(),
         checkInEdited: true,
@@ -325,6 +329,7 @@ const AdminAttendance = () => {
       const newSession = {
         checkIn: checkInDate,
         checkOut: checkOutDate,
+         worked_hours: calculateWorkedHours(checkInDate, checkOutDate),
         editedBy: "Admin",
         editedAt: new Date(),
         checkInEdited: false,
