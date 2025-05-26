@@ -71,6 +71,8 @@ const AddUser = () => {
 
   const validateForm = () => {
     if (!formData.name) return showError("Full Name is required."), false;
+    if (!/^[A-Za-z\s]+$/.test(formData.name))
+    return showError("Full Name should only contain alphabets and spaces."), false;
     if (!formData.phone || !/^\d{10}$/.test(formData.phone))
       return showError("Phone number must be exactly 10 digits."), false;
 

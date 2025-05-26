@@ -224,9 +224,13 @@ const UserDetails = () => {
           return;
         }
       }
+      
+      if (!/^[A-Za-z\s]+$/.test(formData.name)) {
+       setError('Full Name should only contain alphabets and spaces.');
+       return;
+      }
 
-      if (!/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)
-      ) {
+      if (!/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)) {
         setError('Invalid email format');
         return;
       }
