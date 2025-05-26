@@ -5,6 +5,7 @@ import SessionButtons from './SessionButtons';
 import SafeCountTable from './SafeCountTable';
 // import '../../../css/SafeCount.css';
 import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { Repeat } from 'lucide-react';
 
 function SafeCountPage() {
@@ -266,6 +267,12 @@ function SafeCountPage() {
     }
   };
 
+  useEffect(() => {
+    fetchSessionsForDate(selectedDate);
+    setCurrentSession(null); // Reset session on date change
+    setShowTransferTable(false);
+  }, [selectedDate]);
+
   function SessionButtons({ sessions, currentSession, onSelect, disabledSessions, onTransferFloats }) {
     return (
       <div className="flex flex-wrap gap-4 mb-6">
@@ -428,6 +435,17 @@ function SafeCountPage() {
 return (
   <div className="container mx-auto p-6 max-w-5xl bg-white rounded-2xl shadow-lg mt-10 mb-10">
   <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-10">Safe Count</h2>
+
+  {/* Calendar for date selection */}
+  <div className="flex justify-center mb-8">
+    <DatePicker
+      selected={selectedDate}
+      onChange={date => setSelectedDate(date)}
+      dateFormat="yyyy-MM-dd"
+      className="border px-4 py-2 rounded-md text-lg"
+      maxDate={new Date()}
+    />
+  </div>
 
   <SessionButtons
     sessions={['morning', 'changeover', 'night', 'change_receive']}
