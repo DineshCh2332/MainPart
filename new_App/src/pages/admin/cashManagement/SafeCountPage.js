@@ -105,11 +105,11 @@ function SafeCountPage() {
     const managerQuery = query(
       collection(db, 'users_01'),
       where("employeeID", "==", authWitnessId.trim()),
-      where("role", "==", "manager")
+      where("role", "in", ["manager", "teamleader"])
     );
     const managerSnap = await getDocs(managerQuery);
     if (managerSnap.empty) {
-      alert('Invalid witness ID or not a manager.');
+      alert('Invalid witness ID or not a manager/team leader.');
       return;
     }
 

@@ -1,4 +1,3 @@
-
 import React, { Fragment, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../firebase/config';
@@ -240,10 +239,26 @@ const UserDetails = () => {
         return;
       }
 
-      if (formData.role !== 'customer' && !formData.employeeID) {
-        setError('Employee ID is required');
-        return;
-      }
+     if (formData.role !== 'customer' && formData.employeeID) {
+  const empIdQuery = query(
+    collection(db, 'users_01'),
+    where('employeeID', '==', formData.employeeID)
+  );
+  const empIdSnapshot = await getDocs(empIdQuery);
+  // If found and not the current user (by phone), it's a duplicate
+  if (
+    !empIdSnapshot.empty &&
+    empIdSnapshot.docs.some(docSnap => docSnap.id !== formData.phone)
+  ) {
+    setError('This Employee ID is already in use by another user.');
+    return;
+  }
+}
+  await Promise.all([
+  getDoc(doc(db, 'customers', formData.phone)),
+  getDoc(doc(db, 'users_01', formData.phone))
+]);
+
 
       if (formData.document_number && !/^\d{5}$/.test(formData.document_number)) {
         setError('Document Number must be exactly 5 digits.');
