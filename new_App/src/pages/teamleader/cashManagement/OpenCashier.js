@@ -43,12 +43,13 @@ export default function OpenCashier() {
   useEffect(() => {
     const fetchCashiers = async () => {
       const q = query(
-        collection(db, "users_01"),
-        where("role", "==", "employee") // Query by role field directly
-      );
+        collection(db, "users_01"));
+
       const snapshot = await getDocs(q);
+
       setCashiers(snapshot.docs.map(doc => {
         const data = doc.data();
+        
         return {
           id: data.employeeID, // Use employeeId instead of document ID
           name: data.name,
@@ -147,17 +148,17 @@ export default function OpenCashier() {
       return;
     }
 
-    // Validate witness (manager with employeeID)
+    // Validate witness (manager or team leader with employeeID)
     const witnessQuery = query(
       collection(db, "users_01"),
       where("employeeID", "==", authWitnessId.trim()),
-      where("role", "==", "manager")
+      where("role", "in", ["manager", "teamleader"]) // Changed to accept both 'manager' and 'teamleader'
     );
     
     const witnessSnap = await getDocs(witnessQuery);
     
     if (witnessSnap.empty) {
-      alert("Invalid witness ID or not a manager.");
+      alert("Invalid witness ID or not a manager/team leader.");
       return;
     }
     // Continue with float creation...
@@ -324,7 +325,7 @@ export default function OpenCashier() {
             <div>
               <label className="block text-base font-medium text-gray-700 mb-2">Cashier Employee ID</label>
               <input
-                type="text"
+                type="password"
                 className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500"
                 value={authCashierId}
                 onChange={(e) => setAuthCashierId(e.target.value)}
@@ -343,7 +344,7 @@ export default function OpenCashier() {
             <div>
               <label className="block text-base font-medium text-gray-700 mb-2">Witness Employee ID</label>
               <input
-                type="text"
+                type="password"
                 className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500"
                 value={authWitnessId}
                 onChange={(e) => setAuthWitnessId(e.target.value)}

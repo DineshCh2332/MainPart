@@ -148,17 +148,17 @@ export default function OpenCashier() {
       return;
     }
 
-    // Validate witness (manager with employeeID)
+    // Validate witness (manager or team leader with employeeID)
     const witnessQuery = query(
       collection(db, "users_01"),
       where("employeeID", "==", authWitnessId.trim()),
-      where("role", "==", "manager")
+      where("role", "in", ["manager", "teamleader"]) // Changed to accept both 'manager' and 'teamleader'
     );
     
     const witnessSnap = await getDocs(witnessQuery);
     
     if (witnessSnap.empty) {
-      alert("Invalid witness ID or not a manager.");
+      alert("Invalid witness ID or not a manager/team leader.");
       return;
     }
     // Continue with float creation...
