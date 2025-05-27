@@ -1,7 +1,8 @@
-import React, { useState, useEffect , useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, isBefore } from 'date-fns';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { FiArrowUp, FiArrowDown } from 'react-icons/fi';
 
 const MemberAttendance = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -11,31 +12,95 @@ const MemberAttendance = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [employeeName, setEmployeeName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [totalHours, setTotalHours] = useState('0h 0m');
+  const [sortField, setSortField] = useState('date'); // Default sort by date
+  const [sortDirection, setSortDirection] = useState('desc'); // Default descending
 
-  // Calculate worked hours
-  const calculateWorkedHours = useMemo(() => {
-  return (checkIn, checkOut) => {
-    if (!checkIn || !checkOut) return "Incomplete";
-
-    let duration = checkOut - checkIn;
-
-    // Break deduction logic:
-    if (duration >= 12.5 * 60 * 60 * 1000) {
-      // 12h 30m and above → 1 hour break
-      duration -= 60 * 60 * 1000;
-    } else if (duration >= 4.5 * 60 * 60 * 1000) {
-      // 4h 30m to 12h 29m → 30 minute break
-      duration -= 30 * 60 * 1000;
-    }
-    // Else → no deduction
-
-    const hrs = Math.floor(duration / (1000 * 60 * 60));
-    const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `${hrs}h ${mins}m`;
+  // Calculate total work hours from worked_hours
+  const calculateTotalHours = (data) => {
+    let totalMinutes = 0;
+    data.forEach((record) => {
+      if (record.worked && record.worked !== 'N/A') {
+        const match = record.worked.match(/^(\d+)h\s*(\d+)m$/);
+        if (match) {
+          const hours = parseInt(match[1], 10);
+          const minutes = parseInt(match[2], 10);
+          totalMinutes += hours * 60 + minutes;
+        }
+      }
+    });
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
   };
-}, []);
+
+  // Parse duration (e.g., "5h 30m") to minutes for sorting
+  const parseDurationToMinutes = (duration) => {
+    if (!duration || duration === 'N/A') return 0;
+    const match = duration.match(/^(\d+)h\s*(\d+)m$/);
+    if (match) {
+      const hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      return hours * 60 + minutes;
+    }
+    return 0;
+  };
+
+  // Parse time (e.g., "14:30" or "--:--") for sorting
+  const parseTime = (time) => {
+    if (!time || time === '--:--') return '00:00';
+    return time;
+  };
+
+  // Sort attendance data
+  const sortData = (data) => {
+    return [...data].sort((a, b) => {
+      let valueA, valueB;
+      switch (sortField) {
+        case 'date':
+          valueA = new Date(a.date.split('-').reverse().join('-'));
+          valueB = new Date(b.date.split('-').reverse().join('-'));
+          break;
+        case 'checkIn':
+          valueA = parseTime(a.checkInStr);
+          valueB = parseTime(b.checkInStr);
+          break;
+        case 'checkOut':
+          valueA = parseTime(a.checkOutStr);
+          valueB = parseTime(b.checkOutStr);
+          break;
+        case 'duration':
+          valueA = parseDurationToMinutes(a.worked);
+          valueB = parseDurationToMinutes(b.worked);
+          break;
+        default:
+          return 0;
+      }
+      if (sortDirection === 'asc') {
+        return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+      } else {
+        return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+      }
+    });
+  };
+
+  // Handle sort toggle
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Update sorted data when sortField or sortDirection changes
+  useEffect(() => {
+    if (attendanceData.length > 0) {
+      setAttendanceData(sortData(attendanceData));
+    }
+  }, [sortField, sortDirection]);
 
   // Fetch attendance data for the employee
   const fetchAttendanceData = async (empId) => {
@@ -47,7 +112,7 @@ const MemberAttendance = () => {
     setError('');
     setAttendanceData([]);
     setEmployeeName('');
-    setPhoneNumber('');
+    setTotalHours('0h 0m');
 
     try {
       // Query users_01 to find the document with matching employeeID
@@ -68,7 +133,6 @@ const MemberAttendance = () => {
       const userData = userDoc.data();
       const phoneNum = userDoc.id; // Document ID is the phone number
       setEmployeeName(userData.name || empId);
-      setPhoneNumber(phoneNum);
 
       // Fetch all attendance subcollections
       const attendanceCollection = collection(db, "users_01", phoneNum, "attendance");
@@ -84,11 +148,15 @@ const MemberAttendance = () => {
           const dayData = daysMap[day];
           if (!dayData?.sessions?.length) return;
 
-          dayData.sessions.forEach((session, index) => {
-            const checkIn = session.checkIn?.toDate();
-            const checkOut = session.checkOut?.toDate();
+          dayData.sessions.forEach((session) => {
+            const checkIn = session.checkIn && typeof session.checkIn.toDate === 'function'
+              ? session.checkIn.toDate()
+              : (session.checkIn instanceof Date ? session.checkIn : null);
+            const checkOut = session.checkOut && typeof session.checkOut.toDate === 'function'
+              ? session.checkOut.toDate()
+              : (session.checkOut instanceof Date ? session.checkOut : null);
 
-            // Apply date range filter
+            // Apply date range filter only if both startDate and endDate are set
             if (startDate && endDate) {
               const recordDate = new Date(checkIn);
               recordDate.setHours(0, 0, 0, 0);
@@ -103,21 +171,17 @@ const MemberAttendance = () => {
               date: checkIn ? format(checkIn, 'dd-MMM-yyyy') : '',
               checkInStr: checkIn ? format(checkIn, 'HH:mm') : '',
               checkOutStr: checkOut ? format(checkOut, 'HH:mm') : '',
-              worked: calculateWorkedHours(checkIn, checkOut),
-              empId: phoneNum,
-              sessionId: `${yearMonth}-${day}-${index}`,
-              checkInTime: checkIn?.getTime() || 0,
-              originalCheckIn: checkIn,
-              originalCheckOut: checkOut,
+              worked: session.worked_hours || 'N/A',
               checkInEdited: session.checkInEdited || false,
               checkOutEdited: session.checkOutEdited || false,
-              editedAt: session.editedAt?.toDate()
             });
           });
         });
       }
 
-      setAttendanceData(logs.sort((a, b) => b.checkInTime - a.checkInTime));
+      const sortedLogs = sortData(logs); // Apply initial sort
+      setAttendanceData(sortedLogs);
+      setTotalHours(calculateTotalHours(sortedLogs));
     } catch (error) {
       console.error("Error fetching attendance data:", error);
       setError('Failed to fetch attendance data. Please try again.');
@@ -130,6 +194,7 @@ const MemberAttendance = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     fetchAttendanceData(employeeId);
+    setShowSearchInput(false);
   };
 
   // Handle date range filter
@@ -149,133 +214,215 @@ const MemberAttendance = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto my-8 p-6 bg-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">My Attendance</h1>
-
-      {/* Employee ID Form */}
-      <form onSubmit={handleSubmit} className="mb-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1">
-            <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-1">
-              Employee ID
-            </label>
-            <input
-              type="text"
-              id="employeeId"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              placeholder="Enter your Employee ID"
-              className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-          >
-            View Attendance
-          </button>
-        </div>
-      </form>
-
-      {/* Date Range Filter */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-md">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Filter by Date Range</h2>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div>
-            <label htmlFor="startDate" className="block text-sm text-gray-600 mb-1">
-              Start Date
-            </label>
-            <input
-              type="date"
-              id="startDate"
-              value={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
-              onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-              className="p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="endDate" className="block text-sm text-gray-600 mb-1">
-              End Date
-            </label>
-            <input
-              type="date"
-              id="endDate"
-              value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
-              onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-              className="p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div className="flex items-end gap-2">
-            <button
-              onClick={handleDateFilter}
-              className="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
-            >
-              Apply Filter
-            </button>
-            <button
-              onClick={clearDateFilter}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm hover:bg-gray-300"
-            >
-              Clear
-            </button>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">
+            My Attendance
+          </h1>
+          <div className="flex items-center gap-4">
+            {showSearchInput ? (
+              <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  placeholder="Enter Employee ID"
+                  className="p-2 border rounded-md text-sm bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200"
+                >
+                  Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSearchInput(false);
+                    setEmployeeId('');
+                    setError('');
+                  }}
+                  className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setShowSearchInput(true)}
+                className="p-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
-          {error}
+        {/* Date Range Filter */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-md">
+          <h2 className="text-sm font-medium text-gray-700 mb-3">Filter by Date Range</h2>
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div>
+              <label htmlFor="startDate" className="block text-sm text-gray-600 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
+                className="p-2 border rounded-md text-sm bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="endDate" className="block text-sm text-gray-600 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
+                className="p-2 border rounded-md text-sm bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDateFilter}
+                className="px-4 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200"
+              >
+                Apply Filter
+              </button>
+              <button
+                onClick={clearDateFilter}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Attendance Table */}
-      {employeeName && (
-        <div className="mb-4 text-sm text-gray-700">
-          Showing attendance for: <span className="font-medium">{employeeName}</span>
-        </div>
-      )}
-      {loading ? (
-        <div className="text-center py-4 text-gray-500">Loading attendance data...</div>
-      ) : attendanceData.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className="text-left p-3 bg-blue-600 text-white text-sm border-b">Date</th>
-                <th className="text-left p-3 bg-blue-600 text-white text-sm border-b">Check-In</th>
-                <th className="text-left p-3 bg-blue-600 text-white text-sm border-b">Check-Out</th>
-                <th className="text-left p-3 bg-blue-600 text-white text-sm border-b">Hours Worked</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceData.map((record, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="p-3 text-sm border-b">{record.date}</td>
-                  <td className="p-3 text-sm border-b">
-                    <div className="flex flex-col gap-1">
-                      <span>{record.checkInStr || "-"}</span>
-                      {record.checkInEdited && <span className="text-xs text-gray-600 italic">Edited</span>}
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Employee Name */}
+        {employeeName && (
+          <div className="mb-6 text-sm text-gray-700">
+            Showing attendance for: <span className="font-medium">{employeeName}</span>
+          </div>
+        )}
+
+        {/* Total Work Hours */}
+        {attendanceData.length > 0 && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-md shadow-sm">
+            <h2 className="text-sm font-medium text-gray-700">
+              Total Work Hours: <span className="font-semibold">{totalHours}</span>
+            </h2>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading...</div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-blue-700"
+                    onClick={() => handleSort('date')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Date
+                      {sortField === 'date' && (
+                        sortDirection === 'asc' ? <FiArrowUp /> : <FiArrowDown />
+                      )}
                     </div>
-                  </td>
-                  <td className="p-3 text-sm border-b">
-                    <div className="flex flex-col gap-1">
-                      <span>{record.checkOutStr || "-"}</span>
-                      {record.checkOutEdited && <span className="text-xs text-gray-600 italic">Edited</span>}
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-blue-700"
+                    onClick={() => handleSort('checkIn')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Check In
+                      {sortField === 'checkIn' && (
+                        sortDirection === 'asc' ? <FiArrowUp /> : <FiArrowDown />
+                      )}
                     </div>
-                  </td>
-                  <td className="p-3 text-sm border-b">{record.worked}</td>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-blue-700"
+                    onClick={() => handleSort('checkOut')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Check Out
+                      {sortField === 'checkOut' && (
+                        sortDirection === 'asc' ? <FiArrowUp /> : <FiArrowDown />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-blue-700"
+                    onClick={() => handleSort('duration')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Duration
+                      {sortField === 'duration' && (
+                        sortDirection === 'asc' ? <FiArrowUp /> : <FiArrowDown />
+                      )}
+                    </div>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : employeeId && !error ? (
-        <div className="text-center py-4 text-gray-500 text-sm">
-          No attendance records found for this employee.
-        </div>
-      ) : null}
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {attendanceData.map((record, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <span>{record.checkInStr || '--:--'}</span>
+                        {record.checkInEdited && <span className="text-xs text-gray-400">(edited)</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <span>{record.checkOutStr || '--:--'}</span>
+                        {record.checkOutEdited && <span className="text-xs text-gray-400">(edited)</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.worked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {attendanceData.length === 0 && employeeId && !error && (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                No attendance records found for this employee
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

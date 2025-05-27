@@ -1,38 +1,32 @@
-import React, { useState, useEffect, useCallback,useMemo } from 'react';
-import { format, isToday } from 'date-fns';
-import { collection, getDocs, getDoc, doc } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { format } from 'date-fns';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import debounce from 'lodash/debounce';
 
 const Attendance = () => {
   const [date, setDate] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]);
-  const [filteredAttendanceData, setFilteredAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers] = useState([]);
 
-  // Calculate worked hours
-  const calculateWorkedHours = useMemo(() => {
-  return (checkIn, checkOut) => {
-    if (!checkIn || !checkOut) return "Incomplete";
-
-    let duration = checkOut - checkIn;
-
-    // Break deduction logic:
-    if (duration >= 12.5 * 60 * 60 * 1000) {
-      // 12h 30m and above → 1 hour break
-      duration -= 60 * 60 * 1000;
-    } else if (duration >= 4.5 * 60 * 60 * 1000) {
-      // 4h 30m to 12h 29m → 30 minute break
-      duration -= 30 * 60 * 1000;
+  // Fetch all users from users_01
+  const fetchUsers = useCallback(async () => {
+    try {
+      const userCollection = collection(db, "users_01");
+      const userSnapshot = await getDocs(userCollection);
+      const userList = userSnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(user => ["teammember"].includes(user.role));
+      console.log("Filtered users (employees):", userList);
+      setUsers(userList);
+    } catch (error) {
+      console.error("Error fetching users:", error);
     }
-    // Else → no deduction
-
-    const hrs = Math.floor(duration / (1000 * 60 * 60));
-    const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `${hrs}h ${mins}m`;
-  };
-}, []);
+  }, []);
 
   // Fetch attendance data
   const fetchAttendanceData = useCallback(async (selectedDate) => {
@@ -40,210 +34,125 @@ const Attendance = () => {
     try {
       const yearMonth = format(selectedDate, 'yyyy-MM');
       const day = format(selectedDate, 'd');
-      const allUsers = await getDocs(collection(db, 'users_01'));
+      const allUsers = await getDocs(collection(db, "users_01"));
       const logs = [];
 
-      for (const userDoc of allUsers.docs) {
-        const userData = userDoc.data();
-        // Exclude admins, include employees and team leaders
-        if (userData.role === 'admin') continue;
-
+      const attendancePromises = allUsers.docs.map(userDoc => {
         const userId = userDoc.id;
-        const attendanceRef = doc(db, 'users_01', userId, 'attendance', yearMonth);
-        const attendanceSnap = await getDoc(attendanceRef);
+        return getDoc(doc(db, "users_01", userId, "attendance", yearMonth)).then(attendanceSnap => ({
+          userId,
+          userData: userDoc.data(),
+          attendanceSnap
+        }));
+      });
 
+      const results = await Promise.all(attendancePromises);
+
+      for (const { userId, userData, attendanceSnap } of results) {
         if (!attendanceSnap.exists()) continue;
-
         const daysMap = attendanceSnap.data().days || {};
         const dayData = daysMap[day];
-
         if (!dayData?.sessions?.length) continue;
 
-        dayData.sessions.forEach((session, index) => {
-          const checkIn = session.checkIn?.toDate();
-          const checkOut = session.checkOut?.toDate();
+        dayData.sessions.forEach((session) => {
+          const checkIn = session.checkIn && typeof session.checkIn.toDate === 'function'
+            ? session.checkIn.toDate()
+            : (session.checkIn instanceof Date ? session.checkIn : null);
+          const checkOut = session.checkOut && typeof session.checkOut.toDate === 'function'
+            ? session.checkOut.toDate()
+            : (session.checkOut instanceof Date ? session.checkOut : null);
 
           logs.push({
-            empName: userData.name,
+            userName: userData.name,
             checkInStr: checkIn ? format(checkIn, 'HH:mm') : '',
             checkOutStr: checkOut ? format(checkOut, 'HH:mm') : '',
-            worked: calculateWorkedHours(checkIn, checkOut),
-            empId: userId,
-            sessionId: `${yearMonth}-${day}-${index}`,
+            worked: session.worked_hours || 'N/A',
             checkInTime: checkIn?.getTime() || 0,
             checkInEdited: session.checkInEdited || false,
             checkOutEdited: session.checkOutEdited || false,
-            isToday: checkIn ? isToday(checkIn) : false,
-            role: userData.role?.toLowerCase() === 'employee' ? 'Team Member' : userData.role,
           });
         });
       }
 
-      const sortedLogs = logs.sort((a, b) => b.checkInTime - a.checkInTime);
-      setAttendanceData(sortedLogs);
-      setFilteredAttendanceData(sortedLogs);
+      setAttendanceData(logs.sort((a, b) => b.checkInTime - a.checkInTime));
     } catch (error) {
-      console.error('Error fetching attendance data:', error);
-      alert('Failed to fetch attendance data. Please try again.');
+      console.error("Error fetching attendance data:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Filter attendance data based on search term
-  const filterAttendanceData = useCallback(() => {
-    const search = searchTerm.toLowerCase().trim();
-    const results = attendanceData.filter((record) => {
-      const empName = (record.empName || '').toLowerCase();
-      const role = (record.role?.toLowerCase() === 'team member' ? 'employee' : record.role || '').toLowerCase();
-      const checkInStr = (record.checkInStr || '').toLowerCase();
-      const checkOutStr = (record.checkOutStr || '').toLowerCase();
-      const worked = (record.worked || '').toLowerCase();
+  const debouncedFetchAttendance = useMemo(() =>
+    debounce((newDate) => fetchAttendanceData(newDate), 300),
+    [fetchAttendanceData]
+  );
 
-      return (
-        !search ||
-        empName.includes(search) ||
-        role.includes(search) ||
-        checkInStr.includes(search) ||
-        checkOutStr.includes(search) ||
-        worked.includes(search)
-      );
-    });
-
-    setFilteredAttendanceData(results);
-  }, [searchTerm, attendanceData]);
-
+  // Fetch data on mount and date change
   useEffect(() => {
-    fetchAttendanceData(date);
-  }, [date, fetchAttendanceData]);
-
-  useEffect(() => {
-    filterAttendanceData();
-  }, [searchTerm, filterAttendanceData]);
+    fetchUsers();
+    debouncedFetchAttendance(date);
+    return () => debouncedFetchAttendance.cancel();
+  }, [date, fetchUsers, debouncedFetchAttendance]);
 
   return (
-    <div className="max-w-4xl mx-auto my-5 p-5 border border-gray-200 rounded bg-white">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold text-gray-800">Attendance</h1>
-        <div className="flex gap-4 items-center">
-          <label htmlFor="date-picker" className="sr-only">
-            Select Date
-          </label>
-          <input
-            id="date-picker"
-            type="date"
-            value={format(date, 'yyyy-MM-dd')}
-            onChange={(e) => setDate(new Date(e.target.value))}
-            className="p-2 border border-gray-300 rounded text-sm"
-            aria-label="Select attendance date"
-          />
-          <label htmlFor="search-input" className="sr-only">
-            Search Attendance
-          </label>
-          <input
-            id="search-input"
-            type="text"
-            placeholder="Search attendance..."
-            className="p-2 border border-gray-300 rounded text-sm w-64"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            aria-label="Search attendance records"
-          />
-        </div>
-      </div>
-
-      <div className="mb-3 text-sm text-gray-700">
-        Date: {format(date, 'dd-MMM-yyyy')}
-      </div>
-
-      {loading ? (
-        <div className="text-center py-4 text-gray-500">
-          <svg
-            className="animate-spin h-5 w-5 mx-auto text-blue-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">
+            Attendance Records
+          </h1>
+          <div className="flex items-center gap-4">
+            <input
+              type="date"
+              value={format(date, 'yyyy-MM-dd')}
+              onChange={(e) => setDate(new Date(e.target.value))}
+              className="p-2 border rounded-md text-sm bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
             />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          Loading attendance data...
+          </div>
         </div>
-      ) : (
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th
-                scope="col"
-                className="text-left p-2 bg-blue-600 text-white text-sm border-b"
-              >
-                Team Member
-              </th>
-              <th
-                scope="col"
-                className="text-left p-2 bg-blue-600 text-white text-sm border-b"
-              >
-                Check-In
-              </th>
-              <th
-                scope="col"
-                className="text-left p-2 bg-blue-600 text-white text-sm border-b"
-              >
-                Check-Out
-              </th>
-              <th
-                scope="col"
-                className="text-left p-2 bg-blue-600 text-white text-sm border-b"
-              >
-                Hours Worked
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAttendanceData.length > 0 ? (
-              filteredAttendanceData.map((record, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="p-2 text-sm border-b">{record.empName}</td>
-                  <td className="p-2 text-sm border-b">
-                    <div className="flex flex-col gap-1">
-                      <span>{record.checkInStr || '-'}</span>
-                      {record.checkInEdited && (
-                        <span className="text-xs text-gray-600 italic">Edited</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-2 text-sm border-b">
-                    <div className="flex flex-col gap-1">
-                      <span>{record.checkOutStr || '-'}</span>
-                      {record.checkOutEdited && (
-                        <span className="text-xs text-gray-600 italic">Edited</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-2 text-sm border-b">{record.worked}</td>
+
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading...</div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="py-4 text-center text-gray-500 text-sm">
-                  No attendance records found for this date
-                </td>
-              </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {attendanceData.map((record, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.userName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <span>{record.checkInStr || '--:--'}</span>
+                        {record.checkInEdited && <span className="text-xs text-gray-400">(edited)</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <span>{record.checkOutStr || '--:--'}</span>
+                        {record.checkOutEdited && <span className="text-xs text-gray-400">(edited)</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.worked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {attendanceData.length === 0 && (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                No attendance records found for this date
+              </div>
             )}
-          </tbody>
-        </table>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
