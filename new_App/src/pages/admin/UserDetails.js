@@ -392,8 +392,8 @@ const UserDetails = () => {
       if (formData.role === 'customer' && employeeDoc?.exists()) {
         updates.push(
           updateDoc(doc(db, 'users_01', formData.phone), {
-            status: 'archived',
-            archivedAt: new Date(),
+            // status: 'archived',
+            // archivedAt: new Date(),
             originalRole: employeeDoc.data().role
           })
         );
