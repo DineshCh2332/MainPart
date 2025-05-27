@@ -3,7 +3,6 @@ import { db } from "../../../firebase/config";
 import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import InventoryManagement from './InventoryManagement ';
 
-
 const StockCount = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,41 +78,76 @@ const StockCount = () => {
   };
 
   const saveItems = async (items, override = false) => {
+    // Filter items to only include those with non-zero variance
+    const itemsWithVariance = items.filter(item => {
+      const totalUnits = calculateStock(item);
+      const variance = totalUnits - item.totalStockOnHand;
+      return variance !== 0;
+    });
+
+    // If no items have non-zero variance, mark all items as submitted and return
+    if (itemsWithVariance.length === 0) {
+      const newSubmitted = items.reduce((acc, item) => {
+        acc[item.id] = true;
+        return acc;
+      }, {});
+      setSubmittedItems(prev => ({ ...prev, ...newSubmitted }));
+      setAppliedCounts(prev => {
+        const newApplied = { ...prev };
+        items.forEach(item => {
+          newApplied[item.id] = false;
+        });
+        return newApplied;
+      });
+      alert("No items with variance to save. Items marked as submitted.");
+      return;
+    }
+
     const currentDate = new Date();
     const formattedDate = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${currentDate.getDate().toString().padStart(2, '0')}`;
-  
+    const hours = currentDate.getHours();
+    const timeOfDay = hours < 12 ? 'morning' : hours < 17 ? 'afternoon' : 'night';
+    const timestamp = currentDate.toISOString();
+    const docId = `${formattedDate}_${currentDate.getHours().toString().padStart(2, '0')}-${currentDate.getMinutes().toString().padStart(2, '0')}-${currentDate.getSeconds().toString().padStart(2, '0')}`;
+
+    // Get employeeID from localStorage
+    const userData = JSON.parse(localStorage.getItem('user')) || {};
+    const employeeID = userData.employeeID || 'unknown';
+
     try {
-      // Use date as document ID
-      const varianceLogRef = doc(db, 'inventoryLog', formattedDate);
-  
-      const totalVariance = items.reduce((sum, item) => {
+      // Use formatted date and time as document ID
+      const varianceLogRef = doc(db, 'inventoryLog', docId);
+
+      // Calculate total variance for items with non-zero variance
+      const totalVariance = itemsWithVariance.reduce((sum, item) => {
         return sum + (calculateStock(item) - item.totalStockOnHand);
       }, 0);
-  
-      // Merge with existing data if updating same day's record
+
+      // Save main document
       await setDoc(varianceLogRef, {
-        timestamp: currentDate.toISOString(),
-        totalVariance: totalVariance,
+        id: docId,
         date: formattedDate,
-        countType: override ? 'override' : 'initial',
-        status: override ? 'adjusted' : 'pending'
-      }, { merge: true }); // Added merge option to preserve existing data
-  
+        timestamp: timestamp,
+        status: 'adjusted',
+        totalVariance: totalVariance,
+        employeeID: employeeID,
+      }, { merge: true });
+
       const batchWrites = [];
-  
-      items.forEach(item => {
+
+      itemsWithVariance.forEach(item => {
         const totalUnits = calculateStock(item);
         const variance = totalUnits - item.totalStockOnHand;
-  
+
         if (override) {
           const inventoryRef = doc(db, 'inventory', item.id);
           batchWrites.push(
             setDoc(inventoryRef, { totalStockOnHand: totalUnits }, { merge: true })
           );
         }
-  
-        // Use item ID as document ID in items subcollection
-        const variantItemRef = doc(collection(varianceLogRef, 'items'), item.id);
+
+        // Use item-specific ID in items subcollection
+        const variantItemRef = doc(collection(varianceLogRef, 'items'), `${docId}_${item.id}`);
         batchWrites.push(
           setDoc(variantItemRef, {
             itemId: item.id,
@@ -127,30 +161,43 @@ const StockCount = () => {
             newStock: override ? totalUnits : item.totalStockOnHand,
             needsRecount: !override && variance !== 0,
             status: variance === 0 ? "completed" : "recorded_with_variance",
-            timestamp: currentDate.toISOString(),
-          }, { merge: true }) // Merge to update existing entries
+            timestamp: timestamp,
+            timeOfDay: timeOfDay,
+            employeeID: employeeID,
+          }, { merge: true })
         );
       });
-  
+
       await Promise.all(batchWrites);
-  
-    
+
+      // Update inventory items state
       const updatedItems = inventoryItems.map(invItem => {
-        const item = items.find(i => i.id === invItem.id);
-        return item ? { 
-          ...invItem, 
-          totalStockOnHand: override ? calculateStock(item) : invItem.totalStockOnHand 
+        const item = itemsWithVariance.find(i => i.id === invItem.id);
+        return item ? {
+          ...invItem,
+          totalStockOnHand: override ? calculateStock(item) : invItem.totalStockOnHand
         } : invItem;
       });
 
       setInventoryItems(updatedItems);
 
+      // Mark all items (including zero variance) as submitted
       const newSubmitted = items.reduce((acc, item) => {
         acc[item.id] = true;
         return acc;
       }, {});
 
-      const newVariances = items.reduce((acc, item) => {
+      // Reset applied counts for submitted items
+      setAppliedCounts(prev => {
+        const newApplied = { ...prev };
+        items.forEach(item => {
+          newApplied[item.id] = false;
+        });
+        return newApplied;
+      });
+
+      // Update variances for saved items
+      const newVariances = itemsWithVariance.reduce((acc, item) => {
         acc[item.id] = calculateStock(item) - item.totalStockOnHand;
         return acc;
       }, {});
@@ -160,9 +207,9 @@ const StockCount = () => {
       setItemsToHighlight(prev => prev.filter(id => !newSubmitted[id]));
       setShowRecountVariances(prev => prev.filter(id => !newSubmitted[id]));
 
-      alert(override 
-        ? "Its Submited !...." 
-        : "Stock counts saved with variance records!");
+      alert(override
+        ? "Items with variance submitted!"
+        : "Stock counts with variance saved!");
     } catch (error) {
       console.error("Error saving data:", error);
       alert("Error saving data. Please check the console.");
@@ -194,7 +241,20 @@ const StockCount = () => {
     }
 
     if (noVarianceItems.length > 0) {
-      await saveItems(noVarianceItems);
+      // Mark no-variance items as submitted without saving to inventoryLog
+      const newSubmitted = noVarianceItems.reduce((acc, item) => {
+        acc[item.id] = true;
+        return acc;
+      }, {});
+      setSubmittedItems(prev => ({ ...prev, ...newSubmitted }));
+      setAppliedCounts(prev => {
+        const newApplied = { ...prev };
+        noVarianceItems.forEach(item => {
+          newApplied[item.id] = false;
+        });
+        return newApplied;
+      });
+      alert("Items with no variance marked as submitted.");
     }
   };
 
@@ -213,12 +273,13 @@ const StockCount = () => {
           onClick={() => setShowStockCountLog(false)}
           className="bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600 mb-4"
         >
-          Back to Stock Count 
+          Back to Stock Count
         </button>
         <InventoryManagement />
       </div>
     );
   }
+
   return (
     <div className="flex-1 p-6 overflow-auto">
       <h1 className="text-2xl font-bold mb-6">Inventory Management (Stock Count)</h1>
@@ -257,7 +318,7 @@ const StockCount = () => {
       </div>
 
       <div className="overflow-x-auto bg-white rounded-lg shadow">
-        <table className="min-w-full ">
+        <table className="min-w-full">
           <thead className="bg-gray-200">
             <tr>
               <th className="p-3 text-left">Item</th>
@@ -309,7 +370,7 @@ const StockCount = () => {
                   <td className="p-3">
                     <input
                       type="checkbox"
-                      checked={appliedCounts[item.id]}
+                      checked={appliedCounts[item.id] || false}
                       onChange={() => handleTickChange(item.id)}
                       disabled={isSubmitted}
                     />
@@ -333,7 +394,8 @@ const StockCount = () => {
           <div className="bg-white p-6 rounded-lg max-w-md w-full">
             <h3 className="text-lg font-bold mb-4">Inventory Adjustment Required</h3>
             <p className="mb-4">
-            There is a variance in {pendingVarianceItems.length} item(s).</p>
+              There is a variance in {pendingVarianceItems.length} item(s).
+            </p>
             <div className="flex justify-end gap-4">
               <button
                 onClick={() => setShowVarianceModal(false)}
