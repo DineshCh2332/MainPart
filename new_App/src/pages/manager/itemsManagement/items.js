@@ -23,6 +23,7 @@ const ItemsManager = () => {
     saucesArray: [],
   });
   const [editId, setEditId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'items'), snapshot => {
@@ -105,21 +106,31 @@ const ItemsManager = () => {
     }
   };
 
-  // Toggle active status for an item
   const handleToggleActive = async (id, currentActive) => {
     try {
       await updateDoc(doc(db, 'items', id), { active: !currentActive });
-      // No need to manually update state, onSnapshot will update the UI
     } catch (error) {
       alert('Failed to update active status.');
     }
   };
+
+  const filteredItems = items.filter(item => {
+    const categoryName = categories.find(cat => cat.id === item.categoryId?.id)?.name || '';
+    return (
+      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.price).includes(searchTerm) ||
+      categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.categoryId?.id?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold text-center mb-6">Item Management</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 mb-6">
+        {/* All input fields same as before */}
+        {/* ... */}
         <input
           type="text"
           placeholder="Item Name"
@@ -149,7 +160,6 @@ const ItemsManager = () => {
             </option>
           ))}
         </select>
-
         <select
           value={form.sauceGroupId}
           onChange={e => setForm({ ...form, sauceGroupId: e.target.value })}
@@ -162,7 +172,6 @@ const ItemsManager = () => {
             </option>
           ))}
         </select>
-
         <input
           type="text"
           placeholder="Sauce Name"
@@ -179,6 +188,23 @@ const ItemsManager = () => {
         </button>
       </form>
 
+      {/* Search Field */}
+      <div className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Search by name, category, or price..."
+          className="p-2 border rounded w-full"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+        <button
+          onClick={() => setSearchTerm('')}
+          className="bg-gray-300 px-4 rounded hover:bg-gray-400"
+        >
+          Clear
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full border border-gray-300">
           <thead className="bg-blue-600 text-white">
@@ -192,14 +218,14 @@ const ItemsManager = () => {
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <tr>
                 <td colSpan="6" className="text-center py-4">
                   No items found.
                 </td>
               </tr>
             ) : (
-              items.map(item => {
+              filteredItems.map(item => {
                 const categoryName =
                   categories.find(cat => cat.id === item.categoryId?.id)?.name || item.categoryId?.id || '—';
 
@@ -230,7 +256,6 @@ const ItemsManager = () => {
                               ? "bg-red-700 hover:bg-red-800"
                               : "bg-green-600 hover:bg-green-700"
                           } text-white px-3 py-1 rounded`}
-                          style={{ minWidth: 112 }} // Ensures fixed width for both buttons
                           onClick={() => handleToggleActive(item.id, item.active)}
                         >
                           {item.active === true ? "Deactivate" : "Activate"}
