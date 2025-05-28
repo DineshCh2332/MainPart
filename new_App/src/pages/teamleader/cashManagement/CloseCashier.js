@@ -46,8 +46,8 @@ const [confirmWitnessChecked, setConfirmWitnessChecked] = useState(false);
   useEffect(() => {
     const fetchCashiers = async () => {
       const q = query(
-        collection(db, "users_01"),
-        where("role", "==", "employee") // Use direct role field instead of role reference
+        collection(db, "users_01")
+        
       );
       const snapshot = await getDocs(q);
       setCashiers(snapshot.docs.map(doc => {
@@ -158,19 +158,20 @@ const [confirmWitnessChecked, setConfirmWitnessChecked] = useState(false);
 }
     try {
 
-      // 1. Validate witness (manager) from users_01
-    const witnessSnap = await getDocs(
-      query(collection(db, "users_01"), where("employeeID", "==", auth.witnessId))
-    );
+       // 1. Validate witness (manager or teamleader) from users_01
+      const witnessSnap = await getDocs(
+        query(
+          collection(db, "users_01"),
+          where("employeeID", "==", auth.witnessId),
+          where("role", "in", ["manager", "teamleader"]) // Allow both manager and teamleader roles
+        )
+      );
     if (witnessSnap.empty) {
-      alert("Invalid witness ID: No such user found.");
+      alert("Invalid witness ID: No such user found or user is not manager/team leader.");
       return;
     }
     const witness = witnessSnap.docs[0].data();
-    if (witness.role !== "manager") {
-      alert("Authorization failed: Witness must be a manager.");
-      return;
-    }
+    
 
       // 1. Find matching float
       const floatSnap = await getDocs(collection(db, "floats"));

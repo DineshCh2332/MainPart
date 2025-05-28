@@ -1,10 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { db } from "../../../firebase/config";
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
+import { 
+  FaSun, 
+  FaCloudSun, 
+  FaMoon, 
+  FaRegMoon, 
+  FaClock,
+  FaBoxOpen,
+  FaBalanceScale,
+  FaCheckCircle,
+  FaExclamationTriangle
+} from 'react-icons/fa';
+
+const getTimeOfDayIcon = (timeOfDay) => {
+  switch (timeOfDay.toLowerCase()) {
+    case 'morning': return <FaSun className="text-yellow-500" />;
+    case 'afternoon': return <FaCloudSun className="text-orange-500" />;
+    case 'evening': return <FaMoon className="text-blue-500" />;
+    case 'night': return <FaRegMoon className="text-indigo-500" />;
+    default: return <FaClock className="text-gray-500" />;
+  }
+};
 
 const StockCountLog = () => {
   const [logs, setLogs] = useState([]);
-  const [expandedLogId, setExpandedLogId] = useState(null);
+  const [expandedLogIds, setExpandedLogIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -12,200 +33,206 @@ const StockCountLog = () => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
+        setLoading(true);
         const logsSnapshot = await getDocs(collection(db, 'inventoryLog'));
-        const logsData = await Promise.all(
-          logsSnapshot.docs.map(async (doc) => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              date: doc.id,
-              timestamp: data.timestamp,
-              totalVariance: data.totalVariance || 0,
-              status: data.status || 'pending',
-              countType: data.countType || 'initial'
-            };
-          })
-        );
         
-        const sortedLogs = logsData.sort((a, b) => b.date.localeCompare(a.date));
-        setLogs(sortedLogs);
+        const logPromises = logsSnapshot.docs.map(async doc => {
+          const logData = doc.data();
+          const itemsRef = collection(db, `inventoryLog/${doc.id}/items`);
+          const itemsSnapshot = await getDocs(itemsRef);
+          
+          return {
+            id: doc.id,
+            date: logData.date || doc.id.split('_')[0],
+            timestamp: logData.timestamp,
+            totalVariance: logData.totalVariance || 0,
+            status: logData.status || 'pending',
+            countType: logData.countType || 'initial',
+            items: itemsSnapshot.docs.map(itemDoc => ({
+              id: itemDoc.id,
+              itemId: itemDoc.data().itemId,
+              itemName: itemDoc.data().itemName || 'Unknown Item',
+              boxes: itemDoc.data().boxesCount || 0,
+              inners: itemDoc.data().innerCount || 0,
+              units: itemDoc.data().unitsCount || 0,
+              totalCounted: itemDoc.data().totalCounted || 0,
+              variance: itemDoc.data().variance || 0,
+              previousStock: itemDoc.data().previousStock || 0,
+              newStock: itemDoc.data().newStock || 0,
+              status: itemDoc.data().status || 'recorded',
+              timeOfDay: itemDoc.data().timeOfDay || 'unknown',
+            }))
+          };
+        });
+
+        const logsData = await Promise.all(logPromises);
+        const filteredLogs = selectedDate 
+          ? logsData.filter(log => log.date === selectedDate)
+          : logsData;
+
+        filteredLogs.sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
+        setLogs(filteredLogs);
         setLoading(false);
-      } catch (error) {
-        console.error("Error fetching inventory logs:", error);
+      } catch (err) {
+        console.error("Error fetching logs:", err);
         setError('Failed to load inventory logs');
         setLoading(false);
       }
     };
 
     fetchLogs();
-  }, []);
+  }, [selectedDate]);
 
-  const handleDateFilter = (date) => {
-    setSelectedDate(date);
-    setExpandedLogId(null);
+  const toggleLogExpand = (logId) => {
+    const newSet = new Set(expandedLogIds);
+    newSet.has(logId) ? newSet.delete(logId) : newSet.add(logId);
+    setExpandedLogIds(newSet);
   };
 
-  const filteredLogs = selectedDate
-    ? logs.filter(log => log.date === selectedDate)
-    : logs;
-
-  const handleLogExpand = async (logId) => {
-    if (expandedLogId === logId) {
-      setExpandedLogId(null);
-      return;
-    }
-
+  const formatTimestamp = (timestamp) => {
     try {
-      setExpandedLogId(logId);
-      
-      // Fetch items from the 'items' subcollection
-      const itemsRef = collection(db, `inventoryLog/${logId}/items`);
-      const itemsSnapshot = await getDocs(itemsRef);
-      
-      const itemsData = await Promise.all(
-        itemsSnapshot.docs.map(async (itemDoc) => {
-          const itemData = itemDoc.data();
-          
-          // Fetch item details from inventory
-          const inventoryRef = doc(db, 'inventory', itemData.itemId);
-          const inventorySnap = await getDoc(inventoryRef);
-          
-          return {
-            id: itemDoc.id,
-            itemId: itemData.itemId,
-            itemName: inventorySnap.exists() 
-              ? inventorySnap.data().itemName 
-              : 'Deleted Item',
-            boxes: itemData.boxesCount || 0,
-            inners: itemData.innerCount || 0,
-            units: itemData.unitsCount || 0,
-            totalCounted: itemData.totalCounted || 0,
-            variance: itemData.variance || 0,
-            previousStock: itemData.previousStock || 0,
-            newStock: itemData.newStock || 0,
-            status: itemData.status || 'recorded'
-          };
-        })
-      );
-
-      setLogs(prevLogs => prevLogs.map(log => 
-        log.id === logId ? { ...log, items: itemsData } : log
-      ));
-    } catch (error) {
-      console.error("Error fetching log items:", error);
-      setError('Failed to load log details');
+      return new Date(timestamp).toLocaleString('en', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    } catch {
+      return 'Invalid Date';
     }
   };
 
-  const formatDate = (dateString) => {
-    const options = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+  const formatDateTime = (date, timestamp) => {
+    try {
+      const datePart = date.replace(/-/g, '/'); // Keep YYYY/MM/DD format
+      const timePart = new Date(timestamp).toLocaleTimeString('en', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      return `${datePart} ${timePart}`;
+    } catch {
+      return `${date.replace(/-/g, '/')} Unknown Time`;
+    }
   };
-
-  if (loading) return <div className="p-6 text-gray-600">Loading inventory logs...</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Inventory Count History</h1>
-        <div className="flex gap-4 items-center">
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <FaBoxOpen className="text-blue-500" />
+          Stock Count History
+        </h1>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => handleDateFilter(e.target.value)}
-            className="border rounded p-2"
-            max={new Date().toISOString().split('T')[0]}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="border rounded-lg p-2 w-full sm:w-48 focus:ring-2 focus:ring-blue-500 outline-none"
           />
           <button
-            onClick={() => handleDateFilter('')}
-            className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+            onClick={() => setSelectedDate('')}
+            className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
             disabled={!selectedDate}
           >
-            Clear Filter
+            Clear
           </button>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {filteredLogs.length === 0 ? (
-          <div className="text-gray-500 p-4 text-center">
-            No logs found{selectedDate && ` for ${selectedDate}`}
-          </div>
-        ) : (
-          filteredLogs.map(log => (
-            <div key={log.id} className="bg-white rounded-lg shadow">
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+        </div>
+      ) : error ? (
+        <div className="p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>
+      ) : logs.length === 0 ? (
+        <div className="p-4 bg-gray-50 text-gray-600 rounded-lg text-center">
+          No logs found{selectedDate && ` for ${selectedDate}`}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {logs.map(log => (
+            <div key={log.id} className="bg-white rounded-xl shadow-sm border">
               <div 
-                className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50"
-                onClick={() => handleLogExpand(log.id)}
+                className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => toggleLogExpand(log.id)}
               >
                 <div>
-                  <h3 className="font-semibold">
-                    {log.date} • {formatDate(log.timestamp)}
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <FaClock className="text-gray-500" />
+                    {formatDateTime(log.date, log.timestamp)}
                   </h3>
-                  <div className="flex gap-4 mt-1 text-sm text-gray-600">
-                    <span>Type: {log.countType}</span>
-                    <span>Status: {log.status}</span>
-                    <span className={`font-medium ${
-                      log.totalVariance !== 0 ? 'text-red-600' : 'text-green-600'
-                    }`}>
-                      Total Variance: {log.totalVariance}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <FaBalanceScale className="text-gray-500" />
+                      Variance: 
+                      <span className={`ml-1 ${log.totalVariance !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {log.totalVariance > 0 ? '+' : ''}{log.totalVariance}
+                      </span>
                     </span>
                   </div>
                 </div>
-                <span className="text-xl">
-                  {expandedLogId === log.id ? '▼' : '▶'}
+                <span className="text-gray-500 text-xl">
+                  {expandedLogIds.has(log.id) ? '▼' : '▶'}
                 </span>
               </div>
 
-            {expandedLogId === log.id && (
-              <div className="border-t p-4 bg-gray-50">
-                <h4 className="font-medium mb-4">Count Details:</h4>
-                
-                {log.items?.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white rounded shadow">
+              {expandedLogIds.has(log.id) && (
+                <div className="border-t p-4 bg-gray-50/50">
+                  <div className="overflow-x-auto rounded-lg border">
+                    <table className="min-w-full">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="p-3 text-left">Item</th>
-                          <th className="p-3 text-left">Boxes</th>
-                          <th className="p-3 text-left">Inners</th>
-                          <th className="p-3 text-left">Units</th>
-                          
-                          <th className="p-3 text-left">Counted</th>
-                          <th className="p-3 text-left">Variance</th>
-                          <th className="p-3 text-left">Status</th>
+                          <th className="px-4 py-3 text-left">Item</th>
+                          <th className="px-4 py-3 text-left">Time of Day</th>
+                          <th className="px-4 py-3 text-left">Boxes</th>
+                          <th className="px-4 py-3 text-left">Inners</th>
+                          <th className="px-4 py-3 text-left">Units</th>
+                          <th className="px-4 py-3 text-left">Total</th>
+                          <th className="px-4 py-3 text-left">Variance</th>
+                          <th className="px-4 py-3 text-left">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {log.items.map(item => (
-                          <tr key={item.id} className="border-t">
-                            <td className="p-3">
+                          <tr key={item.id} className="border-t even:bg-gray-50 hover:bg-gray-50">
+                            <td className="px-4 py-3">
                               <div className="font-medium">{item.itemName}</div>
-                              <div className="text-sm text-gray-600">ID: {item.itemId}</div>
+                              <div className="text-sm text-gray-500">ID: {item.itemId}</div>
                             </td>
-                            <td className="p-3">{item.boxes}</td>
-                            <td className="p-3">{item.inners}</td>
-                            <td className="p-3">{item.units}</td>
-                            <td className="p-3">{item.totalCounted}</td>
-                            <td className={`p-3 font-medium ${
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                {getTimeOfDayIcon(item.timeOfDay)}
+                                <span className="capitalize">{item.timeOfDay}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">{item.boxes}</td>
+                            <td className="px-4 py-3">{item.inners}</td>
+                            <td className="px-4 py-3">{item.units}</td>
+                            <td className="px-4 py-3 font-medium">{item.totalCounted}</td>
+                            <td className={`px-4 py-3 font-medium ${
                               item.variance !== 0 ? 'text-red-600' : 'text-green-600'
                             }`}>
-                              {item.variance > 0 && '+'}{item.variance}
+                              {item.variance > 0 ? '+' : ''}{item.variance}
                             </td>
-                            <td className="p-3">
-                              <span className={`px-2 py-1 rounded text-sm ${
-                                item.status === 'completed' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                item.status.includes('variance') 
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-green-100 text-green-800'
                               }`}>
-                                {item.status}
+                                {item.status.includes('variance') ? (
+                                  <FaExclamationTriangle className="text-orange-500" />
+                                ) : (
+                                  <FaCheckCircle className="text-green-500" />
+                                )}
+                                {item.status.replace(/_/g, ' ')}
                               </span>
                             </td>
                           </tr>
@@ -213,21 +240,14 @@ const StockCountLog = () => {
                       </tbody>
                     </table>
                   </div>
-                 
-                ) : (
-                  <div className="text-gray-500 p-4 text-center">
-                    No count items found for this log
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
-
 
 export default StockCountLog;

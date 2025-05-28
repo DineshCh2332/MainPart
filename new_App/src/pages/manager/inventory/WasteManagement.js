@@ -3,6 +3,22 @@ import { db } from "../../../firebase/config";
 import { collection, getDocs, setDoc, doc, updateDoc, increment } from 'firebase/firestore';
 import WasteLogHistory from './WasteLogHistory';
 
+const getTimeOfDay = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  return 'night';
+};
+
+const getEmployeeId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    return user?.employeeID || 'NA';
+  } catch (error) {
+    return 'NA';
+  }
+};
+
 const WasteManagement = () => {
   const [wasteItems, setWasteItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,46 +30,48 @@ const WasteManagement = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [showWasteLog, setShowWasteLog] = useState(false);
 
+  const fetchItemsData = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'inventory'));
+      const items = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            itemName: data.itemName || 'Unknown Item',
+            unit: 'EA',
+            boxes: '',
+            innerPacks: '',
+            units: '',
+            innerPerBox: data.innerPerBox || 1,
+            unitsPerInner: data.unitsPerInner || 1,
+            totalStockOnHand: data.totalStockOnHand || 0,
+          };
+        })
+      );
+      setWasteItems(items);
+
+      // Initialize states
+      const initialReasons = {};
+      const initialReadyToAdjust = {};
+      items.forEach(item => {
+        initialReasons[item.id] = '1 End of Night';
+        initialReadyToAdjust[item.id] = false;
+      });
+      setSelectedReasons(initialReasons);
+      setReadyToAdjust(initialReadyToAdjust);
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching items data:", error);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchItemsData = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'inventory'));
-        const items = await Promise.all(
-          snapshot.docs.map(async (docSnap) => {
-            const data = docSnap.data();
-            return {
-              id: docSnap.id,
-              itemName: data.itemName || 'Unknown Item',
-              unit: 'EA',
-              boxes: '',
-              innerPacks: '',
-              units: '',
-              innerPerBox: data.innerPerBox || 1,
-              unitsPerInner: data.unitsPerInner || 1,
-              totalStockOnHand: data.totalStockOnHand || 0,
-            };
-          })
-        );
-        setWasteItems(items);
-        
-        // Initialize reasons and readyToAdjust states
-        const initialReasons = {};
-        const initialReadyToAdjust = {};
-        items.forEach(item => {
-          initialReasons[item.id] = '1 End of Night';
-          initialReadyToAdjust[item.id] = false;
-        });
-        setSelectedReasons(initialReasons);
-        setReadyToAdjust(initialReadyToAdjust);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching items data:", error);
-        setLoading(false);
-      }
-    };
     fetchItemsData();
   }, []);
+
 
   const calculateWaste = (item) =>
     (item.boxes * item.innerPerBox * item.unitsPerInner) +
@@ -63,7 +81,7 @@ const WasteManagement = () => {
   const handleInputChange = (id, field, value) => {
     if (value !== '' && (isNaN(value) || Number(value) < 0)) return;
 
-    const updatedItems = wasteItems.map(item => 
+    const updatedItems = wasteItems.map(item =>
       item.id === id ? { ...item, [field]: value === '' ? '' : Number(value) } : item
     );
     setWasteItems(updatedItems);
@@ -98,18 +116,19 @@ const WasteManagement = () => {
     const itemsToAdjust = wasteItems.filter(item =>
       readyToAdjust[item.id] && (item.boxes !== '' || item.innerPacks !== '' || item.units !== '')
     );
-  
+
     if (itemsToAdjust.length === 0) {
       setSuccessMessage('No items selected for waste adjustment');
       setShowSuccessModal(true);
       return;
     }
-  
+
     const currentDate = new Date();
     const formattedDate = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${currentDate.getDate().toString().padStart(2, '0')}`;
     const formattedTime = `${currentDate.getHours().toString().padStart(2, '0')}-${currentDate.getMinutes().toString().padStart(2, '0')}-${currentDate.getSeconds().toString().padStart(2, '0')}`;
     const logId = `${formattedDate}_${formattedTime}`;
-  
+     const employeeID = getEmployeeId();
+
     try {
       // Create waste log document
       const wasteLogRef = doc(db, 'wasteLogs', logId);
@@ -121,16 +140,17 @@ const WasteManagement = () => {
         totalWaste: totalWaste,
         date: formattedDate,
       });
-  
+
       // Prepare write operations
       const wasteItemPromises = [];
       const inventoryUpdatePromises = [];
-  
+      const timeOfDay = getTimeOfDay();
+
       itemsToAdjust.forEach(item => {
         const totalWaste = calculateWaste(item);
         const wasteItemId = `${logId}_${item.id}`;
         const wasteItemRef = doc(db, `wasteLogs/${logId}/wasteItems`, wasteItemId);
-        
+
         // Add waste item record
         wasteItemPromises.push(setDoc(wasteItemRef, {
           itemId: doc(db, `inventory/${item.id}`),
@@ -142,6 +162,8 @@ const WasteManagement = () => {
           reason: selectedReasons[item.id],
           datePerformed: currentDate.toISOString(),
           timestamp: currentDate.toISOString(),
+          timeOfDay: timeOfDay,
+           employeeID: employeeID,
         }));
 
         // Update inventory stock
@@ -168,17 +190,20 @@ const WasteManagement = () => {
         }
         return item;
       });
-      setWasteItems(updatedItems);
-  
-      // Reset checkboxes
-      setReadyToAdjust(prev => {
-        const newState = {...prev};
-        itemsToAdjust.forEach(item => {
-          newState[item.id] = false;
-        });
-        return newState;
+
+      // Reset ALL checkboxes
+      const newReadyState = {};
+      wasteItems.forEach(item => {
+        newReadyState[item.id] = false;
       });
-  
+      // Update states
+      setWasteItems(updatedItems);
+      setReadyToAdjust(newReadyState);
+      setMasterCheck(false);
+
+      // Refresh data
+      await fetchItemsData();
+
       setSuccessMessage(`Successfully recorded waste for ${itemsToAdjust.length} item(s)`);
       setShowSuccessModal(true);
     } catch (error) {
@@ -187,7 +212,7 @@ const WasteManagement = () => {
       setShowSuccessModal(true);
     }
   };
-  
+
 
   if (loading) return <div className="p-4">Loading inventory data...</div>;
   if (showWasteLog) {

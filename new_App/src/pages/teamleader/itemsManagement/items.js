@@ -105,6 +105,16 @@ const ItemsManager = () => {
     }
   };
 
+  // Toggle active status for an item
+  const handleToggleActive = async (id, currentActive) => {
+    try {
+      await updateDoc(doc(db, 'items', id), { active: !currentActive });
+      // No need to manually update state, onSnapshot will update the UI
+    } catch (error) {
+      alert('Failed to update active status.');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold text-center mb-6">Item Management</h1>
@@ -210,9 +220,20 @@ const ItemsManager = () => {
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded"
+                          className="bg-red-500 text-white px-3 py-1 rounded mr-2"
                         >
                           Delete
+                        </button>
+                        <button
+                          className={`w-28 ${
+                            item.active === true
+                              ? "bg-red-700 hover:bg-red-800"
+                              : "bg-green-600 hover:bg-green-700"
+                          } text-white px-3 py-1 rounded`}
+                          style={{ minWidth: 112 }} // Ensures fixed width for both buttons
+                          onClick={() => handleToggleActive(item.id, item.active)}
+                        >
+                          {item.active === true ? "Deactivate" : "Activate"}
                         </button>
                       </div>
                     </td>

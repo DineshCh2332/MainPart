@@ -211,6 +211,7 @@ const Categories = () => {
                         className={`${
                           cat.active ? "bg-red-700 hover:bg-red-800" : "bg-green-600 hover:bg-green-700"
                         } text-white px-2 py-1 text-base rounded`}
+                        style={{ minWidth: 112 }}
                         onClick={() => toggleActive(cat.id, cat.active)}
                       >
                         {cat.active ? "Deactivate" : "Activate"}

@@ -87,44 +87,51 @@ users_01/<userDocId>/attendance/<yearMonth>
 │       ├── totalStockOnHand: number
 │       └── unitsPerInner: number
 
-├── wasteLogs (Collection)
-│   └── {logId} (Document)
-│       ├── id: string
-│       ├── timestamp: timestamp
-│       ├── totalWaste: number
-│       └── wasteItems (Subcollection)
-│           └── {wasteItemId} (Document)
-│               ├── boxesCount: number
-│               ├── datePerformed: string
-│               ├── innerCount: number
-│               ├── itemId (Reference to /inventory/{itemId})
-│               ├── itemName: string
-│               ├── reason: string
-│               ├── timestamp: timestamp
-│               ├── totalWaste: number
-│               └── unitsCount: number
 
-├── inventoryLog (Collection)
-│   └── {logId} (Document)
-│       ├── countType: string
-│       ├── date: string
-│       ├── status: string
-│       ├── timestamp: timestamp
-│       ├── totalVariance: number
-│       └── items (Subcollection)
-│           └── {itemId} (Document)
-│               ├── boxesCount: number
-│               ├── innerCount: number
-│               ├── itemId: string
-│               ├── itemName: string
-│               ├── needsRecount: boolean
-│               ├── newStock: number
-│               ├── previousStock: number
-│               ├── status: string
-│               ├── timestamp: timestamp
-│               ├── totalCounted: number
-│               ├── unitsCount: number
-│               └── variance: number
+/inventoryLog (Collection)
+└── 2025-05-21_11-47-57 (Document)
+    ├── id: "2025-05-21_11-47-57" (string)
+    ├── date: "2025-05-21" (string)
+    ├── timestamp: "2025-05-21T11:47:57.749Z" (string)
+    ├── status: "adjusted" (string)
+    ├── totalVariance: 145 (number)
+    └── items (Subcollection)
+        └── 2025-05-21_11-47-57_item01 (Document)
+            ├── itemId: "item01" (string)
+            ├── itemName: "Fillets" (string)
+            ├── boxesCount: 1 (number)
+            ├── innerCount: 1 (number)
+            ├── unitsCount: 10 (number)
+            ├── totalCounted: 160 (number)
+            ├── previousStock: 15 (number)
+            ├── newStock: 160 (number)
+            ├── variance: 145 (number)
+            ├── needsRecount: false (boolean)
+            ├── status: "recorded_with_variance" (string)
+            ├── timestamp: "2025-05-21T11:47:57.749Z" (string)
+            └── timeOfDay: "morning" (string)  ← (NEW FIELD)
+
+/wasteLogs (Collection)
+└── 2025-04-29_12-10-33 (Document)
+    ├── id: "2025-04-29_12-10-33" (string)
+    ├── date: "2025-04-29" (string)
+    ├── timestamp: "2025-04-29T06:40:33.728Z" (string)
+    ├── totalWaste: 450 (number)
+    └── wasteItems (Subcollection)
+        └── 2025-04-29_12-10-33_item0 (Document)
+            ├── itemId: /inventory/item0 (reference)
+            ├── itemName: "Chicken Wings" (string)
+            ├── reason: "1 End of Night" (string)
+            ├── boxesCount: 0 (number)
+            ├── innerCount: 0 (number)
+            ├── unitsCount: 50 (number)
+            ├── totalWaste: 50 (number)
+            ├── datePerformed: "2025-04-29T06:40:33.728Z" (string)
+            ├── timestamp: "2025-04-29T06:40:33.728Z" (string)
+            └── timeOfDay: "morning" (string)   ✅ ← NEW FIELD
+
+
+
 
 ├── category (Collection)
 │   └── cat03name: string ("Street Bites")

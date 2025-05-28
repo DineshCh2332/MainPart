@@ -72,14 +72,14 @@ const AddUser = () => {
   const validateForm = () => {
     if (!formData.name) return showError("Full Name is required."), false;
     if (!/^[A-Za-z\s]+$/.test(formData.name))
-    return showError("Full Name should only contain alphabets and spaces."), false;
+      return showError("Full Name should only contain alphabets and spaces."), false;
     if (!formData.phone || !/^\d{10}$/.test(formData.phone))
       return showError("Phone number must be exactly 10 digits."), false;
 
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      return showError("Please enter a valid email."), false;
-  
-
+    if (formData.email && !/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)) {
+      showError("Please enter a valid email.");
+      return false;
+    }
     if (!formData.dob) return showError("Date of Birth is required."), false;
     const birthYear = new Date(formData.dob).getFullYear();
     if (birthYear > 2001) return showError("Date of Birth should be 2001 or earlier."), false;
@@ -223,7 +223,7 @@ const AddUser = () => {
         member_since: new Date().toISOString(),
         created_at: Timestamp.now(),
         role: formData.role,
-        type: formData.role !== "customer" && {type:"employee"},
+        type: formData.role !== "customer" && { type: "employee" },
         bank_details: formData.bank_details,
         document_number: formData.document_number,
         shareCode: formData.shareCode,
@@ -257,7 +257,7 @@ const AddUser = () => {
       }
     }
   }
-  
+
 
   return (
     <div className="form-container">

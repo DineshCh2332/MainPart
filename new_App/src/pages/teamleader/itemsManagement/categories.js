@@ -85,7 +85,24 @@ const handleUpdateCategory = async (catId) => {
     console.error(`Category with id ${catId} not found!`);
   }
 };
+// Only keep this toggleActive inside the component!
+  const toggleActive = async (catId, currentActive) => {
+    const catRef = collection(db, "category");
+    const q = query(catRef, where("id", "==", catId));
+    const snapshot = await getDocs(q);
 
+    if (!snapshot.empty) {
+      const docToUpdate = snapshot.docs[0];
+      const docRef = doc(db, "category", docToUpdate.id);
+
+      await updateDoc(docRef, { active: !currentActive });
+
+      // Always fetch from Firestore after update
+      fetchCategories();
+    } else {
+      console.error(`Category with id ${catId} not found!`);
+    }
+  };
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -165,6 +182,15 @@ const handleUpdateCategory = async (catId) => {
                         onClick={() => handleDeleteCategory(cat.id)}
                       >
                         Delete
+                      </button>
+                      <button
+                        className={`${
+                          cat.active ? "bg-red-700 hover:bg-red-800" : "bg-green-600 hover:bg-green-700"
+                        } text-white px-2 py-1 text-base rounded`}
+                        style={{ minWidth: 112 }}
+                        onClick={() => toggleActive(cat.id, cat.active)}
+                      >
+                        {cat.active ? "Deactivate" : "Activate"}
                       </button>
                     </div>
                   )}
