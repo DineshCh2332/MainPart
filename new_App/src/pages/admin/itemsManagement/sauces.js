@@ -8,6 +8,8 @@ const Sauces = () => {
   const [saucesInput, setSaucesInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingSauces, setEditingSauces] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // NEW: State for the search term
+  const [filteredGroups, setFilteredGroups] = useState([]); // NEW: State for filtered groups
 
   useEffect(()=>{
     const unsubscribe = onSnapshot(collection(db,"sauceGroups"),(snapshot)=>{
@@ -19,6 +21,15 @@ const Sauces = () => {
         });
         return () => unsubscribe(); // cleanup on unmount
     }, []);
+
+    // NEW: Effect to filter groups whenever groups or searchTerm changes
+  useEffect(() => {
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    const results = groups.filter((group) =>
+      group.id.toLowerCase().includes(lowercasedSearchTerm)
+    );
+    setFilteredGroups(results);
+  }, [groups, searchTerm]); // Dependencies: re-run when these change
       
   // Add new sauce group (doc ID = category name)
   const handleAddGroup = async () => {
@@ -72,6 +83,17 @@ const Sauces = () => {
     <div className="p-6 max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-center">Sauce Group Management</h2>
 
+      {/* --- Search Input --- */}
+      <div className="mb-4">
+        <input
+          className="border p-2 rounded w-full text-base"
+          placeholder="Search by Category Name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      {/* --- End Search Input --- */}
+
       <div className="mb-4 flex gap-2">
         <input
           className="border p-2 rounded w-1/3"
@@ -102,7 +124,9 @@ const Sauces = () => {
           </tr>
         </thead>
         <tbody>
-          {groups.map((group) => (
+          {/* --- Use filteredGroups for rendering --- */}
+          {filteredGroups.length > 0 ? (
+            filteredGroups.map((group) => (
             <tr key={group.id} className="text-center hover:bg-gray-100 text-base">
               <td className="border px-2 py-1">
                 {group.id} {/* show document ID as category */}
@@ -156,11 +180,18 @@ const Sauces = () => {
         Delete
       </button>
     </div>
-  )}
+    )}
 </td>
 
             </tr>
-          ))}
+            ))
+          ):(
+           <tr>
+            <td colSpan="3" className="text-center p-4 text-gray-500">
+             {searchTerm ? "No matching sauce groups found." : "No sauce groups found."}
+           </td>
+          </tr>
+         )}
         </tbody>
       </table>
     </div>
