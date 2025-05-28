@@ -16,6 +16,8 @@ const Categories = () => {
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // NEW: State for the search term
+  const [filteredCategories, setFilteredCategories] = useState([]); // NEW: State for filtered results
 
   const fetchCategories = async () => {
     const catRef = collection(db, "category");
@@ -30,21 +32,30 @@ const Categories = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
+  
+  // Effect to filter categories whenever categories or searchTerm changes
+  useEffect(() => {
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    const results = categories.filter((cat) =>
+      cat.name.toLowerCase().includes(lowercasedSearchTerm)
+    );
+    setFilteredCategories(results);
+  }, [categories, searchTerm]); // Depend on categories and searchTerm
 
   const handleAddCategory = async () => {
     if (newCategory.trim() === "") {
         alert("Please enter a category name!");
         return;
     }
-       if (newCategory.trim() === "") return;
-      
+       
         // Calculate new catXX id
         const newNumber = categories.length + 1;
         const newId = `cat${newNumber.toString().padStart(2, "0")}`;
       
         const docRef = await addDoc(collection(db, "category"), {
           id: newId,  // save generated id in Firestore too
-          name: newCategory
+          name: newCategory,
+          active:true,
         });
       
         setCategories([...categories, { id: newId, name: newCategory, active: true }]);
@@ -59,7 +70,7 @@ const Categories = () => {
 
   
 
-const handleUpdateCategory = async (catId) => {
+ const handleUpdateCategory = async (catId) => {
   if (editingName.trim() === "") return;
 
   // Find the document where 'id' field == catId
@@ -108,6 +119,17 @@ const handleUpdateCategory = async (catId) => {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-center">Category Management</h2>
+
+       {/* --- Search Input --- */}
+      <div className="mb-4">
+        <input
+          className="border p-2 rounded w-full text-base"
+          placeholder="Search categories..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      {/* --- End Search Input --- */}
   
       <div className="mb-4 flex gap-2">
         <input
@@ -133,8 +155,9 @@ const handleUpdateCategory = async (catId) => {
           </tr>
         </thead>
         <tbody>
-          {categories.length > 0 ? (
-            categories.map((cat) => (
+          {/* --- Use filteredCategories for rendering --- */}
+          {filteredCategories.length > 0 ? (
+            filteredCategories.map((cat) => (
               <tr key={cat.id} className="text-center hover:bg-gray-100 text-base">
                 <td className="border px-2 py-1 break-all">{cat.id}</td>
                 <td className="border px-2 py-1">
@@ -200,14 +223,14 @@ const handleUpdateCategory = async (catId) => {
           ) : (
             <tr>
               <td colSpan="3" className="text-center p-4 text-gray-500">
-                No categories found.
-              </td>
+                {searchTerm ? "No matching categories found." : "No categories found."}
+                </td>
             </tr>
           )}
         </tbody>
       </table>
     </div>
   );
-}  
+} 
 
 export default Categories;
