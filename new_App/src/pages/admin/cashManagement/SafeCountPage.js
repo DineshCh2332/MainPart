@@ -434,169 +434,177 @@ function SafeCountPage() {
 // }
 return (
   <div className="container mx-auto p-6 max-w-5xl bg-white rounded-2xl shadow-lg mt-10 mb-10">
-  <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-10">Safe Count</h2>
+    <div className="mb-4">
+      <h2 className="text-3xl font-bold text-black-500 tracking-tight text-center w-full">
+        Safe Count
+      </h2>
+    </div>
+    <div className="flex justify-end mb-10">
+      <div className="bg-blue-50 p-4 rounded-xl shadow flex items-center gap-4">
+        <span className="font-semibold text-blue-700">Select Date:</span>
+        <DatePicker
+          selected={selectedDate}
+          onChange={date => setSelectedDate(date)}
+          dateFormat="yyyy-MM-dd"
+          className="border px-4 py-2 rounded-md text-lg focus:ring-2 focus:ring-blue-400"
+          maxDate={new Date()}
+        />
+      </div>
+    </div>
 
-  {/* Calendar for date selection */}
-  <div className="flex justify-center mb-8">
-    <DatePicker
-      selected={selectedDate}
-      onChange={date => setSelectedDate(date)}
-      dateFormat="yyyy-MM-dd"
-      className="border px-4 py-2 rounded-md text-lg"
-      maxDate={new Date()}
-    />
-  </div>
-
-  <SessionButtons
-    sessions={['morning', 'changeover', 'night', 'change_receive']}
-    currentSession={currentSession}
-    onSelect={handleSessionSelect}
-    disabledSessions={disabledSessions}
-    onTransferFloats={handleTransferFloats}
-  />
-
-  {currentSession && !showTransferTable && (
-    <div className="mt-10 space-y-8">
-      <SafeCountTable
-        denominations={denominations}
-        values={values}
-        onChange={(index, type, value) => {
-          const updatedValues = [...values];
-          updatedValues[index][type] = parseFloat(value) || 0;
-          updatedValues[index].value =
-            (updatedValues[index].bags * denominations[index].bagValue) +
-            (updatedValues[index].loose * denominations[index].value);
-          setValues(updatedValues);
-          const total = updatedValues.reduce((sum, row) => sum + row.value, 0);
-          setActualAmount(total);
-          setVariance(total - expectedAmount);
-        }}
-        actualAmount={actualAmount}
-        onActualChange={e => {
-          const actual = parseFloat(e.target.value) || 0;
-          setActualAmount(actual);
-          setVariance(actual - expectedAmount);
-        }}
-        expectedAmount={expectedAmount}
-        variance={variance}
-        readOnly={isReadOnly}
+    <div className="mb-8">
+      <SessionButtons
+        sessions={['morning', 'changeover', 'night', 'change_receive']}
+        currentSession={currentSession}
+        onSelect={handleSessionSelect}
+        disabledSessions={disabledSessions}
+        onTransferFloats={handleTransferFloats}
       />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-4">
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Cashier ID</span>
-            <input
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500"
-              value={authCashierId}
-              onChange={(e) => setAuthCashierId(e.target.value)}
-              disabled={authDisabled}
-            />
-          </label>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              className="h-5 w-5 text-gray-600 rounded border-gray-300 focus:ring-gray-500"
-              checked={confirmCashier}
-              onChange={(e) => setConfirmCashier(e.target.checked)}
-              disabled={authDisabled}
-            />
-            <span className="text-sm text-gray-700">Confirm Cashier</span>
-          </label>
-        </div>
-
-        <div className="space-y-4">
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Witness ID</span>
-            <input
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500"
-              value={authWitnessId}
-              onChange={(e) => setAuthWitnessId(e.target.value)}
-              disabled={authDisabled}
-            />
-          </label>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              className="h-5 w-5 text-gray-600 rounded border-gray-300 focus:ring-gray-500"
-              checked={confirmManager}
-              onChange={(e) => setConfirmManager(e.target.checked)}
-              disabled={authDisabled}
-            />
-            <span className="text-sm text-gray-700">Confirm Manager</span>
-          </label>
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          className={`py-2 px-6 rounded-md font-semibold text-white text-base transition-all
-            ${saveDisabled ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-800 shadow-sm'}`}
-          onClick={handleSave}
-          disabled={saveDisabled}
-        >
-          Save Session
-        </button>
-      </div>
     </div>
-  )}
 
-  {showTransferTable && (
-    <div className="mt-10 space-y-6">
-      <h3 className="text-2xl font-bold text-gray-800">Transfer Floats</h3>
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-100">
-          <thead className="bg-gray-100 text-gray-700">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide">Denomination</th>
-              <th className="px-6 py-3 text-center text-sm font-semibold tracking-wide">Loose</th>
-              <th className="px-6 py-3 text-right text-sm font-semibold tracking-wide">Value</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {transferValues.map((row, idx) => (
-              <tr key={idx}>
-                <td className="px-6 py-4 text-sm text-gray-800">{row.name}</td>
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="number"
-                    className="w-24 text-center px-3 py-1 border border-gray-300 rounded-md focus:ring-gray-400 focus:border-gray-400"
-                    value={row.loose}
-                    onChange={(e) => {
-                      const loose = parseFloat(e.target.value) || 0;
-                      const updated = [...transferValues];
-                      updated[idx].loose = loose;
-                      updated[idx].value = loose * denominations.find(d => d.name === row.name).value;
-                      setTransferValues(updated);
-                      const total = updated.reduce((sum, d) => sum + d.value, 0);
-                      setTransferTotal(total);
-                    }}
-                  />
-                </td>
-                <td className="px-6 py-4 text-right text-sm text-gray-800">£{row.value.toFixed(2)}</td>
+    {currentSession && !showTransferTable && (
+      <div className="bg-gray-50 rounded-xl shadow p-6 mt-6 space-y-8 border border-gray-200">
+        <h3 className="text-2xl font-bold text-blue-700 mb-4 capitalize">{currentSession.replace(/_/g, ' ')} Session</h3>
+        <SafeCountTable
+          denominations={denominations}
+          values={values}
+          onChange={(index, type, value) => {
+            const updatedValues = [...values];
+            updatedValues[index][type] = parseFloat(value) || 0;
+            updatedValues[index].value =
+              (updatedValues[index].bags * denominations[index].bagValue) +
+              (updatedValues[index].loose * denominations[index].value);
+            setValues(updatedValues);
+            const total = updatedValues.reduce((sum, row) => sum + row.value, 0);
+            setActualAmount(total);
+            setVariance(total - expectedAmount);
+          }}
+          actualAmount={actualAmount}
+          onActualChange={e => {
+            const actual = parseFloat(e.target.value) || 0;
+            setActualAmount(actual);
+            setVariance(actual - expectedAmount);
+          }}
+          expectedAmount={expectedAmount}
+          variance={variance}
+          readOnly={isReadOnly}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4 bg-white p-4 rounded-lg shadow">
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Cashier ID</span>
+              <input
+                className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={authCashierId}
+                onChange={(e) => setAuthCashierId(e.target.value)}
+                disabled={authDisabled}
+              />
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                checked={confirmCashier}
+                onChange={(e) => setConfirmCashier(e.target.checked)}
+                disabled={authDisabled}
+              />
+              <span className="text-sm text-gray-700">Confirm Cashier</span>
+            </label>
+          </div>
+
+          <div className="space-y-4 bg-white p-4 rounded-lg shadow">
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Witness ID</span>
+              <input
+                className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={authWitnessId}
+                onChange={(e) => setAuthWitnessId(e.target.value)}
+                disabled={authDisabled}
+              />
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                checked={confirmManager}
+                onChange={(e) => setConfirmManager(e.target.checked)}
+                disabled={authDisabled}
+              />
+              <span className="text-sm text-gray-700">Confirm Manager</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            className={`py-2 px-8 rounded-md font-semibold text-white text-base transition-all shadow-lg
+              ${saveDisabled ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800'}
+            `}
+            onClick={handleSave}
+            disabled={saveDisabled}
+          >
+            Save Session
+          </button>
+        </div>
+      </div>
+    )}
+
+    {showTransferTable && (
+      <div className="bg-purple-50 rounded-xl shadow p-6 mt-10 space-y-6 border border-purple-200">
+        <h3 className="text-2xl font-bold text-purple-800 mb-4">Transfer Floats</h3>
+        <div className="overflow-x-auto rounded-lg border border-gray-200">
+          <table className="min-w-full divide-y divide-gray-100">
+            <thead className="bg-purple-100 text-purple-800">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide">Denomination</th>
+                <th className="px-6 py-3 text-center text-sm font-semibold tracking-wide">Loose</th>
+                <th className="px-6 py-3 text-right text-sm font-semibold tracking-wide">Value</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {transferValues.map((row, idx) => (
+                <tr key={idx} className="hover:bg-purple-50 transition">
+                  <td className="px-6 py-4 text-sm text-gray-800">{row.name}</td>
+                  <td className="px-6 py-4 text-center">
+                    <input
+                      type="number"
+                      className="w-24 text-center px-3 py-1 border border-gray-300 rounded-md focus:ring-purple-400 focus:border-purple-400"
+                      value={row.loose}
+                      onChange={(e) => {
+                        const loose = parseFloat(e.target.value) || 0;
+                        const updated = [...transferValues];
+                        updated[idx].loose = loose;
+                        updated[idx].value = loose * denominations.find(d => d.name === row.name).value;
+                        setTransferValues(updated);
+                        const total = updated.reduce((sum, d) => sum + d.value, 0);
+                        setTransferTotal(total);
+                      }}
+                    />
+                  </td>
+                  <td className="px-6 py-4 text-right text-sm text-gray-800">£{row.value.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      <div className="flex justify-between items-center mt-6">
-        <span className="text-lg font-semibold text-gray-700">Total:</span>
-        <span className="text-2xl font-bold text-gray-800">£{transferTotal.toFixed(2)}</span>
-      </div>
+        <div className="flex justify-between items-center mt-6">
+          <span className="text-lg font-semibold text-purple-700">Total:</span>
+          <span className="text-2xl font-bold text-purple-900">£{transferTotal.toFixed(2)}</span>
+        </div>
 
-      <div className="flex justify-end">
-        <button
-          className="py-2 px-6 bg-gray-700 text-white rounded-md font-semibold text-base hover:bg-gray-800 shadow-sm transition-all"
-          onClick={handleSaveTransferFloats}
-        >
-          Save Transfer Floats
-        </button>
+        <div className="flex justify-end">
+          <button
+            className="py-2 px-8 bg-purple-700 text-white rounded-md font-semibold text-base hover:bg-purple-800 shadow-lg transition-all"
+            onClick={handleSaveTransferFloats}
+          >
+            Save Transfer Floats
+          </button>
+        </div>
       </div>
-    </div>
-  )}
-</div>
-
+    )}
+  </div>
 );
 
 
