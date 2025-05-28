@@ -23,6 +23,9 @@ const ItemsManager = () => {
     saucesArray: [],
   });
   const [editId, setEditId] = useState(null);
+
+  // New states for search
+  const [searchField, setSearchField] = useState('itemName');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -106,22 +109,36 @@ const ItemsManager = () => {
     }
   };
 
+  // Toggle active status for an item
   const handleToggleActive = async (id, currentActive) => {
     try {
       await updateDoc(doc(db, 'items', id), { active: !currentActive });
+      // No need to manually update state, onSnapshot will update the UI
     } catch (error) {
       alert('Failed to update active status.');
     }
   };
 
+  // Filter items based on search
   const filteredItems = items.filter(item => {
-    const categoryName = categories.find(cat => cat.id === item.categoryId?.id)?.name || '';
-    return (
-      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(item.price).includes(searchTerm) ||
-      categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.categoryId?.id?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    if (!searchTerm.trim()) return true; // no filter if search term empty
+
+    const term = searchTerm.toLowerCase();
+
+    switch (searchField) {
+      case 'itemName':
+        return item.itemName?.toLowerCase().includes(term);
+      case 'categoryId':
+        // Match category name or category ID
+        const cat = categories.find(cat => cat.id === item.categoryId?.id);
+        const catName = cat?.name?.toLowerCase() || '';
+        const catId = item.categoryId?.id || '';
+        return catName.includes(term) || catId.toLowerCase().includes(term);
+      case 'price':
+        return item.price?.toString().includes(term);
+      default:
+        return true;
+    }
   });
 
   return (
@@ -129,8 +146,6 @@ const ItemsManager = () => {
       <h1 className="text-3xl font-bold text-center mb-6">Item Management</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 mb-6">
-        {/* All input fields same as before */}
-        {/* ... */}
         <input
           type="text"
           placeholder="Item Name"
@@ -160,6 +175,7 @@ const ItemsManager = () => {
             </option>
           ))}
         </select>
+
         <select
           value={form.sauceGroupId}
           onChange={e => setForm({ ...form, sauceGroupId: e.target.value })}
@@ -172,6 +188,7 @@ const ItemsManager = () => {
             </option>
           ))}
         </select>
+
         <input
           type="text"
           placeholder="Sauce Name"
@@ -188,18 +205,32 @@ const ItemsManager = () => {
         </button>
       </form>
 
-      {/* Search Field */}
-      <div className="mb-4 flex gap-2">
+      {/* Search Section */}
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+        <select
+          value={searchField}
+          onChange={e => setSearchField(e.target.value)}
+          className="p-2 border rounded min-w-[150px]"
+        >
+          <option value="itemName">Item Name</option>
+          <option value="categoryId">Category</option>
+          <option value="price">Price</option>
+        </select>
+
         <input
           type="text"
-          placeholder="Search by name, category, or price..."
-          className="p-2 border rounded w-full"
+          placeholder={`Search by ${
+            searchField === 'categoryId' ? 'Category Name or ID' : searchField.charAt(0).toUpperCase() + searchField.slice(1)
+          }`}
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
+          className="flex-1 min-w-[200px] p-2 border rounded"
         />
+
         <button
           onClick={() => setSearchTerm('')}
-          className="bg-gray-300 px-4 rounded hover:bg-gray-400"
+          className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+          type="button"
         >
           Clear
         </button>
@@ -253,12 +284,13 @@ const ItemsManager = () => {
                         <button
                           className={`w-28 ${
                             item.active === true
-                              ? "bg-red-700 hover:bg-red-800"
-                              : "bg-green-600 hover:bg-green-700"
+                              ? 'bg-red-700 hover:bg-red-800'
+                              : 'bg-green-600 hover:bg-green-700'
                           } text-white px-3 py-1 rounded`}
+                          style={{ minWidth: 112 }} // Ensures fixed width for both buttons
                           onClick={() => handleToggleActive(item.id, item.active)}
                         >
-                          {item.active === true ? "Deactivate" : "Activate"}
+                          {item.active === true ? 'Deactivate' : 'Activate'}
                         </button>
                       </div>
                     </td>
