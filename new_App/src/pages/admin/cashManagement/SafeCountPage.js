@@ -117,14 +117,24 @@ function SafeCountPage() {
       return;
     }
 
-    const data = {
-      expectedAmount,
-      actualAmount,
-      variance,
-      values,
-      cashier:authCashierId,
-      manager:authWitnessId,
-    };
+    // Only include expectedAmount and variance if not change_receive
+    const data =
+      currentSession === 'change_receive'
+        ? {
+            actualAmount,
+            values,
+            cashier: authCashierId,
+            manager: authWitnessId,
+          }
+        : {
+            expectedAmount,
+            actualAmount,
+            variance,
+            values,
+            cashier: authCashierId,
+            manager: authWitnessId,
+          };
+
     const docRef = doc(db, 'safeCounts', currentDateStr);
     await setDoc(docRef, { [currentSession]: data }, { merge: true });
     alert(`Data for ${currentSession} saved!`);
