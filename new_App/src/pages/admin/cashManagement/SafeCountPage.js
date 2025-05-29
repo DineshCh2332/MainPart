@@ -365,6 +365,7 @@ return (
           expectedAmount={expectedAmount}
           variance={variance}
           readOnly={isReadOnly}
+          session={currentSession} // <-- add this line
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

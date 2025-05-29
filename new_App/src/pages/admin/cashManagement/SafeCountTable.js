@@ -9,7 +9,7 @@ function SafeCountTable({
   expectedAmount,
   variance,
   readOnly ,
- 
+  session // <-- Add this prop to know which session is active
 }) {
 return (
   <div className="overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
@@ -62,14 +62,19 @@ return (
           </tr>
         ))}
 
-        <tr className="bg-gray-100">
-          <td colSpan="3" className="px-6 py-3 text-right font-semibold text-gray-700">
-            Expected Amount (£)
-          </td>
-          <td className="px-6 py-3 text-right font-semibold text-gray-900">
-            {expectedAmount.toFixed(2)}
-          </td>
-        </tr>
+        {/* Only show expected amount and variance if not change_receive */}
+        {session !== 'change_receive' && (
+          <>
+            <tr className="bg-gray-100">
+              <td colSpan="3" className="px-6 py-3 text-right font-semibold text-gray-700">
+                Expected Amount (£)
+              </td>
+              <td className="px-6 py-3 text-right font-semibold text-gray-900">
+                {expectedAmount.toFixed(2)}
+              </td>
+            </tr>
+          </>
+        )}
         <tr className="bg-gray-100">
           <td colSpan="3" className="px-6 py-3 text-right font-semibold text-gray-700">
             Actual Amount (£)
@@ -85,14 +90,17 @@ return (
             />
           </td>
         </tr>
-        <tr className="bg-gray-100">
-          <td colSpan="3" className="px-6 py-3 text-right font-semibold text-gray-700">
-            Variance (£)
-          </td>
-          <td className="px-6 py-3 text-right font-semibold text-red-600">
-            {variance.toFixed(2)}
-          </td>
-        </tr>
+        {/* Only show variance if not change_receive */}
+        {session !== 'change_receive' && (
+          <tr className="bg-gray-100">
+            <td colSpan="3" className="px-6 py-3 text-right font-semibold text-gray-700">
+              Variance (£)
+            </td>
+            <td className="px-6 py-3 text-right font-semibold text-red-600">
+              {variance.toFixed(2)}
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   </div>

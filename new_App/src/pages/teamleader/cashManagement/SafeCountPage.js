@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
-import SessionButtons from './SessionButtons';
 import SafeCountTable from './SafeCountTable';
-// import '../../../css/SafeCount.css';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Repeat } from 'lucide-react';
+
 
 function SafeCountPage() {
   const [currentSession, setCurrentSession] = useState(null);
@@ -31,7 +29,7 @@ function SafeCountPage() {
     { name: '20p', value: 0.2, bagValue: 50.00 },
     { name: '50p', value: 0.5, bagValue: 20.00 },
     { name: '£1', value: 1.00, bagValue: 20.00 },
-    { name: '£2', value: 2.00, bagValue: 20.00 },
+    { name: '£2', value: 2.00, bagValue: 10.00 },
     { name: '£5', value: 5.00, bagValue: 0.00 },
     { name: '£10', value: 10.00, bagValue: 0.00 },
     { name: '£20', value: 20.00, bagValue: 0.00 },
@@ -146,8 +144,9 @@ function SafeCountPage() {
   };
 
   const handleSessionSelect = async (session) => {
-    if (showTransferTable) return;
+    
     setCurrentSession(session);
+    setShowTransferTable(false);
 
     const docRef = doc(db, 'safeCounts', currentDateStr);
     const docSnap = await getDoc(docRef);
@@ -194,28 +193,27 @@ function SafeCountPage() {
     const todaySnap = await getDoc(todayRef);
     const todayData = todaySnap.exists() ? todaySnap.data() : {};
 
-    const transferTotal = todayData.TransferFloats ? todayData.TransferFloats.total : 0;
-    const changeReceive = todayData.change_receive ? todayData.change_receive.expectedAmount : 0;
+    const transferTotal = todayData.TransferFloats?.total || 0;
+    const changeReceive = todayData.change_receive ?.actualAmount || 0;
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().slice(0, 10);
     const yesterdayRef = doc(db, 'safeCounts', yesterdayStr);
     const yesterdaySnap = await getDoc(yesterdayRef);
-    const yesterdayNightExpected = (yesterdaySnap.exists() && yesterdaySnap.data().night)
-      ? yesterdaySnap.data().night.expectedAmount
-      : 0;
+    const yesterdayData = yesterdaySnap.exists() ? yesterdaySnap.data() : {};
 
     let expected = 0;
 
     if (session === 'morning') {
-      expected = yesterdayNightExpected + changeReceive + transferTotal;
+       const nightActual = yesterdayData.night?.actualAmount || 0;
+       expected = nightActual + changeReceive - transferTotal;
     } else if (session === 'changeover') {
-      const morningExpected = todayData.morning ? todayData.morning.expectedAmount : 0;
-      expected = morningExpected + changeReceive + transferTotal;
+      const morningActual = todayData.morning ?.actualAmount || 0;
+      expected = morningActual + changeReceive - transferTotal;
     } else if (session === 'night') {
-      const changeoverExpected = todayData.changeover ? todayData.changeover.expectedAmount : 0;
-      expected = changeoverExpected + changeReceive + transferTotal;
+      const changeoverActual = todayData.changeover ?.actualAmount || 0;
+      expected = changeoverActual + changeReceive - transferTotal;
     }
 
     setExpectedAmount(expected);
@@ -306,132 +304,7 @@ function SafeCountPage() {
     );
   }
 
-//   return (
-//     <div className="container">
-//       <h2>Safe Count</h2>
-      
 
-//       <SessionButtons
-//         sessions={['morning', 'changeover', 'night', 'change_receive']}
-//         currentSession={currentSession}
-//         onSelect={handleSessionSelect}
-//         disabledSessions={disabledSessions}
-//         onTransferFloats={handleTransferFloats}
-//       />
-
-//       {currentSession && !showTransferTable && (
-//         <>
-//           <SafeCountTable
-//             denominations={denominations}
-//             values={values}
-//             onChange={(index, type, value) => {
-//               const updatedValues = [...values];
-//               updatedValues[index][type] = parseFloat(value) || 0;
-//               updatedValues[index].value = (updatedValues[index].bags * denominations[index].bagValue) + (updatedValues[index].loose * denominations[index].value);
-//               setValues(updatedValues);
-//               const total = updatedValues.reduce((sum, row) => sum + row.value, 0);
-//               setActualAmount(total);
-//               setVariance(total - expectedAmount);
-//             }}
-//             actualAmount={actualAmount}
-//             onActualChange={e => {
-//               const actual = parseFloat(e.target.value) || 0;
-//               setActualAmount(actual);
-//               setVariance(actual - expectedAmount);
-//             }}
-//             expectedAmount={expectedAmount}
-//             variance={variance}
-//             readOnly={isReadOnly}
-//           />
-
-//           <div className="space-y-4">
-//             <div className="flex items-center space-x-2">
-
-//             <label className="w-40">Enter Cashier ID:</label>
-//             <input
-//             value={authCashierId}
-//             onChange={(e) => setAuthCashierId(e.target.value)}
-//             disabled={authDisabled} 
-//             className="border p-1 rounded w-40"/>
-
-//            <label className="flex items-center space-x-1">
-//             <input 
-//             type="checkbox"
-//             checked={confirmCashier} 
-//             onChange={(e) => setConfirmCashier(e.target.checked)}
-//             disabled={authDisabled} />
-//             <span> Confirm</span>
-//             </label>
-//           </div>
-
-//           <div className="flex items-center space-x-2">
-//             <label className="w-40">Enter Witness ID:</label>
-//             <input 
-           
-//             value={authWitnessId} 
-//             onChange={(e) => setAuthWitnessId(e.target.value)}
-//             className="border p-1 rounded w-40"
-//             disabled={authDisabled} />
-            
-//              <label className="flex items-center space-x-1">
-//             <input
-//              type="checkbox" 
-//              checked={confirmManager} 
-//              onChange={(e) => setConfirmManager(e.target.checked)} 
-//              disabled={authDisabled} /> 
-//              <span>Confirm</span>
-//              </label>
-//           </div>
-
-//           <button onClick={handleSave} disabled={saveDisabled}>Save Session</button>
-//           </div>
-//         </>
-        
-//       )}
-
-//       {showTransferTable && (
-//         <>
-//           <h3>Transfer Floats</h3>
-//           <table>
-//             <thead>
-//               <tr>
-//                 <th>Denomination</th>
-//                 <th>Loose</th>
-//                 <th>Value</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {transferValues.map((row, idx) => (
-//                 <tr key={idx}>
-//                   <td>{row.name}</td>
-//                   <td>
-//                     <input
-//                       type="number"
-//                       value={row.loose}
-//                       onChange={(e) => {
-//                         const loose = parseFloat(e.target.value) || 0;
-//                         const updated = [...transferValues];
-//                         updated[idx].loose = loose;
-//                         updated[idx].value = loose * denominations.find(d => d.name === row.name).value;
-//                         setTransferValues(updated);
-//                         const total = updated.reduce((sum, d) => sum + d.value, 0);
-//                         setTransferTotal(total);
-//                       }}
-//                     />
-//                   </td>
-//                   <td>£{row.value.toFixed(2)}</td>
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//           <p>Total: £{transferTotal.toFixed(2)}</p>
-
-//           <button onClick={handleSaveTransferFloats}>Save Transfer Floats</button>
-//         </>
-//       )}
-//     </div>
-//   );
-// }
 return (
   <div className="container mx-auto p-6 max-w-5xl bg-white rounded-2xl shadow-lg mt-10 mb-10">
     <div className="mb-4">
@@ -439,6 +312,7 @@ return (
         Safe Count
       </h2>
     </div>
+    {/* Date Picker */}
     <div className="flex justify-end mb-10">
       <div className="bg-blue-50 p-4 rounded-xl shadow flex items-center gap-4">
         <span className="font-semibold text-blue-700">Select Date:</span>
@@ -451,7 +325,7 @@ return (
         />
       </div>
     </div>
-
+    {/* Session Buttons */}
     <div className="mb-8">
       <SessionButtons
         sessions={['morning', 'changeover', 'night', 'change_receive']}
@@ -464,7 +338,10 @@ return (
 
     {currentSession && !showTransferTable && (
       <div className="bg-gray-50 rounded-xl shadow p-6 mt-6 space-y-8 border border-gray-200">
-        <h3 className="text-2xl font-bold text-blue-700 mb-4 capitalize">{currentSession.replace(/_/g, ' ')} Session</h3>
+        <h3 className="text-2xl font-bold text-blue-700 mb-4 capitalize">
+          {currentSession.replace(/_/g, ' ')} Session
+          </h3>
+
         <SafeCountTable
           denominations={denominations}
           values={values}
@@ -472,7 +349,7 @@ return (
             const updatedValues = [...values];
             updatedValues[index][type] = parseFloat(value) || 0;
             updatedValues[index].value =
-              (updatedValues[index].bags * denominations[index].bagValue) +
+              (denominations[index].value * updatedValues[index].bags * denominations[index].bagValue) +
               (updatedValues[index].loose * denominations[index].value);
             setValues(updatedValues);
             const total = updatedValues.reduce((sum, row) => sum + row.value, 0);
@@ -488,6 +365,7 @@ return (
           expectedAmount={expectedAmount}
           variance={variance}
           readOnly={isReadOnly}
+          session={currentSession} // <-- add this line
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
