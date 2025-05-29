@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { db } from '../../../firebase/config';
 import { collection, getDocs } from 'firebase/firestore';
 import {
   FaClock,
   FaSun,
   FaCloudSun,
-  FaMoon,
   FaRegMoon,
   FaCalendarAlt,
   FaFilter,

@@ -1,6 +1,16 @@
 import React from 'react';
 
-function SafeCountTable({ denominations, values, onChange, actualAmount, onActualChange, expectedAmount, variance, readOnly }) {
+function SafeCountTable({ 
+  denominations, 
+  values,
+  onChange,
+  actualAmount,
+  onActualChange,
+  expectedAmount,
+  variance,
+  readOnly ,
+ 
+}) {
 return (
   <div className="overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
     <table className="min-w-full divide-y divide-gray-200">
@@ -24,6 +34,7 @@ return (
         {denominations.map((denom, index) => (
           <tr key={denom.name} className="hover:bg-gray-50">
             <td className="px-6 py-4 text-sm font-medium text-gray-900">{denom.name}</td>
+            {!(Number(denom.value) >= 5 && Number(denom.value) <= 50) ? (
             <td className="px-6 py-4 text-center">
               <input
                 type="number"
@@ -33,7 +44,8 @@ return (
                 onChange={(e) => onChange(index, 'bags', e.target.value)}
                 disabled={readOnly}
               />
-            </td>
+            </td>):
+            ( <td className="px-6 py-4 text-center text-gray-400">—</td> )}
             <td className="px-6 py-4 text-center">
               <input
                 type="number"

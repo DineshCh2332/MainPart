@@ -120,16 +120,7 @@ const Categories = () => {
     <div className="p-6 max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-center">Category Management</h2>
 
-       {/* --- Search Input --- */}
-      <div className="mb-4">
-        <input
-          className="border p-2 rounded w-full text-base"
-          placeholder="Search categories..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-      {/* --- End Search Input --- */}
+       
   
       <div className="mb-4 flex gap-2">
         <input
@@ -145,6 +136,16 @@ const Categories = () => {
           Add
         </button>
       </div>
+      {/* --- Search Input --- */}
+      <div className="mb-4">
+        <input
+          className="border p-2 rounded w-full text-base"
+          placeholder="Search categories..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      {/* --- End Search Input --- */}
   
       <table className="w-full border-collapse">
         <thead>
