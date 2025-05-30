@@ -8,6 +8,8 @@ const Sauces = () => {
   const [saucesInput, setSaucesInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingSauces, setEditingSauces] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // New state for search term
+
 
   useEffect(()=>{
     const unsubscribe = onSnapshot(collection(db,"sauceGroups"),(snapshot)=>{
@@ -67,6 +69,13 @@ const Sauces = () => {
     await deleteDoc(doc(db, 'sauceGroups', id));
     setGroups(groups.filter(g => g.id !== id));
   };
+ 
+   // --- Search Filter Logic ---
+  const filteredGroups = groups.filter((group) =>
+    group.id.toLowerCase().includes(searchTerm.toLowerCase()) || // Search by category name (document ID)
+    group.sauces.some(sauce => sauce.toLowerCase().includes(searchTerm.toLowerCase())) // Search within sauces array
+  );
+  // --- End Search Filter Logic ---
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -93,6 +102,16 @@ const Sauces = () => {
         </button>
       </div>
 
+       {/* Search Input Field */}
+      <div className="mb-4">
+        <input
+          className="border p-2 rounded w-full text-base"
+          placeholder="Search categories or sauces..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-blue-600 text-white">
@@ -102,7 +121,9 @@ const Sauces = () => {
           </tr>
         </thead>
         <tbody>
-          {groups.map((group) => (
+          {/* Render filteredGroups instead of original groups */}
+          {filteredGroups.length > 0 ? (
+            filteredGroups.map((group) => (
             <tr key={group.id} className="text-center hover:bg-gray-100 text-base">
               <td className="border px-2 py-1">
                 {group.id} {/* show document ID as category */}
@@ -153,14 +174,20 @@ const Sauces = () => {
         className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-base rounded"
         onClick={() => handleDeleteGroup(group.id)}
       >
-        Delete
+         Delete
       </button>
     </div>
   )}
-</td>
-
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="3" className="text-center p-4 text-gray-500">
+                No sauce groups found.
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
