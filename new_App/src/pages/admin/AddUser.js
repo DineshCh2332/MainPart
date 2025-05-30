@@ -23,7 +23,7 @@ const initialState = {
   },
   document_number: "",
   shareCode: "",
-  countryCode: "+91",
+  countryCode: "+44", // Changed to +44 (UK) directly
 };
 
 const AddUser = () => {
@@ -73,8 +73,15 @@ const AddUser = () => {
     if (!formData.name) return showError("Full Name is required."), false;
     if (!/^[A-Za-z\s]+$/.test(formData.name))
       return showError("Full Name should only contain alphabets and spaces."), false;
-    if (!formData.phone || !/^\d{10}$/.test(formData.phone))
-      return showError("Phone number must be exactly 10 digits."), false;
+    // --- UPDATED: UK Phone Number Validation ---
+    // UK phone numbers typically start with 07 for mobiles or 01/02 for landlines.
+    // After the initial 0, there are usually 9 digits.
+    // The regex /^(0|\+44)\d{9,10}$/ allows for numbers starting with 0 followed by 10 digits
+    // or +44 followed by 9-10 digits. Some UK numbers can be 10 digits after the 0/or 9 digits after +44.
+    // A stricter validation might be needed based on exact requirements.
+    if (!formData.phone || !/^(0|\+44)\d{9,10}$/.test(formData.phone))
+      return showError("Phone number must be a valid UK number (e.g., 07XXXXXXXXX or +447XXXXXXXXX)."), false;
+    // --- END UPDATED ---
 
     if (formData.email && !/^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/.test(formData.email)) {
       showError("Please enter a valid email.");
@@ -294,21 +301,14 @@ const AddUser = () => {
         <div className="input-group">
           <label>Phone</label>
           <div style={{ display: "flex", alignItems: "center" }}>
-            <select
-              name="countryCode"
-              value={formData.countryCode}
-              onChange={handleChange}
-              style={{ marginRight: "10px" }}
-            >
-              <option value="+44">+44 (UK)</option>
-              <option value="+91">+91 (India)</option>
-            </select>
+            {/* Removed the select dropdown as only +44 is allowed */}
+            <span style={{ marginRight: "10px", fontWeight: "bold" }}>+44</span>
             <input
               type="tel"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="Phone Number"
+              placeholder="UK Phone Number (e.g., 07XXXXXXXXX)"
               required
             />
           </div>
