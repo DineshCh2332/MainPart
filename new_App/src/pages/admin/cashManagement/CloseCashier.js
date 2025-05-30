@@ -9,6 +9,7 @@ import {
   updateDoc,
   query, where,
 } from "firebase/firestore";
+import dayjs from "dayjs";
 
 // Denominations list for counting
 const denominations = [
@@ -240,6 +241,26 @@ const [confirmWitnessChecked, setConfirmWitnessChecked] = useState(false);
       // Save to floatClosures
       await setDoc(doc(db, "floatClosures", docId), data);
 
+    const now = dayjs();
+    const timestampId = now.format("YYYY-MM-DD_HH-mm-ss");
+    const moneyMovementRef = doc(db, "moneyMovement",timestampId )
+//store in moneyMovement collection
+await setDoc(moneyMovementRef, {
+  timestamp: serverTimestamp(),
+  type: "cashier_close",
+  amount: Number(totalValue.toFixed(2)),
+  expected: Number(expectedFloat),
+  variance: Number(variance.toFixed(2)),
+  direction: "out",
+  userId: selectedCashier,
+  session: "-" , // e.g., 'morning', 'evening'
+  note: reason || null,
+  authorisedBy: {
+    cashierEmployeeId: auth.password ,
+    witnessEmployeeId: auth.witnessId,
+  },
+});
+
       // Now, store the denominations from £5 to £50 in the safeDrop collection
       const safeFloatsData = denominations
         .filter((d) => d.value >= 5) // Filter for denominations from £5 to £50
@@ -258,6 +279,8 @@ const [confirmWitnessChecked, setConfirmWitnessChecked] = useState(false);
         timestamp: serverTimestamp(),
         cashierId: selectedCashier,
       });
+
+
 
       //calculate total of SafeDrop denominations
       const safeFloatsTotal = safeFloatsData.reduce((sum, d) => sum + d.value, 0);

@@ -10,6 +10,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import dayjs from "dayjs";
 
 const denominations = [
   { label: "1p", value: 0.01 },
@@ -214,6 +215,23 @@ export default function OpenCashier() {
         openedAt: serverTimestamp(),
         closedAt: null,
       });
+      const now = dayjs();
+      const timestampId = now.format("YYYY-MM-DD_HH-mm-ss");
+     const moneyMovementRef = doc(db, "moneyMovement",timestampId ); // 'moneyMovement/2025-05-30'
+     await setDoc(moneyMovementRef, {
+      timestamp: serverTimestamp(),
+      type: "float_open",
+      amount: Number((totalValue + retainedAmount).toFixed(2)),
+      direction: "in",
+      userId: selectedCashier,
+      session: "-",
+      note: `Float opened (${floatType}) for cashier ${selectedCashier}`,
+      authorisedBy: { 
+        cashierEmployeeId: authCashierId,
+        witnessEmployeeId: authWitnessId,
+  },
+});
+
 
       alert(`Float ${floatType} assigned to cashier successfully.`);
 

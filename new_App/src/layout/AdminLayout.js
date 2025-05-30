@@ -24,6 +24,7 @@ import OpenCashier from "../pages/admin/cashManagement/OpenCashier";
 import CloseCashier from "../pages/admin/cashManagement/CloseCashier"
 import SafeCountPage from "../pages/admin/cashManagement/SafeCountPage";
 import BankingPage from "../pages/admin/cashManagement/BankingPage";
+import MoneyMovementPage from "../pages/admin/cashManagement/MoneyMovement";
 
 //customer tracking
 import KOT from "../pages/admin/customerTracking/KOT";
@@ -33,6 +34,7 @@ import CustomerReport from "../pages/admin/customerTracking/CustomerReport";
 import Categories from "../pages/admin/itemsManagement/categories";
 import Sauces from "../pages/admin/itemsManagement/sauces";
 import ItemsManager from "../pages/admin/itemsManagement/items";
+
 
 
 const AdminLayout = () => {
@@ -69,7 +71,9 @@ const AdminLayout = () => {
             <Route path="cashManagement/closecashier" element={<CloseCashier/>} />
             <Route path="cashManagement/safecountpage" element={<SafeCountPage/>} />
             <Route path="cashManagement/bankingpage" element={<BankingPage/>} />
+            <Route path="cashManagement/moneymovementpage" element={<MoneyMovementPage/>} />
 
+           
             <Route path="customerTracking/customerreport" element={<CustomerReport/>}/>
             <Route path="customerTracking/kot" element={<KOT />}/>
 
