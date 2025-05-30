@@ -112,7 +112,7 @@ const Sauces = () => {
         <input
           // Use flex-grow for input
           className="border p-2 rounded flex-grow text-base"
-          placeholder="Search by Category Name or Sauces..."
+          placeholder="Search by Category Name"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
