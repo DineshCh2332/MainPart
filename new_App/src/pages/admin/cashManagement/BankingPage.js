@@ -149,62 +149,81 @@ function BankingPage() {
 
   return (
     <div className="banking-page">
-      <div className="container">
-        <h2>Safe Drop</h2>
+     <div className="container">
+      <div className="mb-4">
+        <h2>  Safe Drop  </h2>
+          
+       
+      <div className="mb-8"> {/* Added margin bottom for spacing */}
+          <BankingTable
+            denominations={denominations}
+            values={values}
+            onChange={updateValues}
+            actualAmount={actualAmount}
+            expectedAmount={expectedAmount}
+            variance={variance}
+            readOnly={false} // Assuming this table is editable
+          />
+        </div>
 
-        <BankingTable
-          denominations={denominations}
-          values={values}
-          onChange={updateValues}
-          actualAmount={actualAmount}
-          expectedAmount={expectedAmount}
-          variance={variance}
-        />
-
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <label className="w-40">Enter Cashier ID:</label>
-            <input
-              value={authCashierId}
-              onChange={(e) => setAuthCashierId(e.target.value)}
-              disabled={authDisabled}
-              className="border p-1 rounded w-40"
-            />
-            <label className="flex items-center space-x-1">
+        
+        
+        <div className="space-y-4 p-4 border border-gray-200 rounded-lg shadow-sm bg-white">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Authorization</h3>
+          <div className="flex flex-col space-y-4 md:flex-row md:space-x-8 md:space-y-0">
+            {/* Cashier ID */}
+            <div className="flex items-center space-x-2">
+              <label className="w-40 text-gray-700 font-medium">Cashier ID:</label>
               <input
-                type="checkbox"
-                checked={confirmCashier}
-                onChange={(e) => setConfirmCashier(e.target.checked)}
+                value={authCashierId}
+                onChange={(e) => setAuthCashierId(e.target.value)}
                 disabled={authDisabled}
+                className="border p-2 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                placeholder="Enter Cashier ID"
               />
-              <span> Confirm</span>
-            </label>
+              <label className="flex items-center space-x-1 text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={confirmCashier}
+                  onChange={(e) => setConfirmCashier(e.target.checked)}
+                  disabled={authDisabled}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                />
+                <span>Confirm</span>
+              </label>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <label className="w-40">Enter Witness ID:</label>
-            <input
-              value={authWitnessId}
-              onChange={(e) => setAuthWitnessId(e.target.value)}
-              className="border p-1 rounded w-40"
-              disabled={authDisabled}
-            />
-            <label className="flex items-center space-x-1">
+            {/* Witness ID */}
+            <div className="flex items-center space-x-2">
+              <label className="w-40 text-gray-700 font-medium">Witness ID:</label>
               <input
-                type="checkbox"
-                checked={confirmManager}
-                onChange={(e) => setConfirmManager(e.target.checked)}
+                value={authWitnessId}
+                onChange={(e) => setAuthWitnessId(e.target.value)}
+                className="border p-2 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                 disabled={authDisabled}
+                placeholder="Enter Witness ID"
               />
-              <span>Confirm</span>
-            </label>
+              <label className="flex items-center space-x-1 text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={confirmManager}
+                  onChange={(e) => setConfirmManager(e.target.checked)}
+                  disabled={authDisabled}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                />
+                <span>Confirm</span>
+              </label>
+            </div>
           </div>
         </div>
 
+         {/* Variance Reason Input */}
         {showVarianceReason && variance !== 0 && (
-          <div className="variance-reason">
-            <label>Reason for Variance:</label>
+          <div className="space-y-2 bg-white p-4 rounded-lg shadow">
+            <label className="block text-sm font-medium text-gray-700">Reason for Variance:</label>
             <textarea
+              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 h-24"
               value={varianceReason}
               onChange={(e) => setVarianceReason(e.target.value)}
               placeholder="Explain the reason for the variance..."
@@ -212,14 +231,23 @@ function BankingPage() {
           </div>
         )}
 
-        <div className="button-group">
-          <button onClick={handleSave} disabled={!isAuthorized.witness || !isAuthorized.shiftRunner}>
+        {/* Save Button */}
+        <div className="flex justify-end mt-6">
+          <button
+            className={`py-2 px-8 rounded-md font-semibold text-white text-base transition-all shadow-lg
+              ${(!isAuthorized.witness || !isAuthorized.shiftRunner) ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-700 '}
+            `}
+            onClick={handleSave}
+            disabled={!isAuthorized.witness || !isAuthorized.shiftRunner}
+          >
             Save
+         
           </button>
         </div>
       </div>
     </div>
   );
 }
+
 
 export default BankingPage;
