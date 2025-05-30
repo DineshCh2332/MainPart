@@ -220,6 +220,14 @@ const Sidebar = () => {
               >
                 Banking
               </NavLink>
+               <NavLink
+                to={`${inventoryBasePath}/cashmanagement/moneymovementpage`}
+                className={({ isActive }) =>
+                  `submenu-item ${isActive ? 'active-subitem' : ''}`
+                }
+              >
+                Money Movement
+              </NavLink>
             </div>
           </div>
         )}
