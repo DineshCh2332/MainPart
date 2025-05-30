@@ -70,7 +70,7 @@ return (
                 Expected Amount (£)
               </td>
               <td className="px-6 py-3 text-right font-semibold text-gray-900">
-                {expectedAmount.toFixed(2)}
+                {(expectedAmount??0).toFixed(2)}
               </td>
             </tr>
           </>
@@ -97,7 +97,7 @@ return (
               Variance (£)
             </td>
             <td className="px-6 py-3 text-right font-semibold text-red-600">
-              {variance.toFixed(2)}
+              {(variance??0).toFixed(2)}
             </td>
           </tr>
         )}
