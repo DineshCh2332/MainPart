@@ -6,7 +6,7 @@ import BankingTable from './BankingTable';
 import '../../../css/Banking.css';
 
 function BankingPage() {
-  
+
   const [isAuthorized, setIsAuthorized] = useState({ witness: false, shiftRunner: false });
   const [actualAmount, setActualAmount] = useState(0);
   const [expectedAmount, setExpectedAmount] = useState(0);
@@ -18,6 +18,12 @@ function BankingPage() {
   const [confirmCashier, setConfirmCashier] = useState(false);
   const [confirmManager, setConfirmManager] = useState(false);
   const [authDisabled, setAuthDisabled] = useState(false);
+  const [depositBagNumber, setDepositBagNumber] = useState('');
+  const [bankingSlipNumber, setBankingSlipNumber] = useState('');
+  const [confirmDepositBag, setConfirmDepositBag] = useState(false);
+  const [confirmBankingSlip, setConfirmBankingSlip] = useState(false);
+
+
 
   const denominations = useMemo(() => [
     { name: '£5', value: 5.00 },
@@ -35,23 +41,32 @@ function BankingPage() {
   const [values, setValues] = useState(defaultValues);
 
   const fetchLatestExpectedAmount = useCallback(async () => {
-    try {
-      const q = query(collection(db, 'SafeFloats'), orderBy('timestamp', 'desc'), limit(1));
-      const querySnapshot = await getDocs(q);
+  try {
+    const q = query(collection(db, 'SafeFloats'), orderBy('timestamp', 'desc'), limit(1));
+    const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        const latestDoc = querySnapshot.docs[0].data();
-        const total = latestDoc.denominations.reduce((sum, item) => sum + (item.value || 0), 0);
-        setExpectedAmount(total);
-        setVariance(actualAmount - total);
-      } else {
-        setExpectedAmount(0);
-        setVariance(actualAmount);
-      }
-    } catch (error) {
-      console.error('Error fetching expected amount:', error);
+    if (!querySnapshot.empty) {
+      const latestDoc = querySnapshot.docs[0].data();
+      const total = latestDoc.denominations.reduce((sum, item) => sum + (item.value || 0), 0);
+      const transferFloat = latestDoc.transferFloat || 0;
+
+      const expected = total + transferFloat;
+
+      setExpectedAmount(expected);
+      setVariance(actualAmount - expected);
+    } else {
+      setExpectedAmount(0);
+      setVariance(actualAmount);
     }
-  }, [actualAmount]);
+  } catch (error) {
+    console.error("Error fetching latest expected amount:", error);
+    // Optionally set fallback values on error
+    setExpectedAmount(0);
+    setVariance(actualAmount);
+  }
+});
+
+
 
   useEffect(() => {
     fetchLatestExpectedAmount();
@@ -120,8 +135,12 @@ function BankingPage() {
       actualAmount,
       variance,
       varianceReason: variance !== 0 ? varianceReason : '',
-      witness:authWitnessId ,
-      shiftRunner:authCashierId ,
+      witness: authWitnessId,
+      shiftRunner: authCashierId,
+      depositBagNumber,
+      confirmDepositBag,
+      bankingSlipNumber,
+      confirmBankingSlip,
       values: values,
       timestamp: new Date().toISOString()
     };
@@ -149,50 +168,50 @@ function BankingPage() {
 
   return (
     <div className="banking-page">
-     <div className="container">
-      <div className="mb-4">
-        <h2>  Safe Drop  </h2>
-          
-       
-      <div className="mb-8"> {/* Added margin bottom for spacing */}
-          <BankingTable
-            denominations={denominations}
-            values={values}
-            onChange={updateValues}
-            actualAmount={actualAmount}
-            expectedAmount={expectedAmount}
-            variance={variance}
-            readOnly={false} // Assuming this table is editable
-          />
-        </div>
+      <div className="container">
+        <div className="mb-4">
+          <h2>  Safe Drop  </h2>
 
-        
-        
-        <div className="space-y-4 p-4 border border-gray-200 rounded-lg shadow-sm bg-white">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Authorization</h3>
-          <div className="flex flex-col space-y-4 md:flex-row md:space-x-8 md:space-y-0">
-            {/* Cashier ID */}
-            <div className="flex items-center space-x-2">
-              <label className="w-40 text-gray-700 font-medium">Cashier ID:</label>
-              <input
-                value={authCashierId}
-                onChange={(e) => setAuthCashierId(e.target.value)}
-                disabled={authDisabled}
-                className="border p-2 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                placeholder="Enter Cashier ID"
-              />
-              <label className="flex items-center space-x-1 text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={confirmCashier}
-                  onChange={(e) => setConfirmCashier(e.target.checked)}
-                  disabled={authDisabled}
-                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                />
-                <span>Confirm</span>
-              </label>
-            </div>
+
+          <div className="mb-8"> {/* Added margin bottom for spacing */}
+            <BankingTable
+              denominations={denominations}
+              values={values}
+              onChange={updateValues}
+              actualAmount={actualAmount}
+              expectedAmount={expectedAmount}
+              variance={variance}
+              readOnly={false} // Assuming this table is editable
+            />
           </div>
+
+
+
+          <div className="space-y-4 p-4 border border-gray-200 rounded-lg shadow-sm bg-white">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Authorization</h3>
+            <div className="flex flex-col space-y-4 md:flex-row md:space-x-8 md:space-y-0">
+              {/* Cashier ID */}
+              <div className="flex items-center space-x-2">
+                <label className="w-40 text-gray-700 font-medium">Cashier ID:</label>
+                <input
+                  value={authCashierId}
+                  onChange={(e) => setAuthCashierId(e.target.value)}
+                  disabled={authDisabled}
+                  className="border p-2 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                  placeholder="Enter Cashier ID"
+                />
+                <label className="flex items-center space-x-1 text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={confirmCashier}
+                    onChange={(e) => setConfirmCashier(e.target.checked)}
+                    disabled={authDisabled}
+                    className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                  />
+                  <span>Confirm</span>
+                </label>
+              </div>
+            </div>
 
             {/* Witness ID */}
             <div className="flex items-center space-x-2">
@@ -215,10 +234,53 @@ function BankingPage() {
                 <span>Confirm</span>
               </label>
             </div>
+            {/* Deposit Bag Number */}
+            <div className="flex items-center space-x-2 mt-4">
+              <label className="w-40 text-gray-700 font-medium">Deposit Bag No:</label>
+              <input
+                value={depositBagNumber}
+                onChange={(e) => setDepositBagNumber(e.target.value)}
+                className="border p-2 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                placeholder="Enter Bag Number"
+                disabled={authDisabled}
+              />
+              <label className="flex items-center space-x-1 text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={confirmDepositBag}
+                  onChange={(e) => setConfirmDepositBag(e.target.checked)}
+                  disabled={authDisabled}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                />
+                <span>Confirm</span>
+              </label>
+            </div>
+
+            {/* Banking Slip Number */}
+            <div className="flex items-center space-x-2 mt-4">
+              <label className="w-40 text-gray-700 font-medium">Banking Slip No:</label>
+              <input
+                value={bankingSlipNumber}
+                onChange={(e) => setBankingSlipNumber(e.target.value)}
+                className="border p-2 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                placeholder="Enter Slip Number"
+                disabled={authDisabled}
+              />
+              <label className="flex items-center space-x-1 text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={confirmBankingSlip}
+                  onChange={(e) => setConfirmBankingSlip(e.target.checked)}
+                  disabled={authDisabled}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                />
+                <span>Confirm</span>
+              </label>
+            </div>
           </div>
         </div>
 
-         {/* Variance Reason Input */}
+        {/* Variance Reason Input */}
         {showVarianceReason && variance !== 0 && (
           <div className="space-y-2 bg-white p-4 rounded-lg shadow">
             <label className="block text-sm font-medium text-gray-700">Reason for Variance:</label>
@@ -241,7 +303,7 @@ function BankingPage() {
             disabled={!isAuthorized.witness || !isAuthorized.shiftRunner}
           >
             Save
-         
+
           </button>
         </div>
       </div>

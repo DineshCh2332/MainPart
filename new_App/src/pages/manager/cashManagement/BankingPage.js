@@ -6,7 +6,7 @@ import BankingTable from './BankingTable';
 import '../../../css/Banking.css';
 
 function BankingPage() {
-  
+
   const [isAuthorized, setIsAuthorized] = useState({ witness: false, shiftRunner: false });
   const [actualAmount, setActualAmount] = useState(0);
   const [expectedAmount, setExpectedAmount] = useState(0);
@@ -18,6 +18,11 @@ function BankingPage() {
   const [confirmCashier, setConfirmCashier] = useState(false);
   const [confirmManager, setConfirmManager] = useState(false);
   const [authDisabled, setAuthDisabled] = useState(false);
+  const [depositBagNumber, setDepositBagNumber] = useState('');
+  const [confirmDepositBag, setConfirmDepositBag] = useState(false);
+  const [bankingSlipNumber, setBankingSlipNumber] = useState('');
+  const [confirmBankingSlip, setConfirmBankingSlip] = useState(false);
+
 
   const denominations = useMemo(() => [
     { name: '£5', value: 5.00 },
@@ -38,20 +43,27 @@ function BankingPage() {
     try {
       const q = query(collection(db, 'SafeFloats'), orderBy('timestamp', 'desc'), limit(1));
       const querySnapshot = await getDocs(q);
-
+  
       if (!querySnapshot.empty) {
         const latestDoc = querySnapshot.docs[0].data();
         const total = latestDoc.denominations.reduce((sum, item) => sum + (item.value || 0), 0);
-        setExpectedAmount(total);
-        setVariance(actualAmount - total);
+        const transferFloat = latestDoc.transferFloat || 0;
+  
+        const expected = total + transferFloat;
+  
+        setExpectedAmount(expected);
+        setVariance(actualAmount - expected);
       } else {
         setExpectedAmount(0);
         setVariance(actualAmount);
       }
     } catch (error) {
-      console.error('Error fetching expected amount:', error);
+      console.error("Error fetching latest expected amount:", error);
+      // Optionally set fallback values on error
+      setExpectedAmount(0);
+      setVariance(actualAmount);
     }
-  }, [actualAmount]);
+  });
 
   useEffect(() => {
     fetchLatestExpectedAmount();
@@ -120,11 +132,16 @@ function BankingPage() {
       actualAmount,
       variance,
       varianceReason: variance !== 0 ? varianceReason : '',
-      witness:authWitnessId ,
-      shiftRunner:authCashierId ,
+      witness: authWitnessId,
+      shiftRunner: authCashierId,
+      depositBagNumber,
+      confirmDepositBag,
+      bankingSlipNumber,
+      confirmBankingSlip,
       values: values,
       timestamp: new Date().toISOString()
     };
+
 
     const docRef = doc(db, 'SafeDrop', new Date().toISOString());
     await setDoc(docRef, data);
@@ -162,6 +179,7 @@ function BankingPage() {
         />
 
         <div className="space-y-4">
+          {/* Cashier ID */}
           <div className="flex items-center space-x-2">
             <label className="w-40">Enter Cashier ID:</label>
             <input
@@ -181,6 +199,7 @@ function BankingPage() {
             </label>
           </div>
 
+          {/* Witness ID */}
           <div className="flex items-center space-x-2">
             <label className="w-40">Enter Witness ID:</label>
             <input
@@ -199,7 +218,50 @@ function BankingPage() {
               <span>Confirm</span>
             </label>
           </div>
+
+          {/* Deposit Bag Number */}
+          <div className="flex items-center space-x-2">
+            <label className="w-40">Deposit Bag Number:</label>
+            <input
+              value={depositBagNumber}
+              onChange={(e) => setDepositBagNumber(e.target.value)}
+              className="border p-1 rounded w-40"
+              disabled={authDisabled}
+            />
+            <label className="flex items-center space-x-1">
+              <input
+                type="checkbox"
+                checked={confirmDepositBag}
+                onChange={(e) => setConfirmDepositBag(e.target.checked)}
+                disabled={authDisabled}
+              />
+              <span>Confirm</span>
+            </label>
+          </div>
+
+          {/* Banking Slip Number */}
+          <div className="flex items-center space-x-2">
+            <label className="w-40">Banking Slip Number:</label>
+            <input
+              value={bankingSlipNumber}
+              onChange={(e) => setBankingSlipNumber(e.target.value)}
+              className="border p-1 rounded w-40"
+              disabled={authDisabled}
+            />
+            <label className="flex items-center space-x-1">
+              <input
+                type="checkbox"
+                checked={confirmBankingSlip}
+                onChange={(e) => setConfirmBankingSlip(e.target.checked)}
+                disabled={authDisabled}
+              />
+              <span>Confirm</span>
+            </label>
+          </div>
         </div>
+
+
+
 
         {showVarianceReason && variance !== 0 && (
           <div className="variance-reason">
