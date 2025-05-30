@@ -24,6 +24,10 @@ const ItemsManager = () => {
   });
   const [editId, setEditId] = useState(null);
 
+  // New states for search
+  const [searchField, setSearchField] = useState('itemName');
+  const [searchTerm, setSearchTerm] = useState('');
+
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'items'), snapshot => {
       setItems(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -115,6 +119,28 @@ const ItemsManager = () => {
     }
   };
 
+  // Filter items based on search
+  const filteredItems = items.filter(item => {
+    if (!searchTerm.trim()) return true; // no filter if search term empty
+
+    const term = searchTerm.toLowerCase();
+
+    switch (searchField) {
+      case 'itemName':
+        return item.itemName?.toLowerCase().includes(term);
+      case 'categoryId':
+        // Match category name or category ID
+        const cat = categories.find(cat => cat.id === item.categoryId?.id);
+        const catName = cat?.name?.toLowerCase() || '';
+        const catId = item.categoryId?.id || '';
+        return catName.includes(term) || catId.toLowerCase().includes(term);
+      case 'price':
+        return item.price?.toString().includes(term);
+      default:
+        return true;
+    }
+  });
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold text-center mb-6">Item Management</h1>
@@ -179,6 +205,37 @@ const ItemsManager = () => {
         </button>
       </form>
 
+      {/* Search Section */}
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+        <select
+          value={searchField}
+          onChange={e => setSearchField(e.target.value)}
+          className="p-2 border rounded min-w-[150px]"
+        >
+          <option value="itemName">Item Name</option>
+          <option value="categoryId">Category</option>
+          <option value="price">Price</option>
+        </select>
+
+        <input
+          type="text"
+          placeholder={`Search by ${
+            searchField === 'categoryId' ? 'Category Name or ID' : searchField.charAt(0).toUpperCase() + searchField.slice(1)
+          }`}
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="flex-1 min-w-[200px] p-2 border rounded"
+        />
+
+        <button
+          onClick={() => setSearchTerm('')}
+          className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+          type="button"
+        >
+          Clear
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full border border-gray-300">
           <thead className="bg-blue-600 text-white">
@@ -192,14 +249,14 @@ const ItemsManager = () => {
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <tr>
                 <td colSpan="6" className="text-center py-4">
                   No items found.
                 </td>
               </tr>
             ) : (
-              items.map(item => {
+              filteredItems.map(item => {
                 const categoryName =
                   categories.find(cat => cat.id === item.categoryId?.id)?.name || item.categoryId?.id || '—';
 
@@ -227,13 +284,13 @@ const ItemsManager = () => {
                         <button
                           className={`w-28 ${
                             item.active === true
-                              ? "bg-red-700 hover:bg-red-800"
-                              : "bg-green-600 hover:bg-green-700"
+                              ? 'bg-red-700 hover:bg-red-800'
+                              : 'bg-green-600 hover:bg-green-700'
                           } text-white px-3 py-1 rounded`}
                           style={{ minWidth: 112 }} // Ensures fixed width for both buttons
                           onClick={() => handleToggleActive(item.id, item.active)}
                         >
-                          {item.active === true ? "Deactivate" : "Activate"}
+                          {item.active === true ? 'Deactivate' : 'Activate'}
                         </button>
                       </div>
                     </td>
