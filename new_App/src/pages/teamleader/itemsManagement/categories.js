@@ -16,6 +16,7 @@ const Categories = () => {
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // New state for search term
 
   const fetchCategories = async () => {
     const catRef = collection(db, "category");
@@ -104,6 +105,11 @@ const handleUpdateCategory = async (catId) => {
     }
   };
 
+  // Filter categories based on the search term
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-center">Category Management</h2>
@@ -122,6 +128,19 @@ const handleUpdateCategory = async (catId) => {
           Add
         </button>
       </div>
+    
+      {/* --- */}
+      {/* New search input field */}
+      <div className="mb-4">
+        <input
+          className="border p-2 rounded w-full text-base"
+          placeholder="Search categories..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      {/* --- */}
+
   
       <table className="w-full border-collapse">
         <thead>
@@ -132,8 +151,8 @@ const handleUpdateCategory = async (catId) => {
           </tr>
         </thead>
         <tbody>
-          {categories.length > 0 ? (
-            categories.map((cat) => (
+          {filteredCategories.length > 0 ? ( // Use filteredCategories here
+            filteredCategories.map((cat) => (
               <tr key={cat.id} className="text-center hover:bg-gray-100 text-base">
                 <td className="border px-2 py-1 break-all">{cat.id}</td>
                 <td className="border px-2 py-1">
