@@ -136,16 +136,22 @@ const Categories = () => {
           Add
         </button>
       </div>
-      {/* --- Search Input --- */}
-      <div className="mb-4">
+      {/* New search input field with Clear button */}
+      <div className="mb-4 flex gap-2">
         <input
-          className="border p-2 rounded w-full text-base"
+          className="border p-2 rounded flex-grow text-base"
           placeholder="Search categories..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+        <button
+          onClick={() => setSearchTerm('')} // This clears the search term
+          className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 text-black text-base"
+          type="button" // Important to prevent form submission
+        >
+          Clear
+        </button>
       </div>
-      {/* --- End Search Input --- */}
   
       <table className="w-full border-collapse">
         <thead>
