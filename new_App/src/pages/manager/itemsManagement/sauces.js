@@ -8,6 +8,7 @@ const Sauces = () => {
   const [saucesInput, setSaucesInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingSauces, setEditingSauces] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // New state for search term
 
   useEffect(()=>{
     const unsubscribe = onSnapshot(collection(db,"sauceGroups"),(snapshot)=>{
@@ -68,6 +69,13 @@ const Sauces = () => {
     setGroups(groups.filter(g => g.id !== id));
   };
 
+  // Filtered groups based on search term
+  const filteredGroups = groups.filter((group) =>
+    group.id.toLowerCase().includes(searchTerm.toLowerCase()) || // Search by category name (document ID)
+    group.sauces.some(sauce => sauce.toLowerCase().includes(searchTerm.toLowerCase())) // Search within sauces array
+  );
+
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-center">Sauce Group Management</h2>
@@ -92,6 +100,16 @@ const Sauces = () => {
           Add
         </button>
       </div>
+      
+      {/* New search input field */}
+      <div className="mb-4">
+        <input
+          className="border p-2 rounded w-full text-base"
+          placeholder="Search categories or sauces..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
       <table className="w-full border-collapse text-sm">
         <thead>
@@ -102,7 +120,8 @@ const Sauces = () => {
           </tr>
         </thead>
         <tbody>
-          {groups.map((group) => (
+          {filteredGroups.length > 0 ? (
+            filteredGroups.map((group) => (
             <tr key={group.id} className="text-center hover:bg-gray-100 text-base">
               <td className="border px-2 py-1">
                 {group.id} {/* show document ID as category */}
@@ -154,13 +173,19 @@ const Sauces = () => {
         onClick={() => handleDeleteGroup(group.id)}
       >
         Delete
-      </button>
-    </div>
-  )}
-</td>
-
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="3" className="text-center p-4 text-gray-500">
+                No sauce groups found.
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
