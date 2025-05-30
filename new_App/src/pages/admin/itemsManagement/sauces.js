@@ -104,16 +104,29 @@ const Sauces = () => {
           Add
         </button>
       </div>
-      {/* --- Search Input --- */}
-      <div className="mb-4">
+
+  
+
+      {/* --- Search Input with Clear Button --- */}
+      <div className="mb-4 flex gap-2"> {/* Added flex and gap for alignment */}
         <input
-          className="border p-2 rounded w-full text-base"
-          placeholder="Search by Category Name..."
+          // Use flex-grow for input
+          className="border p-2 rounded flex-grow text-base"
+          placeholder="Search by Category Name or Sauces..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+        <button
+          onClick={() => setSearchTerm('')} // Clears the search term
+          className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 text-black text-base" // Styling from ItemsManager
+          type="button" // Important to prevent form submission
+        >
+          Clear
+        </button>
       </div>
       {/* --- End Search Input --- */}
+
+
 
       <table className="w-full border-collapse text-sm">
         <thead>
