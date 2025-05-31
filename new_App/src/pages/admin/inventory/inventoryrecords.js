@@ -23,8 +23,12 @@ const InventoryRecords = () => {
           itemId: doc.data().itemId || '',
         }));
         items.sort((a, b) => {
-          const idA = parseInt(a.itemId.match(/^item0*(\d+)$/)[1]) || 0;
-          const idB = parseInt(b.itemId.match(/^item0*(\d+)$/)[1]) || 0;
+          const idA = a.itemId && typeof a.itemId === 'string' && a.itemId.match(/^item0*(\d+)$/)
+            ? parseInt(a.itemId.match(/^item0*(\d+)$/)[1])
+            : 0;
+          const idB = b.itemId && typeof b.itemId === 'string' && b.itemId.match(/^item0*(\d+)$/)
+            ? parseInt(b.itemId.match(/^item0*(\d+)$/)[1])
+            : 0;
           return idA - idB;
         });
         setInventory(items);
@@ -43,8 +47,12 @@ const InventoryRecords = () => {
         let aValue = a[key] || '';
         let bValue = b[key] || '';
         if (key === 'itemId') {
-          aValue = parseInt(aValue.match(/^item0*(\d+)$/)[1]) || 0;
-          bValue = parseInt(bValue.match(/^item0*(\d+)$/)[1]) || 0;
+          aValue = aValue && typeof aValue === 'string' && aValue.match(/^item0*(\d+)$/)
+            ? parseInt(aValue.match(/^item0*(\d+)$/)[1])
+            : 0;
+          bValue = bValue && typeof bValue === 'string' && bValue.match(/^item0*(\d+)$/)
+            ? parseInt(bValue.match(/^item0*(\d+)$/)[1])
+            : 0;
         } else if (['unitsPerInner', 'innerPerBox', 'totalStockOnHand'].includes(key)) {
           aValue = Number(aValue) || 0;
           bValue = Number(bValue) || 0;
